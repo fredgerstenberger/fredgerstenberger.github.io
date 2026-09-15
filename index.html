@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fred Gerstenberger | Mechanical engineer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #E4E8EA;
+    --dot: rgba(26, 34, 48, 0.13);
+    --ink: #1A2230;
+    --muted: #525D6B;
+    --window: #FFFFFF;
+    --select: #2448C8;
+    --select-ink: #FFFFFF;
+    --pixel: "DotGothic16", "Courier New", monospace;
+    --body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #121A22;
+      --dot: rgba(221, 227, 234, 0.08);
+      --ink: #DDE3EA;
+      --muted: #9AA6B3;
+      --window: #1C2631;
+      --select: #5B7CFF;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #121A22;
+    --dot: rgba(221, 227, 234, 0.08);
+    --ink: #DDE3EA;
+    --muted: #9AA6B3;
+    --window: #1C2631;
+    --select: #5B7CFF;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background-color: var(--paper);
+    background-image: radial-gradient(var(--dot) 1px, transparent 1.3px);
+    background-size: 16px 16px;
+    color: var(--ink);
+    font-family: var(--body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: clamp(20px, 4vw, 48px);
+  }
+  @media (min-width: 760px) and (min-height: 560px) {
+    body { overflow: hidden; }
+    .page { height: 100dvh; }
+  }
+
+  .layout {
+    width: 100%;
+    max-width: 1100px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: clamp(36px, 6vw, 88px);
+    align-items: center;
+  }
+
+  /* About */
+  .about { container-type: inline-size; }
+  .name {
+    font-family: var(--pixel);
+    font-weight: 400;
+    font-size: 56px;
+    font-size: clamp(40px, 12cqi, 88px);
+    line-height: 1;
+    margin: 0 0 20px;
+  }
+  .name span { display: block; }
+  .role {
+    font-family: var(--pixel);
+    font-size: clamp(18px, 1.9vw, 21px);
+    line-height: 1.35;
+    margin: 0 0 20px;
+    max-width: 30ch;
+  }
+  .bio {
+    font-size: 17px;
+    line-height: 1.55;
+    margin: 0 0 12px;
+    max-width: 48ch;
+    color: var(--muted);
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    margin-top: 26px;
+    font-family: var(--pixel);
+    font-size: 18px;
+  }
+  .links a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 5px;
+    padding: 1px 3px;
+    margin: 0 -3px;
+  }
+  .links a:hover { background: var(--select); color: var(--select-ink); text-decoration: none; }
+
+  a:focus-visible, button:focus-visible {
+    outline: 2px dotted var(--ink);
+    outline-offset: 3px;
+  }
+
+  /* Retro window chrome */
+  .win {
+    background: var(--window);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    box-shadow: 5px 5px 0 var(--ink);
+  }
+  .titlebar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 28px;
+    padding: 0 8px;
+    border-bottom: 2px solid var(--ink);
+    flex: none;
+  }
+  .stripes {
+    flex: 1;
+    height: 13px;
+    background: repeating-linear-gradient(to bottom, var(--ink) 0 1px, transparent 1px 3px);
+  }
+  .wintitle {
+    font-family: var(--pixel);
+    font-weight: 400;
+    font-size: 15px;
+    margin: 0;
+    padding: 0 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .closebox {
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: 2px solid var(--ink);
+    background: var(--window);
+    cursor: pointer;
+    flex: none;
+  }
+  .closebox:hover { background: var(--select); }
+  .closebox:active { background: var(--ink); }
+
+  /* Project icons */
+  .icons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 28px 8px;
+    padding: 38px 16px 34px;
+  }
+  .icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 4px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+  .icon svg { width: 80px; height: auto; display: block; }
+  .icon .label {
+    font-family: var(--pixel);
+    font-size: 15px;
+    line-height: 1.3;
+    text-align: center;
+    padding: 1px 5px;
+  }
+  .icon:hover .label,
+  .icon:focus-visible .label { background: var(--select); color: var(--select-ink); }
+  .icon:hover svg,
+  .icon:focus-visible svg { filter: brightness(0.82); }
+
+  .statusbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    border-top: 2px solid var(--ink);
+    padding: 5px 10px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* Pop-up window */
+  dialog.win {
+    padding: 0;
+    width: min(640px, calc(100vw - 32px));
+    max-height: calc(100dvh - 48px);
+  }
+  dialog.win.wide { width: min(780px, calc(100vw - 32px)); }
+  dialog.win[open] {
+    display: flex;
+    flex-direction: column;
+    animation: pop 0.2s steps(4, end);
+  }
+  dialog::backdrop {
+    background-image: conic-gradient(rgba(10, 16, 24, 0.4) 25%, transparent 0 50%, rgba(10, 16, 24, 0.4) 0 75%, transparent 0);
+    background-size: 4px 4px;
+  }
+  @keyframes pop {
+    from { transform: scale(0.55); opacity: 0.3; }
+    to { transform: none; opacity: 1; }
+  }
+  .dbody { overflow: auto; padding: 26px 30px 30px; }
+  .dbody h2 {
+    font-family: var(--pixel);
+    font-weight: 400;
+    font-size: clamp(24px, 4vw, 32px);
+    line-height: 1.15;
+    margin: 0 0 12px;
+  }
+  .summary {
+    font-size: 18px;
+    line-height: 1.5;
+    margin: 0 0 22px;
+    max-width: 58ch;
+  }
+  .facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 8px 20px;
+    margin: 0 0 22px;
+    padding: 16px 0;
+    border-top: 2px dotted var(--muted);
+    border-bottom: 2px dotted var(--muted);
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  .facts dt { color: var(--muted); }
+  .facts dd { margin: 0; }
+  .dbody p.text {
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0 0 14px;
+    max-width: 62ch;
+  }
+  .media {
+    aspect-ratio: 16 / 9;
+    border: 2px dashed var(--muted);
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    font-family: var(--pixel);
+    font-size: 15px;
+    margin-top: 22px;
+    text-align: center;
+    padding: 12px;
+  }
+  .media img { width: 100%; height: 100%; object-fit: cover; }
+  .note {
+    border: 2px dashed var(--muted);
+    color: var(--muted);
+    font-family: var(--pixel);
+    font-size: 14px;
+    padding: 8px 12px;
+    margin-top: 14px;
+  }
+
+  /* Resume */
+  .rhead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
+  .rhead h2 { margin: 0; }
+  .rmeta { color: var(--muted); font-size: 15px; margin: 6px 0 0; }
+  .rmeta a { color: var(--ink); }
+  .btn {
+    font-family: var(--pixel);
+    font-size: 15px;
+    color: var(--ink);
+    background: var(--window);
+    border: 2px solid var(--ink);
+    box-shadow: 3px 3px 0 var(--ink);
+    padding: 5px 12px;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--select); color: var(--select-ink); }
+  .btn:active { box-shadow: none; transform: translate(3px, 3px); }
+  .dbody h3 {
+    font-family: var(--pixel);
+    font-weight: 400;
+    font-size: 20px;
+    margin: 28px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 2px dotted var(--muted);
+  }
+  .job { margin-bottom: 20px; }
+  .job:last-child { margin-bottom: 0; }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 2px 16px;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  .row.org { font-size: 16px; font-weight: 700; }
+  .row .where, .row .when { color: var(--muted); font-weight: 400; }
+  .row .when { white-space: nowrap; }
+  .job ul { margin: 8px 0 0; padding-left: 20px; list-style: square; font-size: 15px; line-height: 1.5; }
+  .job li { margin-bottom: 4px; max-width: 70ch; }
+  .dbody .facts.skills { border: 0; padding: 0; margin: 0; }
+
+  @media (max-width: 759px) {
+    .layout { grid-template-columns: 1fr; gap: 30px; }
+    .bio { font-size: 16px; }
+    .icons { grid-template-columns: repeat(2, 1fr); gap: 24px 8px; padding: 26px 10px 22px; }
+    .icon svg { width: 64px; }
+    .dbody { padding: 22px 20px 24px; }
+    .facts { grid-template-columns: 1fr; gap: 2px; }
+    .facts dd { margin-bottom: 8px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    dialog.win[open] { animation: none; }
+    .btn:active { transform: none; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="layout">
+    <section class="about" aria-labelledby="name">
+      <h1 class="name" id="name"></h1>
+      <p class="role" id="role"></p>
+      <div id="bio"></div>
+      <nav class="links" id="links" aria-label="Contact"></nav>
+    </section>
+
+    <section class="win" aria-labelledby="projects-title">
+      <div class="titlebar">
+        <span class="stripes"></span>
+        <h2 class="wintitle" id="projects-title">Projects</h2>
+        <span class="stripes"></span>
+      </div>
+      <div class="icons" id="icons"></div>
+      <div class="statusbar">
+        <span id="count"></span>
+        <span>Click a folder to open it</span>
+      </div>
+    </section>
+  </div>
+</main>
+
+<dialog class="win" id="viewer" aria-labelledby="viewer-title">
+  <div class="titlebar">
+    <button class="closebox" id="close" aria-label="Close window"></button>
+    <span class="stripes"></span>
+    <span class="wintitle" id="viewer-label"></span>
+    <span class="stripes"></span>
+  </div>
+  <div class="dbody" id="viewer-body"></div>
+</dialog>
+
+<script>
+/* ============================================================
+   EDIT YOUR CONTENT HERE
+   ============================================================ */
+const PROFILE = {
+  first: "Fred",
+  last: "Gerstenberger",
+  role: "Mechanical engineer designing electromechanical products",
+  bio: [
+    "I have five years of product development experience and currently design professional audio hardware at QSC. Before that, I designed commercial fitness equipment at Core Health & Fitness.",
+    "My work spans die-cast, sheet metal, and injection-molded parts, from tolerance analysis and simulation to supporting builds with contract manufacturers. Outside work, I build robots and small products to sharpen mechanism design and design for manufacturing (DFM)."
+  ],
+  email: "fredgerstenberger@gmail.com",
+  linkedin: "https://www.linkedin.com/in/your-handle",
+  location: "Irvine, CA"
+};
+
+const PROJECTS = [
+  {
+    id: "gripper",
+    label: "Adaptive gripper",
+    title: "Underactuated adaptive gripper",
+    summary: "A single-motor, tendon-driven gripper whose fingers passively conform to objects of different shapes.",
+    facts: [
+      ["Status", "In progress"],
+      ["Focus", "Mechanism design, design for manufacturing (DFM)"],
+      ["Drive", "One hobby servo with basic Arduino control"],
+      ["Target", "Educational robotics kits, $100–250 price tier"]
+    ],
+    text: [
+      "I'm developing this as if it were shipping at scale, starting from a product requirements document (PRD). It's meant to pair with a low degree-of-freedom (DOF) arm in a science, technology, engineering, and math (STEM) kit rather than stand alone.",
+      "The electronics and code are deliberately simple so the effort goes into the mechanism: tendon routing, finger geometry, and parts that assemble repeatably."
+    ],
+    media: "CAD render or prototype photo"
+  },
+  {
+    id: "robot-arm",
+    label: "Robot arm",
+    title: "Desktop robot arm",
+    summary: "A small Arduino-controlled arm for learning actuator selection and motion control hands-on.",
+    facts: [
+      ["Status", "In progress"],
+      ["Controller", "Arduino Uno"],
+      ["Focus", "Servos, steppers, and motion control"]
+    ],
+    text: ["Build notes, CAD, and test videos will be added as the arm comes together."],
+    media: "Build photo"
+  },
+  {
+    id: "edc-pen",
+    label: "EDC pen",
+    title: "3D-printed everyday carry pen",
+    summary: "A minimal pen built around a Schmidt gel ink refill, designed for the everyday carry (EDC) community.",
+    facts: [
+      ["Status", "In progress"],
+      ["Process", "Fused deposition modeling (FDM) on a Bambu P1S"],
+      ["Refill", "Schmidt gel ink"]
+    ],
+    text: ["The goal is elegant simplicity: as few parts as possible, with geometry tuned to how a desktop printer actually builds parts, from wall thickness to the fit around the refill."],
+    media: "Product photo"
+  }
+];
+
+const RESUME = {
+  pdf: "",   // paste a link to your hosted resume PDF here
+  experience: [
+    {
+      org: "QSC", where: "Costa Mesa, CA",
+      roles: [["Mechanical Engineer 2, Product Development", "Oct 2025 – Present"]],
+      bullets: [
+        "Designed die-cast aluminum enclosure for an amplifier platform, integrating mechanical, thermal, and electrical constraints within a compact form factor.",
+        "Collaborated with electrical engineering via Altium CoDesigner to define layouts and clearances.",
+        "Developed PCB-mounted heat sink and enclosure-level heat dissipation strategies.",
+        "Designed plastic vent serving as both airflow feature and RF-transparent window.",
+        "Partnered with overseas contract manufacturers to drive DFM and support builds, resolving issues and refining assembly processes.",
+        "Performed tolerance stack-up analyses and created detailed engineering drawings for custom and vendor-supplied components, applying GD&T where functionally required."
+      ]
+    },
+    {
+      org: "Core Health & Fitness", where: "Irvine, CA",
+      roles: [
+        ["Mechanical Engineer 2, Product Development", "Apr 2023 – Oct 2025"],
+        ["Mechanical Engineer, Product Development", "Jul 2021 – Apr 2023"]
+      ],
+      bullets: [
+        "Designed sheet metal, welded structures, and injection molded components for fitness equipment, balancing structural performance, manufacturability, and cost constraints.",
+        "Performed engineering calculations and conducted FEA using SOLIDWORKS Simulation to validate structural performance and identify failure modes under real-world load conditions.",
+        "Supported accelerated life testing to identify failure modes and inform design improvements.",
+        "Collaborated cross-functionally with manufacturing, vendors, and product teams to drive designs from concept through production."
+      ]
+    },
+    {
+      org: "Radius Design", where: "Walnut Creek, CA",
+      roles: [["Assistant Project Manager", "Jun 2020 – Jun 2021"]],
+      bullets: [
+        "Coordinated cross-functional teams and external stakeholders to support execution of 15+ projects.",
+        "Assisted in tracking project timelines, deliverables, and critical path items."
+      ]
+    },
+    {
+      org: "Altec Industries", where: "Dixon, CA",
+      roles: [["Manufacturing Engineer Co-op", "Jan 2019 – Aug 2019"]],
+      bullets: ["Designed sheet metal assemblies in SOLIDWORKS and coordinated with machine shop fabrication."]
+    }
+  ],
+  education: [
+    { org: "University of the Pacific", where: "Stockton, CA", roles: [["BS, Mechanical Engineering", "May 2020"]], bullets: ["Graduated Magna Cum Laude, 3.7 GPA"] },
+    { org: "Engineer in Training (EIT) Certification", where: "California Board for Professional Engineers, Land Surveyors, and Geologists", roles: [["", "May 2021"]], bullets: [] }
+  ],
+  skills: [
+    ["Mechanical design", "CAD (SOLIDWORKS, Creo), sheet metal, die casting, injection molding"],
+    ["Analysis", "FEA (SOLIDWORKS Simulation, Flow Simulation), tolerance stack-ups, GD&T (ASME Y14.5)"],
+    ["Manufacturing and prototyping", "DFM/DFA, 3D printing, machining, welding, prototype iteration"],
+    ["Product development", "Cross-functional collaboration, design iteration, testing, production support"],
+    ["Interests", "Beach volleyball, fitness, acoustic guitar, singing, cooking, board games"]
+  ]
+};
+
+/* ============================================================
+   Pixel sprites
+   ============================================================ */
+const SPRITES = {
+  folder: {
+    map: [
+      ".kkkkkk.........",
+      "koooooookkkkkkk.",
+      "kooooooooooooook",
+      "kokkkkkkkkkkkkkk",
+      "kkllllllllllllyk",
+      "kklyyyyyyyyyyyok",
+      "kklyyyyyyyyyyyok",
+      "kklyyyyyyyyyyyok",
+      "kklyyyyyyyyyyyok",
+      "kklyyyyyyyyyyyok",
+      "kklyyyyyyyyyyyok",
+      "kkoooooooooooook",
+      "kkkkkkkkkkkkkkkk"
+    ],
+    colors: { k: "#1A2230", o: "#D9901A", y: "#F7C948", l: "#FFE9A3" }
+  },
+  doc: {
+    map: [
+      "..kkkkkkkk......",
+      "..kwwwwwwkk.....",
+      "..kwwwwwwkwk....",
+      "..kwwwwwwkwwk...",
+      "..kwwwwwwkkkkk..",
+      "..kwwwwwwwwwwk..",
+      "..kwggggggggwk..",
+      "..kwwwwwwwwwwk..",
+      "..kwggggggwwwk..",
+      "..kwwwwwwwwwwk..",
+      "..kwggggggggwk..",
+      "..kwwwwwwwwwwk..",
+      "..kkkkkkkkkkkk.."
+    ],
+    colors: { k: "#1A2230", w: "#FFFFFF", g: "#8A94A3" }
+  }
+};
+
+function sprite(name) {
+  const { map, colors } = SPRITES[name];
+  const w = map[0].length, h = map.length;
+  let rects = "";
+  map.forEach((row, y) => {
+    let x = 0;
+    while (x < w) {
+      const c = row[x];
+      let run = 1;
+      while (x + run < w && row[x + run] === c) run++;
+      if (colors[c]) rects += `<rect x="${x}" y="${y}" width="${run}" height="1" fill="${colors[c]}"/>`;
+      x += run;
+    }
+  });
+  return `<svg viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`;
+}
+
+/* ============================================================
+   Render
+   ============================================================ */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+document.getElementById("name").innerHTML = `<span>${esc(PROFILE.first)}</span><span>${esc(PROFILE.last)}</span>`;
+document.getElementById("role").textContent = PROFILE.role;
+document.getElementById("bio").innerHTML = PROFILE.bio.map(p => `<p class="bio">${esc(p)}</p>`).join("");
+document.getElementById("links").innerHTML = `
+  <a href="mailto:${esc(PROFILE.email)}">Email</a>
+  <a href="${esc(PROFILE.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>
+  <a href="#resume">Resume</a>`;
+
+const ICONS = [
+  ...PROJECTS.map(p => ({ id: p.id, label: p.label, icon: "folder" })),
+  { id: "resume", label: "Resume", icon: "doc" }
+];
+document.getElementById("icons").innerHTML = ICONS.map(i => `
+  <button class="icon" data-id="${esc(i.id)}">
+    ${sprite(i.icon)}
+    <span class="label">${esc(i.label)}</span>
+  </button>`).join("");
+document.getElementById("count").textContent = `${ICONS.length} items`;
+
+const viewer = document.getElementById("viewer");
+const viewerBody = document.getElementById("viewer-body");
+
+function projectHTML(p) {
+  let html = `<h2 id="viewer-title">${esc(p.title)}</h2><p class="summary">${esc(p.summary)}</p>`;
+  if (p.facts.length) html += `<dl class="facts">${p.facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`;
+  html += p.text.map(t => `<p class="text">${esc(t)}</p>`).join("");
+  if (p.image) html += `<div class="media"><img src="${esc(p.image)}" alt="${esc(p.title)}"></div>`;
+  else if (p.media) html += `<div class="media">Add image: ${esc(p.media)}</div>`;
+  return html;
+}
+
+function entryHTML(e) {
+  return `<div class="job">
+    <div class="row org"><span>${esc(e.org)}</span><span class="where">${esc(e.where)}</span></div>
+    ${e.roles.map(([t, d]) => `<div class="row"><span>${esc(t)}</span><span class="when">${esc(d)}</span></div>`).join("")}
+    ${e.bullets.length ? `<ul>${e.bullets.map(b => `<li>${esc(b)}</li>`).join("")}</ul>` : ""}
+  </div>`;
+}
+
+function resumeHTML() {
+  const r = RESUME;
+  return `
+    <div class="rhead">
+      <h2 id="viewer-title">${esc(PROFILE.first)} ${esc(PROFILE.last)}, EIT</h2>
+      ${r.pdf ? `<a class="btn" href="${esc(r.pdf)}" target="_blank" rel="noopener">Open PDF</a>` : ""}
+    </div>
+    <p class="rmeta">${esc(PROFILE.location)}. <a href="mailto:${esc(PROFILE.email)}">${esc(PROFILE.email)}</a></p>
+    ${r.pdf ? "" : `<div class="note">Add a link to your resume PDF in RESUME.pdf to show an Open PDF button.</div>`}
+    <h3>Experience</h3>
+    ${r.experience.map(entryHTML).join("")}
+    <h3>Education</h3>
+    ${r.education.map(entryHTML).join("")}
+    <h3>Skills and interests</h3>
+    <dl class="facts skills">${r.skills.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`;
+}
+
+function openItem(id) {
+  const icon = ICONS.find(i => i.id === id);
+  if (!icon) return;
+  document.getElementById("viewer-label").textContent = icon.label;
+  const isResume = id === "resume";
+  viewer.classList.toggle("wide", isResume);
+  viewerBody.innerHTML = isResume ? resumeHTML() : projectHTML(PROJECTS.find(p => p.id === id));
+  viewerBody.scrollTop = 0;
+  if (!viewer.open) viewer.showModal();
+  history.replaceState(null, "", "#" + id);
+}
+
+document.getElementById("icons").addEventListener("click", e => {
+  const btn = e.target.closest(".icon");
+  if (btn) openItem(btn.dataset.id);
+});
+document.getElementById("links").addEventListener("click", e => {
+  const a = e.target.closest("a");
+  if (a && a.getAttribute("href").startsWith("#")) {
+    e.preventDefault();
+    openItem(a.getAttribute("href").slice(1));
+  }
+});
+document.getElementById("close").addEventListener("click", () => viewer.close());
+viewer.addEventListener("click", e => { if (e.target === viewer) viewer.close(); });
+viewer.addEventListener("close", () => history.replaceState(null, "", location.pathname + location.search));
+
+function openFromHash() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  if (id) openItem(id);
+}
+window.addEventListener("hashchange", openFromHash);
+openFromHash();
+</script>
+</body>
+</html>
