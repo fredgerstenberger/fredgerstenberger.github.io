@@ -46,16 +46,11 @@ function homeView() {
     <header class="hero">
       <div>
         <h1><span>Recipe</span><span>Box</span></h1>
-        <p>Cook it. Plan it. Shop it.</p>
       </div>
       <button class="btn small" id="themeBtn" aria-label="Toggle light or dark mode">${themeLabel()}</button>
     </header>
     <section class="win" aria-labelledby="k-title">
-      <div class="titlebar">
-        <span class="stripes"></span>
-        <h2 class="wintitle" id="k-title">Kitchen</h2>
-        <span class="stripes"></span>
-      </div>
+      <div class="titlebar"><h2 class="wintitle" id="k-title">Kitchen</h2></div>
       <nav class="icons">
         ${tiles.map(([icon, label, href, badge]) => `
           <a class="icon" href="${href}">
@@ -71,7 +66,7 @@ function homeView() {
     </section>
     ${today.length ? `
     <section class="win today">
-      <div class="titlebar"><span class="stripes"></span><h2 class="wintitle">Today</h2><span class="stripes"></span></div>
+      <div class="titlebar"><h2 class="wintitle">Today</h2></div>
       <div class="wbody"><ul>
         ${today.map(t => `<li><span class="slot">${cap(t.m)}</span><span>${t.hit.map(r => `<a href="#/r/${r.id}">${esc(r.title)}</a>`).join(", ")}</span></li>`).join("")}
       </ul></div>

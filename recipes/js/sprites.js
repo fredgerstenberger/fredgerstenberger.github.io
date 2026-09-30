@@ -61,22 +61,22 @@ export const SPRITES = {
   },
   list: {
     map: [
-      ".....kkkkkk.....",
-      "..kkkkssssskkk..",
-      "..kookkkkkkkok..",
-      "..kowwwwwwwwok..",
-      "..kowkkwwwwwok..",
-      "..kowkgwggggok..",
-      "..kowkkwwwwwok..",
-      "..kowwwwwwwwok..",
-      "..kowkkwwwwwok..",
-      "..kowkkwggggok..",
-      "..kowwwwwwwwok..",
-      "..kowwwwwwwwok..",
-      "..koooooooooook.",
-      "..kkkkkkkkkkkkk."
+      ".kkkkkkkkkkkkkk.",
+      ".kwwwwwwwwwwwwk.",
+      ".kwkkkwwwwwwwwk.",
+      ".kwkbkwggggggwk.",
+      ".kwkkkwwwwwwwwk.",
+      ".kwwwwwwwwwwwwk.",
+      ".kwkkkwwwwwwwwk.",
+      ".kwkwkwggggggwk.",
+      ".kwkkkwwwwwwwwk.",
+      ".kwwwwwwwwwwwwk.",
+      ".kwkkkwwwwwwwwk.",
+      ".kwkwkwggggwwwk.",
+      ".kwkkkwwwwwwwwk.",
+      ".kkkkkkkkkkkkkk."
     ],
-    colors: { k: K, o: "#B07A3A", s: "#C9CED6", w: "#FFFFFF", g: "#8A94A3" }
+    colors: { k: K, w: "#FFFFFF", g: "#8A94A3", b: "#2448C8" }
   },
   pantry: {
     map: [
@@ -119,18 +119,20 @@ export const SPRITES = {
   settings: {
     map: [
       "......kkkk......",
-      "..kk..kssk..kk..",
-      "..kskkkssskkksk.",
-      "...kssssssssssk.",
-      "...ksssskkssssk.",
-      ".kkssskk..kksskk",
-      ".ksssk......ksss",
-      ".ksssk......ksss",
-      ".kkssskk..kksskk",
-      "...ksssskkssssk.",
-      "...kssssssssssk.",
-      "..kskkksssskksk.",
-      "..kk..kssk..kk..",
+      ".kkkk.kssk.kkkk.",
+      ".kssk.kssk.kssk.",
+      ".kssskssssksssk.",
+      ".kksssssssssskk.",
+      "...kssskksssk...",
+      "kkksssk..kssskkk",
+      "kssssk....kssssk",
+      "kssssk....kssssk",
+      "kkksssk..kssskkk",
+      "...kssskksssk...",
+      ".kksssssssssskk.",
+      ".kssskssssksssk.",
+      ".kssk.kssk.kssk.",
+      ".kkkk.kssk.kkkk.",
       "......kkkk......"
     ],
     colors: { k: K, s: "#C9CED6" }
@@ -154,6 +156,52 @@ export const SPRITES = {
     ],
     colors: { k: K, y: "#F7C948" }
   }
+};
+
+// Small UI glyphs: "c" pixels take the current text color.
+SPRITES.back = {
+  map: [
+    "....c......",
+    "...cc......",
+    "..ccc......",
+    ".cccccccccc",
+    "ccccccccccc",
+    ".cccccccccc",
+    "..ccc......",
+    "...cc......",
+    "....c......"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.close = {
+  map: [
+    "cc.....cc",
+    "ccc...ccc",
+    ".ccc.ccc.",
+    "..ccccc..",
+    "...ccc...",
+    "..ccccc..",
+    ".ccc.ccc.",
+    "ccc...ccc",
+    "cc.....cc"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.clock = {
+  map: [
+    "....cccc....",
+    ".....cc.....",
+    "...cccccc...",
+    "..c......c..",
+    ".c...c....c.",
+    ".c...c....c.",
+    ".c...ccc..c.",
+    ".c........c.",
+    ".c........c.",
+    "..c......c..",
+    "...cccccc..."
+  ],
+  colors: { c: "currentColor" }
 };
 
 export function sprite(name, cls = "") {

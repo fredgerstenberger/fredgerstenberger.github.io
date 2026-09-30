@@ -4,7 +4,8 @@ import { esc, fmtMinutes, debounce, domainOf } from "../util.js";
 import { shell, render, starsHTML, confirmBox, toast, go } from "../ui.js";
 import { parseIngredient, displayAmount, equivalents } from "../ingredients.js";
 import { nutritionFor, servingsOf } from "../nutrition.js";
-import { linkTimes, startTimer } from "../timers.js";
+import { findTimes, startTimer } from "../timers.js";
+import { sprite } from "../sprites.js";
 import { openAddToPlan } from "./plan.js";
 
 const progress = {}; // id → { ings:Set, steps:Set, servings, cook }
@@ -36,6 +37,8 @@ export function recipeView(id) {
   if (!r) { render(shell({ title: "Not found", back: "#/book", body: `<p>That recipe isn't in your book anymore.</p><a class="btn" href="#/book">Back to recipe book</a>` })); return; }
   const P = progress[id] ||= { ings: new Set(), steps: new Set(), servings: servingsOf(r), cook: false };
   const s = store.settings();
+  // The unit toggle on a recipe is temporary; changing the default in Settings resets it.
+  if (P.modeBase !== s.units) { P.mode = null; P.modeBase = s.units; }
   let mode = P.mode || s.units;
 
   function draw(keepScroll = true) {
@@ -70,7 +73,9 @@ export function recipeView(id) {
       if (st.startsWith("#")) return `<li class="hdr">${esc(st.replace(/^#+\s*/, ""))}</li>`;
       const i = si++; stepNo++;
       const cls = P.steps.has(i) ? "done" : i === firstOpen ? "current" : "";
-      return `<li class="step ${cls}" data-step="${i}"><span>${linkTimes(esc(st), `Step ${stepNo}`)}</span></li>`;
+      const { html, timers } = findTimes(esc(st));
+      return `<li class="step ${cls}" data-step="${i}"><div class="stepbody"><span>${html}</span>${timers.map(tm =>
+        `<button class="timelink" data-min="${tm.min}" data-label="Step ${stepNo}" aria-label="Start ${tm.text} timer">${sprite("clock")}<span>${tm.text}</span></button>`).join("")}</div></li>`;
     }).join("");
 
     const times = [];
@@ -173,7 +178,7 @@ export function recipeView(id) {
     document.getElementById("clearSteps")?.addEventListener("click", () => { P.steps.clear(); draw(); });
     root.querySelectorAll("li.step").forEach(li => li.onclick = e => {
       const tb = e.target.closest(".timelink");
-      if (tb) { e.stopPropagation(); startTimer(+tb.dataset.min, `${r.title.slice(0, 18)} · ${tb.dataset.label}`); toast(`Timer started: ${tb.textContent.replace("⏲", "").trim()}`); return; }
+      if (tb) { e.stopPropagation(); startTimer(+tb.dataset.min, `${r.title.slice(0, 18)} · ${tb.dataset.label}`); toast(`Timer started: ${tb.textContent.trim()}`); return; }
       const i = +li.dataset.step;
       P.steps.has(i) ? P.steps.delete(i) : P.steps.add(i);
       draw();
