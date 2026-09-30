@@ -6,6 +6,7 @@ import { esc, uid, DAYS, MEALS, cap, addDays, parseWeekKey, weekKey, planningWee
 import { shell, render, modal, closeModal, toast, go, metaLine } from "../ui.js";
 import { nutritionFor, servingsOf } from "../nutrition.js";
 import { matches, searchText } from "./book.js";
+import { recipeCost, money } from "../prices.js";
 
 const SLOT_ORDER = DAYS.flatMap(d => MEALS.map(m => `${d}-${m}`));
 const slotIdx = s => SLOT_ORDER.indexOf(s);
@@ -72,6 +73,13 @@ export function planView(key) {
     </section>`;
   }).join("");
 
+  // Food cost for the week: what the planned amounts use (not whole packages).
+  let weekCost = 0, servingsTotal = 0;
+  for (const x of meals) {
+    const r = store.recipe(x.rid), c = recipeCost(r);
+    weekCost += c.total * (x.servings / servingsOf(r));
+    servingsTotal += x.servings;
+  }
   const prep = [...meals].sort((a, b) => Math.min(...a.slots.map(slotIdx)) - Math.min(...b.slots.map(slotIdx)));
 
   render(shell({
@@ -81,6 +89,7 @@ export function planView(key) {
       <div class="banner">
         <span><span class="px">Shop &amp; prep:</span> ${fmtDate(prepDay, { weekday: "short", month: "short", day: "numeric" })}</span>
         <a class="btn small" href="#/grocery/${key}">Grocery list ▸</a>
+        ${weekCost > 0 ? `<span style="flex-basis:100%">Food cost ~${money(weekCost)} · ~${money(weekCost / servingsTotal)}/serving</span>` : ""}
       </div>
       ${days}
       <h2 class="sect">Sunday prep list <small>${prep.length ? `${prep.length} to cook` : ""}</small></h2>
@@ -120,7 +129,7 @@ function pickRecipe(key, slot) {
     ${all.length ? `
     <input type="search" id="pq" placeholder="Search your recipes…" autocomplete="off">
     <div class="chipscroll" style="margin-top:10px">
-      ${["breakfast", "lunch", "dinner", ":lowcal", ":protein", ":quick"].map(c => `<button class="chip" data-f="${c}">${{ ":lowcal": "Low cal", ":protein": "High protein", ":quick": "Quick" }[c] || cap(c)}</button>`).join("")}
+      ${["breakfast", "lunch", "dinner", ":lowcal", ":protein", ":quick", ":budget"].map(c => `<button class="chip" data-f="${c}">${{ ":lowcal": "Low cal", ":protein": "High protein", ":quick": "Quick", ":budget": "Budget" }[c] || cap(c)}</button>`).join("")}
     </div>
     <ul class="picklist" id="pl"></ul>` : `<p>Your recipe book is empty.</p><a class="btn primary" href="#/add">+ Add a recipe</a>`}`);
   if (!all.length) return;

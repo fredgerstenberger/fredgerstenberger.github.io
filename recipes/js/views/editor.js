@@ -2,7 +2,7 @@
 import * as store from "../store.js";
 import { esc, uid, domainOf } from "../util.js";
 import { shell, render, toast, go } from "../ui.js";
-import { importFromUrl } from "../parse.js";
+import { importFromUrl, parseRecipeText } from "../parse.js";
 import { autoTags } from "../tags.js";
 
 export function addView(params) {
@@ -23,6 +23,26 @@ export function addView(params) {
       </form>
       <div class="btnrow" style="margin-top:0"><button class="btn small" id="pasteBtn" type="button">Paste from clipboard</button></div>
       <div id="status"></div>
+
+      <details class="fromtext" id="textBox" ${params.get("text") ? "open" : ""}>
+        <summary>From a cookbook photo or text</summary>
+        <ol class="howto">
+          <li>Tap <b>Choose photo</b> and pick (or take) a photo of the recipe.</li>
+          <li>Press and hold on the text in the photo, then tap <b>Select All</b> → <b>Copy</b>. If selecting doesn't work here, do the same in the Photos app.</li>
+          <li>Tap <b>Paste</b>, then <b>Read recipe</b>.</li>
+        </ol>
+        <div class="btnrow">
+          <label class="btn" for="photo">Choose photo</label>
+          <input type="file" id="photo" accept="image/*" hidden>
+          <button class="btn" id="pasteText" type="button">Paste</button>
+        </div>
+        <img id="photoPrev" class="photoprev" alt="Your recipe photo — press and hold the text to copy it" hidden>
+        <label class="field"><span>Recipe text</span>
+          <textarea id="rtext" rows="8" placeholder="Paste the recipe here: title, ingredients and steps. Works with text from photos, emails, notes…">${esc(params.get("text") || "")}</textarea>
+        </label>
+        <button class="btn primary" id="readText" type="button">Read recipe</button>
+      </details>
+
       <div id="editor"></div>
       <p class="muted" style="font-size:14px;margin-top:22px">Or <button class="btn small" id="manualBtn" type="button">type one in</button></p>
       ${s.proxy ? "" : `<p class="note">Imports use free public proxies, which are sometimes slow or down. For reliable imports, <a href="#/settings">set up your own free proxy</a> (5 minutes).</p>`}`
@@ -71,6 +91,38 @@ export function addView(params) {
 
   document.getElementById("urlForm").onsubmit = e => { e.preventDefault(); run(); };
   document.getElementById("manualBtn").onclick = () => manual();
+
+  // From text / photo
+  const rtext = document.getElementById("rtext");
+  const prev = document.getElementById("photoPrev");
+  document.getElementById("photo").onchange = e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    if (prev.src) URL.revokeObjectURL(prev.src);
+    prev.src = URL.createObjectURL(f);
+    prev.hidden = false;
+    toast("Press and hold the text in the photo to copy it");
+  };
+  const pasteTextBtn = document.getElementById("pasteText");
+  if (!navigator.clipboard?.readText) pasteTextBtn.hidden = true;
+  pasteTextBtn.onclick = async () => {
+    try { const t = await navigator.clipboard.readText(); if (t.trim()) { rtext.value = t; toast("Pasted"); } else toast("Clipboard is empty"); }
+    catch { toast("Long-press the text box and tap Paste"); }
+  };
+  document.getElementById("readText").onclick = () => {
+    const t = rtext.value.trim();
+    if (!t) { toast("Paste the recipe text first"); rtext.focus(); return; }
+    const r = parseRecipeText(t);
+    statusEl.innerHTML = r.ingredients.length
+      ? `<p class="note">Read ${r.ingredients.length} ingredients and ${r.steps.length} steps. Check it over, then save.</p>`
+      : `<p class="note error">Couldn't spot the ingredients. Fill them in below, one per line.</p>`;
+    showEditor(editorEl, {
+      id: uid(), title: r.title, url: "", site: "", author: "",
+      yield: r.yield, yieldText: r.yieldText, prepMin: r.prepMin, cookMin: r.cookMin, totalMin: r.totalMin,
+      ingredients: r.ingredients, steps: r.steps, nutrition: null,
+      tags: autoTags(r), rating: 0, notes: r.description || ""
+    }, true);
+  };
   const pasteBtn = document.getElementById("pasteBtn");
   if (!navigator.clipboard?.readText) pasteBtn.hidden = true;
   pasteBtn.onclick = async () => {
@@ -80,7 +132,7 @@ export function addView(params) {
       if (found) { urlIn.value = found; run(); } else toast("No link on the clipboard");
     } catch { toast("Clipboard not available — long-press the box to paste"); }
   };
-  if (pre) run(); else urlIn.focus();
+  if (pre) run(); else if (!params.get("text")) urlIn.focus();
 }
 
 export function editView(id) {

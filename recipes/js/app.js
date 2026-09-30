@@ -12,6 +12,7 @@ import { groceryView } from "./views/grocery.js";
 import { pantryView } from "./views/pantry.js";
 import { convertView } from "./views/convert.js";
 import { settingsView } from "./views/settings.js";
+import { pricesView } from "./views/prices.js";
 import { sectionize } from "./grocery.js";
 
 // ---- Home ----
@@ -38,6 +39,7 @@ function homeView() {
     ["plan", "Meal plan", "#/plan", meals.length ? plural(meals.length, "meal") : ""],
     ["list", "Grocery list", "#/grocery", toBuy ? `${toBuy} to buy` : ""],
     ["pantry", "Pantry", "#/pantry", ""],
+    ["price", "Prices", "#/prices", ""],
     ["convert", "Converter", "#/convert", ""],
     ["settings", "Settings", "#/settings", ""]
   ];
@@ -107,7 +109,8 @@ const ROUTES = [
   [/^#\/grocery(?:\/([\d-]+))?$/, m => groceryView(m[1])],
   [/^#\/pantry$/, () => pantryView()],
   [/^#\/convert$/, () => convertView()],
-  [/^#\/settings$/, () => settingsView()]
+  [/^#\/settings$/, () => settingsView()],
+  [/^#\/prices$/, () => pricesView()]
 ];
 
 function route() {
@@ -127,7 +130,11 @@ function handleIncomingUrl() {
   const u = p.get("url") || p.get("text");
   if (u) {
     const found = (u.match(/https?:\/\/\S+/) || [])[0];
-    history.replaceState(null, "", location.pathname + (found ? `#/add?url=${encodeURIComponent(found)}` : "#/add"));
+    // A link → import it. Shared recipe text (no link, several lines) → the text importer.
+    const hash = found && u.trim().length < found.length + 40 ? `#/add?url=${encodeURIComponent(found)}`
+      : u.includes("\n") ? `#/add?text=${encodeURIComponent(u)}`
+      : found ? `#/add?url=${encodeURIComponent(found)}` : "#/add";
+    history.replaceState(null, "", location.pathname + hash);
   }
 }
 

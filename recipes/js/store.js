@@ -11,13 +11,16 @@ export const DEFAULT_SETTINGS = {
   people: 1,            // people eating each planned meal
   units: "original",    // original | us | metric
   proxy: "",            // your Cloudflare Worker URL
-  wakeLock: true
+  wakeLock: true,
+  priceRegion: "us",    // see prices.js REGIONS
+  priceCustomPct: 100,  // % of US average when region is "custom"
+  budget: 3             // $ per serving for the Budget filter
 };
 
 function freshState() {
   const pantry = {};
   for (const f of FOODS) if (f.kind === "S") pantry[f.name] = true;
-  return { version: 1, recipes: {}, plan: {}, grocery: {}, pantry, settings: { ...DEFAULT_SETTINGS }, lastBackup: 0 };
+  return { version: 1, recipes: {}, plan: {}, grocery: {}, pantry, prices: {}, pricesUpdated: 0, settings: { ...DEFAULT_SETTINGS }, lastBackup: 0 };
 }
 
 let state = load();
@@ -83,6 +86,15 @@ export function groceryState(key) {
 export const settings = () => state.settings;
 export function setSetting(k, v) { state.settings[k] = v; save(); }
 
+// ---- Your own prices (override the estimates) ----
+export function setPrice(name, price, basis) {
+  state.prices ||= {};
+  if (price == null) delete state.prices[name];
+  else state.prices[name] = { price, basis };
+  state.pricesUpdated = Date.now();
+  save();
+}
+
 // ---- Backup ----
 export function exportJSON() {
   state.lastBackup = Date.now();
@@ -101,6 +113,7 @@ export function importJSON(text, mode = "merge") {
     Object.assign(state.recipes, data.recipes);
     for (const [k, v] of Object.entries(data.plan || {})) if (!state.plan[k]) state.plan[k] = v;
     Object.assign(state.pantry, data.pantry || {});
+    state.prices = { ...(data.prices || {}), ...(state.prices || {}) };
   }
   save();
   return Object.keys(data.recipes).length;

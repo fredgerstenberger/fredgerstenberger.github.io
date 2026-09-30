@@ -3,6 +3,7 @@ import { parseIngredient, toGrams, UNITS, usMass, usVolume, fmtQty, unitLabel, c
 import { servingsOf } from "./nutrition.js";
 import * as store from "./store.js";
 import { FOOD_BY_NAME } from "./fooddb.js";
+import { perGram, packagePrice, eachPrice } from "./prices.js";
 
 function singular(w) {
   if (/(ss|us|is)$/.test(w) || w.length <= 3) return w;
@@ -99,28 +100,37 @@ export function buildList(weekKey) {
     }
   }
 
-  return [...acc.values()].map(a => ({ ...a, sources: [...a.sources], amount: amountText(a) }));
+  return [...acc.values()].map(a => { const amount = amountText(a); return { ...a, sources: [...a.sources], amount }; });
 }
 
 function ceilTo(n, step) { return Math.ceil(n / step - 1e-6) * step; }
 
+// Builds the shopping amount text and sets a.cost (what you'd pay at the store, whole packages).
 function amountText(a) {
   const f = a.food;
   const parts = [];
+  const pg = perGram(f);
+  a.cost = null;
   if (f && f.pkg && (a.pkgCount || a.grams)) {
     const n = Math.max(1, Math.ceil(a.pkgCount + a.grams / f.pkg.g - 0.05));
+    const pp = packagePrice(f);
+    if (pp != null) a.cost = n * pp;
     const label = pluralize(f.pkg.label, n);
     parts.push(`${n} ${label}${f.pkg.desc ? ` (${f.pkg.desc})` : ""}`);
   } else if (f && a.grams) {
     if (f.gEach && (f.aisle === "produce" || f.aisle === "bakery" || f.name === "eggs")) {
       const n = Math.max(1, Math.ceil(a.grams / f.gEach - 0.1));
+      const ep = eachPrice(f);
+      if (ep != null) a.cost = n * ep;
       parts.push(String(n));
     } else if (f.liquid) {
       const v = usVolume(a.grams / (f.gCup ? f.gCup / 236.588 : 1));
+      if (pg != null) a.cost = a.grams * pg;
       parts.push(`${fmtQty(ceilTo(v.qty, 0.25))} ${unitLabel(v.unit, v.qty)}`);
     } else {
       const m = usMass(a.grams);
       const q = m.unit === "lb" ? ceilTo(m.qty, 0.25) : Math.ceil(m.qty);
+      if (pg != null) a.cost = (m.unit === "lb" ? q * 453.592 : Math.min(q, 16) * 28.3495) * pg;
       parts.push(m.unit === "oz" && q >= 16 ? "1 lb" : `${fmtQty(q)} ${m.unit}`);
     }
   }

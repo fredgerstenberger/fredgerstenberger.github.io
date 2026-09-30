@@ -619,3 +619,15 @@ body.has-timers .toast { bottom: calc(92px + var(--safe-b)); }
   .titlebar button, .btnrow, .cookbar, .hide-print, .timerdock { display: none !important; }
   .win { box-shadow: none; }
 }
+
+/* ---------- Prices ---------- */
+.pricerow { width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border: 0; background: none; padding: 4px 0; cursor: pointer; text-align: left; font-size: 16px; }
+.pricerow .pr { font-family: var(--pixel); white-space: nowrap; }
+.pricerow .pr small { font-family: var(--body); color: var(--muted); font-size: 13px; }
+.pricerow:hover { color: var(--select); }
+
+/* ---------- Add from text / photo ---------- */
+.fromtext { border: 2px solid var(--ink); padding: 10px 12px; margin: 18px 0; background: var(--sunk); }
+.fromtext summary { font-family: var(--pixel); font-size: 17px; cursor: pointer; padding: 4px 0; }
+.fromtext[open] summary { margin-bottom: 6px; }
+.photoprev { display: block; max-width: 100%; max-height: 70dvh; margin: 0 auto 14px; border: 2px solid var(--ink); -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }

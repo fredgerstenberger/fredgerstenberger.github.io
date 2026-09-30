@@ -5,6 +5,7 @@ import { shell, render, toast } from "../ui.js";
 import { AISLES } from "../fooddb.js";
 import { sectionize, listAsText } from "../grocery.js";
 import { weekNav, weekLabel, currentWeek, setWeek } from "./plan.js";
+import { money } from "../prices.js";
 
 const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -17,6 +18,10 @@ export function groceryView(key) {
   const sec = sectionize(key);
 
   const left = sec.buy.filter(i => !i.checked).length + sec.extras.filter(e => !e.checked).length;
+  const priced = sec.buy.filter(i => i.cost != null);
+  const est = priced.reduce((t, i) => t + i.cost, 0);
+  const estLeft = priced.filter(i => !i.checked).reduce((t, i) => t + i.cost, 0);
+  const unpriced = sec.buy.length - priced.length;
   const total = sec.buy.length + sec.extras.length;
 
   const byAisle = AISLES.map(([id, label]) => {
@@ -45,6 +50,7 @@ export function groceryView(key) {
         </div>`).join("")}
       </div>` : ""}
 
+      ${sec.buy.length ? `<div class="banner"><span><span class="px">Est. total</span> ~${money(est)}${estLeft !== est ? ` · ~${money(estLeft)} left` : ""}</span><a href="#/prices" class="muted" style="font-size:14px">${unpriced ? `${unpriced} not priced · ` : ""}Prices ▸</a></div>` : ""}
       ${byAisle}
       ${extras}
 
@@ -66,7 +72,7 @@ export function groceryView(key) {
         ${sec.buy.some(i => i.checked) || sec.extras.some(e => e.checked) ? `<button class="btn" id="uncheck">Uncheck all</button>` : ""}
         ${Object.keys(g.hidden).length ? `<button class="btn" id="unhide">Restore removed (${Object.keys(g.hidden).length})</button>` : ""}
       </div>` : ""}`,
-    status: `<span>${total ? `${left} of ${total} left` : "Empty"}</span><span>${weekLabel(key)}</span>`
+    status: `<span>${total ? `${left} of ${total} left` : "Empty"}</span><span>${est ? `~${money(est)} · ` : ""}${weekLabel(key)}</span>`
   }), { keepScroll: true });
 
   const root = document.getElementById("app");
@@ -112,7 +118,7 @@ function itemHTML(i) {
       <input type="checkbox" data-item="${esc(i.key)}" ${i.checked ? "checked" : ""}>
       <span>
         <span class="nm">${esc(cap1(i.name))}</span>${i.amount ? ` <span class="am">· ${esc(i.amount)}</span>` : ""}
-        <small>${esc(i.sources.join(", "))}</small>
+        <small>${i.cost != null ? `~${money(i.cost)} · ` : ""}${esc(i.sources.join(", "))}</small>
       </span>
     </label>
     <button class="iconbtn" data-hide="${esc(i.key)}" aria-label="Remove ${esc(i.name)} from list">✕</button>

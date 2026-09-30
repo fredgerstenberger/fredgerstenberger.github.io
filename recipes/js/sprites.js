@@ -137,6 +137,25 @@ export const SPRITES = {
     ],
     colors: { k: K, s: "#C9CED6" }
   },
+  price: {
+    map: [
+      "................",
+      "....kkkkkkkkkkkk",
+      "...kyyyyyyyyyyyk",
+      "..kyyyyyyydyyyyk",
+      ".kyyyyyyyddddyyk",
+      "kyyyyyyydydyyyyk",
+      "kyywwyyyydddyyyk",
+      "kyywwyyyyydydyyk",
+      "kyyyyyyyddddyyyk",
+      ".kyyyyyyyydyyyyk",
+      "..kyyyyyyyyyyyyk",
+      "...kyyyyyyyyyyyk",
+      "....kkkkkkkkkkkk",
+      "................"
+    ],
+    colors: { k: K, y: "#F7C948", w: K, d: "#2E7D3A" }
+  },
   star: {
     map: [
       ".......kk.......",

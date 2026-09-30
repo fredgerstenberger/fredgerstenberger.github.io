@@ -2,6 +2,7 @@
 import * as store from "../store.js";
 import { esc } from "../util.js";
 import { shell, render, toast, confirmBox, applyTheme } from "../ui.js";
+import { REGIONS } from "../prices.js";
 
 const APP_URL = new URL(".", location.href).href.replace(/#.*$/, "");
 const WORKER_HELP = "https://github.com/fredgerstenberger/fredgerstenberger.github.io/blob/main/recipes/worker/README.md";
@@ -10,7 +11,7 @@ export function settingsView() {
   const s = store.settings();
   const st = store.get();
   const seg = (key, opts) => `<div class="seg" role="group">${opts.map(([v, l]) => `<button data-set="${key}" data-val="${v}" aria-pressed="${s[key] === v}">${l}</button>`).join("")}</div>`;
-  const num = (key, min, max, step = 1) => `<input type="number" data-num="${key}" min="${min}" max="${max}" step="${step}" inputmode="numeric" value="${s[key]}">`;
+  const num = (key, min, max, step = 1) => `<input type="number" data-num="${key}" min="${min}" max="${max}" step="${step}" inputmode="${step < 1 ? "decimal" : "numeric"}" value="${s[key]}">`;
   const bookmarklet = `javascript:location.href='${APP_URL}?url='+encodeURIComponent(location.href)`;
 
   render(shell({
@@ -23,6 +24,15 @@ export function settingsView() {
       <div class="setrow"><span>Low calorie<small>kcal per serving, at most</small></span>${num("lowCal", 100, 2000, 25)}</div>
       <div class="setrow"><span>High protein<small>grams per serving, at least</small></span>${num("highProtein", 5, 150)}</div>
       <div class="setrow"><span>Quick<small>total minutes, at most</small></span>${num("quickMin", 5, 240, 5)}</div>
+
+      <div class="setrow"><span>Budget<small>$ per serving, at most</small></span>${num("budget", 0.5, 50, 0.25)}</div>
+
+      <h2 class="sect">Prices</h2>
+      <label class="field"><span>Where you shop<small>Adjusts the built-in US-average estimates</small></span>
+        <select id="region">${REGIONS.map(([id, name, f]) => `<option value="${id}" ${s.priceRegion === id ? "selected" : ""}>${esc(name)}${f ? ` (${f === 1 ? "baseline" : `${f > 1 ? "+" : "−"}${Math.round(Math.abs(f - 1) * 100)}%`})` : ""}</option>`).join("")}</select>
+      </label>
+      <div class="setrow" id="customRow" ${s.priceRegion === "custom" ? "" : "hidden"}><span>Custom level<small>% of US average (e.g. 115)</small></span>${num("priceCustomPct", 50, 250, 1)}</div>
+      <p class="muted" style="font-size:14px;margin:4px 0 0">Regional levels are rough estimates. For real accuracy, enter what your store charges on the <a href="#/prices">Prices</a> screen; your prices are used as-is.</p>
 
       <h2 class="sect">Cooking &amp; planning</h2>
       <div class="setrow"><span>People per meal<small>Sets suggested servings in the meal plan</small></span>${num("people", 1, 12)}</div>
@@ -97,6 +107,12 @@ export function settingsView() {
     inp.addEventListener("input", saveNum);
     inp.addEventListener("change", saveNum);
     inp.addEventListener("blur", () => { if (isNaN(parseFloat(inp.value))) inp.value = store.settings()[inp.dataset.num]; });
+  });
+  const region = document.getElementById("region");
+  region.addEventListener("change", () => {
+    store.setSetting("priceRegion", region.value);
+    document.getElementById("customRow").hidden = region.value !== "custom";
+    flash(region);
   });
   const proxy = document.getElementById("proxy");
   const saveProxy = () => { const v = proxy.value.trim(); if (store.settings().proxy !== v) { store.setSetting("proxy", v); flash(proxy); } };
