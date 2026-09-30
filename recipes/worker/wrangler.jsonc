@@ -1,0 +1,9 @@
+// Cloudflare config for the Recipe Box Worker.
+// Lets Cloudflare deploy straight from this GitHub folder (Worker → Settings → Build),
+// and connects Workers AI (the "AI" binding used for photo scanning) automatically.
+{
+  "name": "recipe-proxy",
+  "main": "worker.js",
+  "compatibility_date": "2025-09-01",
+  "ai": { "binding": "AI" }
+}

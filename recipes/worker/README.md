@@ -15,6 +15,15 @@ It's all on Cloudflare's free plan, only answers your Recipe Box, and doesn't st
 3. Name it `recipe-proxy` and click **Deploy**. This deploys a "Hello World" example.
 
 ### 2. Put in the Recipe Box code
+
+**Easiest, and works on a phone: deploy from GitHub.** This also turns on AI for you (skip step 3), and the Worker updates itself whenever `worker.js` changes on `main`.
+1. On the Worker's page open **Settings → Build** and tap **Connect** next to Git repository.
+2. Choose **GitHub**, sign in, and allow Cloudflare access to `fredgerstenberger.github.io`.
+3. Repository: `fredgerstenberger.github.io`. Branch: `main`.
+4. **Root directory:** `recipes/worker`. **Build command:** leave empty. **Deploy command:** `npx wrangler deploy`.
+5. Save. Cloudflare builds and deploys within a minute or two; watch the **Deployments** tab.
+
+**Or paste it by hand (easiest on a computer):**
 1. Click **Edit code**.
 2. Delete everything in the editor and paste in the whole of [`worker.js`](worker.js). Tip: on that page, tap **Raw**, then select all and copy.
 3. Click **Deploy**.
