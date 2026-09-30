@@ -4,6 +4,7 @@ import { esc } from "../util.js";
 import { shell, render, metaLine } from "../ui.js";
 import { nutritionFor } from "../nutrition.js";
 import { MEAL_TAGS } from "../tags.js";
+import { recipeCost } from "../prices.js";
 
 // Filter state survives navigating into a recipe and back.
 const F = loadF();
@@ -22,6 +23,7 @@ export const QUICK = [
   [":lowcal", "Low cal"],
   [":protein", "High protein"],
   [":quick", "Quick"],
+  [":budget", "Budget"],
   [":fav", "★ 4+"]
 ];
 
@@ -30,6 +32,7 @@ export function matches(r, chip, s = store.settings()) {
     case ":lowcal": { const n = nutritionFor(r); return n.kcal > 0 && n.kcal <= s.lowCal; }
     case ":protein": { const n = nutritionFor(r); return n.protein >= s.highProtein; }
     case ":quick": return r.totalMin > 0 && r.totalMin <= s.quickMin;
+    case ":budget": { const c = recipeCost(r); return c.total > 0 && c.perServing <= s.budget; }
     case ":fav": return (r.rating || 0) >= 4;
     default: return (r.tags || []).includes(chip);
   }
@@ -46,7 +49,8 @@ function sorted(list) {
     az: (a, b) => a.title.localeCompare(b.title),
     kcal: (a, b) => (nutritionFor(a).kcal || 1e9) - (nutritionFor(b).kcal || 1e9),
     protein: (a, b) => (nutritionFor(b).protein || 0) - (nutritionFor(a).protein || 0),
-    time: (a, b) => (a.totalMin || 1e9) - (b.totalMin || 1e9)
+    time: (a, b) => (a.totalMin || 1e9) - (b.totalMin || 1e9),
+    cost: (a, b) => (recipeCost(a).perServing || 1e9) - (recipeCost(b).perServing || 1e9)
   }[F.sort] || (() => 0);
   return list.sort(by);
 }
@@ -79,12 +83,12 @@ export function bookView() {
         <span id="count"></span>
         <label>Sort
           <select id="sort">
-            ${[["recent", "Newest"], ["rating", "Rating"], ["az", "A–Z"], ["kcal", "Calories ↑"], ["protein", "Protein ↓"], ["time", "Time ↑"]].map(([v, l]) => `<option value="${v}" ${F.sort === v ? "selected" : ""}>${l}</option>`).join("")}
+            ${[["recent", "Newest"], ["rating", "Rating"], ["az", "A–Z"], ["kcal", "Calories ↑"], ["protein", "Protein ↓"], ["time", "Time ↑"], ["cost", "Cost ↑"]].map(([v, l]) => `<option value="${v}" ${F.sort === v ? "selected" : ""}>${l}</option>`).join("")}
           </select>
         </label>
       </div>
       <ul class="cards" id="list"></ul>`,
-    status: `<span>Low cal ≤ ${s.lowCal} kcal · High protein ≥ ${s.highProtein} g</span><a href="#/settings">Change</a>`
+    status: `<span>Low cal ≤ ${s.lowCal} kcal · Protein ≥ ${s.highProtein} g · Budget ≤ $${s.budget}</span><a href="#/settings">Change</a>`
   }), { keepScroll: !!sessionStorage.getItem("rb.bookScroll") });
 
   const listEl = document.getElementById("list");

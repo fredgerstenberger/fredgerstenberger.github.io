@@ -3,6 +3,7 @@ import { esc, fmtMinutes } from "./util.js";
 import { sprite } from "./sprites.js";
 import { nutritionFor } from "./nutrition.js";
 import * as store from "./store.js";
+import { recipeCost, money } from "./prices.js";
 
 export function applyTheme() {
   const t = store.settings().theme;
@@ -19,11 +20,9 @@ export function shell({ title, body, status = "", actions = "", back = "#/" }) {
   return `<main class="page">
     <section class="win screen">
       <div class="titlebar">
-        <a class="closebox" href="${esc(back)}" aria-label="${back === "#/" ? "Home" : "Back"}"></a>
-        <span class="stripes"></span>
+        <span class="tb-left"><a class="backbtn" href="${esc(back)}" aria-label="${back === "#/" ? "Home" : "Back"}">${sprite("back")}</a></span>
         <h1 class="wintitle">${esc(title)}</h1>
-        <span class="stripes"></span>
-        ${actions}
+        <span class="tb-right">${actions}</span>
       </div>
       <div class="wbody">${body}</div>
       ${status ? `<div class="statusbar">${status}</div>` : ""}
@@ -55,7 +54,9 @@ export function closeModal() {
 }
 export function initModal() {
   const dlg = document.getElementById("modal");
-  document.getElementById("modal-close").addEventListener("click", closeModal);
+  const x = document.getElementById("modal-close");
+  x.innerHTML = sprite("close");
+  x.addEventListener("click", closeModal);
   dlg.addEventListener("click", e => { if (e.target === dlg) closeModal(); });
   dlg.addEventListener("close", () => { const f = onModalClose; onModalClose = null; f && f(); });
 }
@@ -105,5 +106,7 @@ export function metaLine(r) {
   if (r.totalMin) bits.push(`<span>${fmtMinutes(r.totalMin)}</span>`);
   const n = nutriShort(r);
   if (n) bits.push(`<span>${n}</span>`);
+  const c = recipeCost(r);
+  if (c.total > 0) bits.push(`<span>~${money(c.perServing)}/serving</span>`);
   return bits.join("");
 }

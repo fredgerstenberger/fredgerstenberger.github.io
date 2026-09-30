@@ -1,5 +1,6 @@
 // Kitchen timers: tap a time in a step to start one. Survive reloads; beep (8-bit style) when done.
 import { esc, uid } from "./util.js";
+import { sprite } from "./sprites.js";
 
 const KEY = "recipebox.timers";
 let timers = load();
@@ -68,6 +69,7 @@ function render() {
   dock.innerHTML = timers.map(t => {
     const ms = left(t);
     return `<div class="timer ${t.done ? "done" : ""} ${t.pausedLeft != null ? "paused" : ""}" data-id="${t.id}">
+      ${sprite("clock", "ticon")}
       <span class="tlabel">${esc(t.label)}</span>
       <span class="tclock" aria-live="off">${t.done ? "DONE" : fmt(ms)}</span>
       ${t.done ? "" : `<button class="tbtn" data-act="pause" aria-label="${t.pausedLeft != null ? "Resume" : "Pause"} timer">${t.pausedLeft != null ? "▶" : "❚❚"}</button>`}
@@ -114,16 +116,27 @@ export function initTimers(el) {
   render();
 }
 
-// Wrap time mentions ("10 minutes", "1-2 hours") in step text with tappable timer buttons.
+// Find time mentions ("10 minutes", "1-2 hours") in step text.
+// Returns the text with the times in bold, plus a list of timers to show as buttons below the step.
 const TIME_RE = /(\d+(?:\.\d+)?|\d+\s*\/\s*\d+)(?:\s*(?:-|–|to)\s*(\d+(?:\.\d+)?))?\s*(hours?|hrs?|minutes?|mins?|seconds?|secs?)\b/gi;
 
-export function linkTimes(escapedText, label) {
-  return escapedText.replace(TIME_RE, (m, a, b, unit) => {
+function shortTime(min) {
+  if (min < 1) return `${Math.round(min * 60)} sec`;
+  const h = Math.floor(min / 60), m = Math.round(min % 60);
+  if (!h) return `${m} min`;
+  return m ? `${h} hr ${m} min` : `${h} hr`;
+}
+
+export function findTimes(escapedText) {
+  const timers = [];
+  const html = escapedText.replace(TIME_RE, (m, a, b, unit) => {
     const u = unit.toLowerCase();
     const mult = u.startsWith("h") ? 60 : u.startsWith("s") ? 1 / 60 : 1;
     const n = a.includes("/") ? a.split("/").reduce((x, y) => +x / +y) : parseFloat(a);
     const min = n * mult;
     if (!min || min > 24 * 60) return m;
-    return `<button class="timelink" data-min="${min}" data-label="${esc(label)}" title="Start a timer">⏲ ${m}</button>`;
+    if (!timers.some(t => t.min === min)) timers.push({ min, text: shortTime(min) });
+    return `<b>${m}</b>`;
   });
+  return { html, timers };
 }

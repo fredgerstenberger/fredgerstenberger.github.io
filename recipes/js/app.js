@@ -12,6 +12,7 @@ import { groceryView } from "./views/grocery.js";
 import { pantryView } from "./views/pantry.js";
 import { convertView } from "./views/convert.js";
 import { settingsView } from "./views/settings.js";
+import { pricesView } from "./views/prices.js";
 import { sectionize } from "./grocery.js";
 
 // ---- Home ----
@@ -38,6 +39,7 @@ function homeView() {
     ["plan", "Meal plan", "#/plan", meals.length ? plural(meals.length, "meal") : ""],
     ["list", "Grocery list", "#/grocery", toBuy ? `${toBuy} to buy` : ""],
     ["pantry", "Pantry", "#/pantry", ""],
+    ["price", "Prices", "#/prices", ""],
     ["convert", "Converter", "#/convert", ""],
     ["settings", "Settings", "#/settings", ""]
   ];
@@ -46,16 +48,11 @@ function homeView() {
     <header class="hero">
       <div>
         <h1><span>Recipe</span><span>Box</span></h1>
-        <p>Cook it. Plan it. Shop it.</p>
       </div>
       <button class="btn small" id="themeBtn" aria-label="Toggle light or dark mode">${themeLabel()}</button>
     </header>
     <section class="win" aria-labelledby="k-title">
-      <div class="titlebar">
-        <span class="stripes"></span>
-        <h2 class="wintitle" id="k-title">Kitchen</h2>
-        <span class="stripes"></span>
-      </div>
+      <div class="titlebar"><h2 class="wintitle" id="k-title">Kitchen</h2></div>
       <nav class="icons">
         ${tiles.map(([icon, label, href, badge]) => `
           <a class="icon" href="${href}">
@@ -71,7 +68,7 @@ function homeView() {
     </section>
     ${today.length ? `
     <section class="win today">
-      <div class="titlebar"><span class="stripes"></span><h2 class="wintitle">Today</h2><span class="stripes"></span></div>
+      <div class="titlebar"><h2 class="wintitle">Today</h2></div>
       <div class="wbody"><ul>
         ${today.map(t => `<li><span class="slot">${cap(t.m)}</span><span>${t.hit.map(r => `<a href="#/r/${r.id}">${esc(r.title)}</a>`).join(", ")}</span></li>`).join("")}
       </ul></div>
@@ -112,7 +109,8 @@ const ROUTES = [
   [/^#\/grocery(?:\/([\d-]+))?$/, m => groceryView(m[1])],
   [/^#\/pantry$/, () => pantryView()],
   [/^#\/convert$/, () => convertView()],
-  [/^#\/settings$/, () => settingsView()]
+  [/^#\/settings$/, () => settingsView()],
+  [/^#\/prices$/, () => pricesView()]
 ];
 
 function route() {
@@ -132,7 +130,11 @@ function handleIncomingUrl() {
   const u = p.get("url") || p.get("text");
   if (u) {
     const found = (u.match(/https?:\/\/\S+/) || [])[0];
-    history.replaceState(null, "", location.pathname + (found ? `#/add?url=${encodeURIComponent(found)}` : "#/add"));
+    // A link → import it. Shared recipe text (no link, several lines) → the text importer.
+    const hash = found && u.trim().length < found.length + 40 ? `#/add?url=${encodeURIComponent(found)}`
+      : u.includes("\n") ? `#/add?text=${encodeURIComponent(u)}`
+      : found ? `#/add?url=${encodeURIComponent(found)}` : "#/add";
+    history.replaceState(null, "", location.pathname + hash);
   }
 }
 

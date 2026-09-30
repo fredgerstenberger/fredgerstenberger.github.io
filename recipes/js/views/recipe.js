@@ -4,8 +4,10 @@ import { esc, fmtMinutes, debounce, domainOf } from "../util.js";
 import { shell, render, starsHTML, confirmBox, toast, go } from "../ui.js";
 import { parseIngredient, displayAmount, equivalents } from "../ingredients.js";
 import { nutritionFor, servingsOf } from "../nutrition.js";
-import { linkTimes, startTimer } from "../timers.js";
+import { findTimes, startTimer } from "../timers.js";
+import { sprite } from "../sprites.js";
 import { openAddToPlan } from "./plan.js";
+import { recipeCost, money, REGIONS } from "../prices.js";
 
 const progress = {}; // id → { ings:Set, steps:Set, servings, cook }
 let wakeLock = null;
@@ -29,6 +31,12 @@ export function leaveRecipe() {
   document.querySelector(".pop")?.remove();
 }
 
+function regionName() {
+  const s = store.settings();
+  if (s.priceRegion === "custom") return `${s.priceCustomPct}% of US average`;
+  return (REGIONS.find(x => x[0] === s.priceRegion) || REGIONS[0])[1];
+}
+
 function fmtN(n) { return n == null || isNaN(n) ? "–" : Math.round(n); }
 
 export function recipeView(id) {
@@ -36,12 +44,15 @@ export function recipeView(id) {
   if (!r) { render(shell({ title: "Not found", back: "#/book", body: `<p>That recipe isn't in your book anymore.</p><a class="btn" href="#/book">Back to recipe book</a>` })); return; }
   const P = progress[id] ||= { ings: new Set(), steps: new Set(), servings: servingsOf(r), cook: false };
   const s = store.settings();
+  // The unit toggle on a recipe is temporary; changing the default in Settings resets it.
+  if (P.modeBase !== s.units) { P.mode = null; P.modeBase = s.units; }
   let mode = P.mode || s.units;
 
   function draw(keepScroll = true) {
     const base = servingsOf(r);
     const mult = P.servings / base;
     const nu = nutritionFor(r);
+    const cost = recipeCost(r);
     const est = nu.source === "estimate";
     const t = est ? "~" : "";
 
@@ -70,7 +81,9 @@ export function recipeView(id) {
       if (st.startsWith("#")) return `<li class="hdr">${esc(st.replace(/^#+\s*/, ""))}</li>`;
       const i = si++; stepNo++;
       const cls = P.steps.has(i) ? "done" : i === firstOpen ? "current" : "";
-      return `<li class="step ${cls}" data-step="${i}"><span>${linkTimes(esc(st), `Step ${stepNo}`)}</span></li>`;
+      const { html, timers } = findTimes(esc(st));
+      return `<li class="step ${cls}" data-step="${i}"><div class="stepbody"><span>${html}</span>${timers.map(tm =>
+        `<button class="timelink" data-min="${tm.min}" data-label="Step ${stepNo}" aria-label="Start ${tm.text} timer">${sprite("clock")}<span>${tm.text}</span></button>`).join("")}</div></li>`;
     }).join("");
 
     const times = [];
@@ -91,6 +104,7 @@ export function recipeView(id) {
             <span class="stepper"><button id="sMinus" aria-label="Fewer servings">−</button><output id="sOut">${P.servings}</output><button id="sPlus" aria-label="More servings">+</button></span>
             ${P.servings !== base ? `<br><button class="btn small" id="sReset" style="margin-top:8px">Reset to ${base}</button>` : ""}
           </dd></div>
+          ${cost.total > 0 ? `<div><dt>Cost</dt><dd>~${money(cost.perServing)}/serving<br><span class="muted" style="font-size:14px">~${money(cost.perServing * P.servings)} for ${P.servings}</span></dd></div>` : ""}
           ${nu.kcal ? `<div><dt>Per serving</dt><dd>${t}${fmtN(nu.kcal)} kcal<br><span class="muted" style="font-size:14px">${t}${fmtN(nu.protein)} g protein</span></dd></div>` : ""}
         </dl>
         <div class="btnrow hide-cook">
@@ -130,6 +144,18 @@ export function recipeView(id) {
               ? `<tr><td>${esc(row.line)}<br><span class="muted">→ ${esc(row.food)}${row.grams ? `, ${Math.round(row.grams)} g` : ""}</span></td><td class="n">${Math.round(row.kcal)} kcal<br>${Math.round(row.protein)} g P</td></tr>`
               : `<tr class="miss"><td>${esc(row.line)}<br><span>not recognized — not counted</span></td><td class="n">?</td></tr>`).join("")}
           </table></details>` : ""}
+
+          <h2 class="sect">Cost <small>estimate</small></h2>
+          ${cost.total > 0 ? `<div class="nutri">
+            <div><b>~${money(cost.perServing)}</b><span>per serving</span></div>
+            <div><b>~${money(cost.total)}</b><span>whole recipe</span></div>
+          </div>` : ""}
+          <p class="muted" style="font-size:14px;margin:0 0 6px">Cost of the amounts used (${Math.round(cost.coverage * 100)}% of ingredients priced), ${esc(regionName())} prices. <a href="#/prices">Edit prices</a></p>
+          <details class="breakdown"><summary>Cost breakdown</summary><table>
+            ${cost.rows.map(row => row.cost != null
+              ? `<tr><td>${esc(row.line)}</td><td class="n">${money(row.cost)}</td></tr>`
+              : `<tr class="miss"><td>${esc(row.line)}<br><span>no price — not counted</span></td><td class="n">?</td></tr>`).join("")}
+          </table></details>
 
           <h2 class="sect">Keywords</h2>
           <div class="chips" id="tags">
@@ -173,7 +199,7 @@ export function recipeView(id) {
     document.getElementById("clearSteps")?.addEventListener("click", () => { P.steps.clear(); draw(); });
     root.querySelectorAll("li.step").forEach(li => li.onclick = e => {
       const tb = e.target.closest(".timelink");
-      if (tb) { e.stopPropagation(); startTimer(+tb.dataset.min, `${r.title.slice(0, 18)} · ${tb.dataset.label}`); toast(`Timer started: ${tb.textContent.replace("⏲", "").trim()}`); return; }
+      if (tb) { e.stopPropagation(); startTimer(+tb.dataset.min, `${r.title.slice(0, 18)} · ${tb.dataset.label}`); toast(`Timer started: ${tb.textContent.trim()}`); return; }
       const i = +li.dataset.step;
       P.steps.has(i) ? P.steps.delete(i) : P.steps.add(i);
       draw();

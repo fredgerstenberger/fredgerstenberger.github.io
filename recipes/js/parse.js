@@ -257,3 +257,96 @@ export async function importFromUrl(url, workerUrl, onStatus) {
   }
   return r;
 }
+
+// ---- Plain text (pasted, or copied from a photo with iPhone Live Text) ----
+
+const ING_HDR = /^(ingredients?|you(?:'|’)ll need|what you need|for the [a-z ]+:?)\s*:?\s*$/i;
+const STEP_HDR = /^(directions?|instructions?|method|preparation|steps|how to make( it)?|to make)\s*:?\s*$/i;
+const NOTE_HDR = /^(notes?|tips?|nutrition( facts)?|storage)\s*:?\s*$/i;
+const META = /\b(serves|servings?|yield|makes|prep(?:aration)? time|cook(?:ing)? time|total time|active time)\b/i;
+
+function looksLikeIngredient(line) {
+  if (line.length > 90) return false;
+  const s = line.replace(/^[-•*▢□☐·]\s*/, "");
+  if (/^(\d+\s+\d+\/\d+|\d+\/\d+|\d+(\.\d+)?|[½⅓⅔¼¾⅛])(\s|-|[a-z])/i.test(s) && !/^\d+[.)]\s+[A-Z]/.test(s)) return true;
+  if (/^(a|an|one|two|three|pinch|dash|handful)\s/i.test(s) && s.split(" ").length <= 8) return true;
+  if (/\b(to taste|for serving|for garnish|optional)\b/i.test(s) && s.length < 60) return true;
+  return false;
+}
+
+function minutesFrom(text, re) {
+  const m = text.match(re);
+  if (!m) return 0;
+  const h = m[0].match(/(\d+(?:\.\d+)?)\s*(?:h|hr|hrs|hour|hours)\b/i);
+  const mi = m[0].match(/(\d+)\s*(?:m|min|mins|minute|minutes)\b/i);
+  return Math.round((h ? parseFloat(h[1]) * 60 : 0) + (mi ? parseInt(mi[1], 10) : 0));
+}
+
+export function parseRecipeText(text) {
+  const raw = String(text || "")
+    .replace(/\r/g, "")
+    .replace(/[ \t]+/g, " ")
+    .split("\n")
+    .map(l => l.replace(/\s+/g, " ").trim());
+
+  let title = "", yieldN = null, yieldText = "";
+  const meta = raw.join("\n");
+  const y = meta.match(/\b(?:serves|servings?|yield|makes)\s*:?\s*(\d+(?:\s*(?:-|to)\s*\d+)?)/i);
+  if (y) { yieldText = y[0]; yieldN = parseInt(y[1], 10); }
+  const prepMin = minutesFrom(meta, /prep(?:aration)?\s*(?:time)?\s*:?\s*(\d+(?:\.\d+)?\s*(?:h\w*|m\w*)\s*)+/i);
+  const cookMin = minutesFrom(meta, /cook(?:ing)?\s*(?:time)?\s*:?\s*(\d+(?:\.\d+)?\s*(?:h\w*|m\w*)\s*)+/i);
+  const totalMin = minutesFrom(meta, /total\s*(?:time)?\s*:?\s*(\d+(?:\.\d+)?\s*(?:h\w*|m\w*)\s*)+/i) || (prepMin + cookMin);
+
+  let mode = "start";
+  const ingredients = [], steps = [], intro = [];
+  const hasHeaders = raw.some(l => ING_HDR.test(l)) && raw.some(l => STEP_HDR.test(l));
+
+  for (const line of raw) {
+    if (!line) { if (mode === "steps" && steps.length) steps.push(""); continue; }
+    if (ING_HDR.test(line)) { mode = "ings"; continue; }
+    if (STEP_HDR.test(line)) { mode = "steps"; continue; }
+    if (NOTE_HDR.test(line)) { mode = "notes"; continue; }
+    if (mode === "notes") continue;
+    if (META.test(line) && line.length < 80 && !looksLikeIngredient(line)) continue;
+
+    if (!hasHeaders) {
+      // No headings: guess line by line. Ingredients come first, then steps.
+      if (looksLikeIngredient(line) && mode !== "steps") mode = "ings";
+      else if (mode === "ings" && (line.length > 60 || /^\d+[.)]\s/.test(line) || /^step\s*\d/i.test(line))) mode = "steps";
+    }
+
+    if (mode === "start") {
+      if (!title && line.length <= 80) title = line.replace(/[.:]$/, "");
+      else intro.push(line);
+      continue;
+    }
+    if (mode === "ings") {
+      // A sub-heading like "For the sauce:" inside the ingredient list
+      if (/:$/.test(line) && !looksLikeIngredient(line) && line.length < 40) { ingredients.push("# " + line.replace(/:$/, "")); continue; }
+      const prev = ingredients[ingredients.length - 1];
+      // Live Text often wraps long ingredient lines: join lowercase continuations.
+      if (prev && !prev.startsWith("#") && /^[a-z(]/.test(line) && !looksLikeIngredient(line)) ingredients[ingredients.length - 1] = prev + " " + line;
+      else ingredients.push(line.replace(/^[-•*▢□☐·]\s*/, ""));
+      continue;
+    }
+    if (mode === "steps") {
+      const isNew = /^(\d+[.)]|step\s*\d+[:.]?|[-•*])\s*/i.test(line);
+      const clean = line.replace(/^(\d+[.)]|step\s*\d+[:.]?|[-•*])\s*/i, "");
+      const last = steps.length ? steps[steps.length - 1] : null;
+      if (!isNew && last && !/[.!?)]$/.test(last)) steps[steps.length - 1] = `${last} ${clean}`;
+      else if (clean) steps.push(clean);
+    }
+  }
+  return {
+    title: title || "Untitled recipe",
+    description: intro.join(" "),
+    author: "",
+    yield: yieldN, yieldText,
+    prepMin, cookMin, totalMin,
+    ingredients: ingredients.filter(Boolean),
+    steps: steps.filter(Boolean),
+    nutrition: null,
+    siteKeywords: [],
+    url: "", site: ""
+  };
+}
