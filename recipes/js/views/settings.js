@@ -3,6 +3,7 @@ import * as store from "../store.js";
 import { esc } from "../util.js";
 import { shell, render, toast, confirmBox, applyTheme } from "../ui.js";
 import { REGIONS } from "../prices.js";
+import { SCAN_MODELS } from "../scan.js";
 
 const APP_URL = new URL(".", location.href).href.replace(/#.*$/, "");
 const WORKER_HELP = "https://github.com/fredgerstenberger/fredgerstenberger.github.io/blob/main/recipes/worker/README.md";
@@ -40,12 +41,19 @@ export function settingsView() {
       <div class="setrow"><span>Keep screen on in cook mode</span>${seg("wakeLock", [[true, "On"], [false, "Off"]])}</div>
 
       <h2 class="sect">Recipe import</h2>
-      <label class="field"><span>Your proxy URL (optional)</span>
+      <label class="field"><span>Your Worker address<small>From Cloudflare: links &amp; photo scanning</small></span>
         <div class="inline">
           <input type="url" id="proxy" value="${esc(s.proxy)}" placeholder="https://recipe-proxy.yourname.workers.dev" autocapitalize="none">
           <button class="btn small" id="testProxy">Test</button>
         </div>
+        <div class="note" id="testOut" hidden style="margin:8px 0 4px"></div>
         <small>Without one, imports go through free public proxies that are sometimes down. A free Cloudflare Worker is more reliable. <a href="${WORKER_HELP}" target="_blank" rel="noopener">Setup guide ↗</a></small>
+      </label>
+      <label class="field"><span>Photo scanning model<small>Open-weight vision models on Cloudflare Workers AI</small></span>
+        <select id="scanModel">${SCAN_MODELS.map(([id, name]) => `<option value="${id}" ${s.scanModel === id ? "selected" : ""}>${esc(name)}</option>`).join("")}</select>
+      </label>
+      <label class="field"><span>App key (optional)<small>Only if you added an APP_KEY secret to your Worker</small></span>
+        <input type="text" id="scanKey" value="${esc(s.scanKey || "")}" autocapitalize="none" autocomplete="off" spellcheck="false">
       </label>
       <details class="breakdown" style="margin-top:6px"><summary>Add recipes straight from Safari</summary>
         <p><b>Option A: Shortcut (recommended).</b> In the Shortcuts app, make a new shortcut: turn on <i>Show in Share Sheet</i> (accepts URLs), then add the action <i>Open URLs</i> with:</p>
@@ -114,6 +122,11 @@ export function settingsView() {
     document.getElementById("customRow").hidden = region.value !== "custom";
     flash(region);
   });
+  const scanModel = document.getElementById("scanModel");
+  scanModel.addEventListener("change", () => { store.setSetting("scanModel", scanModel.value); flash(scanModel); });
+  const scanKey = document.getElementById("scanKey");
+  const saveKey = () => { const v = scanKey.value.trim(); if (store.settings().scanKey !== v) { store.setSetting("scanKey", v); flash(scanKey); } };
+  scanKey.addEventListener("input", saveKey);
   const proxy = document.getElementById("proxy");
   const saveProxy = () => { const v = proxy.value.trim(); if (store.settings().proxy !== v) { store.setSetting("proxy", v); flash(proxy); } };
   proxy.addEventListener("input", saveProxy);
@@ -121,13 +134,23 @@ export function settingsView() {
   document.getElementById("testProxy").onclick = async e => {
     e.preventDefault();
     const base = proxy.value.trim().replace(/\/+$/, "");
-    if (!base) { toast("Enter your proxy URL first"); return; }
+    if (!base) { toast("Enter your Worker address first"); return; }
     store.setSetting("proxy", base);
+    const out = document.getElementById("testOut");
+    out.hidden = false;
+    out.innerHTML = "Testing…";
+    let linkOk = false, st = null;
     try {
       const res = await fetch(`${base}/?url=${encodeURIComponent("https://example.com/")}`);
-      const t = await res.text();
-      toast(res.ok && /Example Domain/i.test(t) ? "Proxy works ✓" : `Proxy answered but looks wrong (HTTP ${res.status})`);
-    } catch { toast("Couldn't reach the proxy"); }
+      linkOk = res.ok && /Example Domain/i.test(await res.text());
+    } catch {}
+    try { const r = await fetch(`${base}/status`); if (r.ok) st = await r.json(); } catch {}
+    const line = (ok, text) => `<div>${ok ? "✓" : "✗"} ${text}</div>`;
+    out.innerHTML =
+      line(linkOk, linkOk ? "Recipe links: working" : "Recipe links: couldn't reach the Worker. Check the address and that it's deployed.") +
+      (st == null ? line(false, "Photo scanning: this Worker has the old code. Paste the latest worker.js and deploy.")
+        : st.ai ? line(true, `Photo scanning: ready${st.keyRequired ? (store.settings().scanKey ? " (app key set)" : " — but the Worker needs an app key; enter it below") : ""}`)
+        : line(false, "Photo scanning: add a Workers AI binding named AI to the Worker, then deploy."));
   };
   document.getElementById("export").onclick = async () => {
     const json = store.exportJSON();

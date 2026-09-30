@@ -14,7 +14,9 @@ export const DEFAULT_SETTINGS = {
   wakeLock: true,
   priceRegion: "us",    // see prices.js REGIONS
   priceCustomPct: 100,  // % of US average when region is "custom"
-  budget: 3             // $ per serving for the Budget filter
+  budget: 3,            // $ per serving for the Budget filter
+  scanModel: "@cf/qwen/qwen3.8-27b", // vision model for photo scans (see scan.js)
+  scanKey: ""           // optional APP_KEY secret set on the Worker
 };
 
 function freshState() {

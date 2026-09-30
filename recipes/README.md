@@ -6,7 +6,7 @@ Live at **https://fredgerstenberger.github.io/recipes/** (after this folder is o
 
 ## Features
 - **Import from any recipe site.** Reads the site's structured recipe data, so ads and life stories are stripped out. Falls back to typing a recipe in by hand.
-- **Import from cookbook photos or text.** Copy text from a photo with iPhone Live Text (or from an email or note), paste it, and it's split into title, servings, times, ingredients and steps.
+- **Import from cookbook photos.** **Scan photo** sends the page to an open-weight vision model (Qwen / Mistral / Gemma / Llama) on Cloudflare Workers AI through your Worker and returns the recipe. Or copy text from a photo with iPhone Live Text (or from an email or note) and paste it. Either way it's split into title, servings, times, ingredients and steps.
 - **Recipe book** with search, star ratings, notes and keywords. Keywords are suggested automatically (chicken, pasta, dinner, …). Quick filters: breakfast, lunch, dinner, low cal, high protein, quick, 4+ stars.
 - **Cooking view:** servings scaling, Original/US/Metric units, tap an amount for conversions (tsp ↔ tbsp ↔ cups ↔ grams), tap-to-start timers inside steps, and a cook mode that keeps the screen on.
 - **Nutrition:** uses the site's numbers when published. Otherwise it estimates from ingredients using a built-in table of about 250 foods (marked with `~`).
@@ -26,6 +26,7 @@ Data is stored on the device (localStorage). Use **Settings → Export backup**.
 - `js/prices.js`: price table, regional adjustment, recipe and grocery cost
 - `js/views/*`: screens
 - `sw.js`, `manifest.webmanifest`, `icons/`: installable, offline-capable app
-- `worker/`: optional Cloudflare Worker proxy for reliable imports (see its README)
+- `js/scan.js`: photo shrinking and the scan request
+- `worker/`: Cloudflare Worker for reliable link imports and AI photo scanning (see its README for setup)
 
 No build step. To run locally: `python3 -m http.server 8000`, then open http://localhost:8000/recipes/.

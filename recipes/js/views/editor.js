@@ -3,6 +3,7 @@ import * as store from "../store.js";
 import { esc, uid, domainOf } from "../util.js";
 import { shell, render, toast, go } from "../ui.js";
 import { importFromUrl, parseRecipeText } from "../parse.js";
+import { scanPhotos } from "../scan.js";
 import { autoTags } from "../tags.js";
 
 export function addView(params) {
@@ -26,6 +27,14 @@ export function addView(params) {
 
       <details class="fromtext" id="textBox" ${params.get("text") ? "open" : ""}>
         <summary>From a cookbook photo or text</summary>
+        <div class="btnrow" style="margin-top:6px">
+          <label class="btn primary" for="scanIn">Scan photo</label>
+          <input type="file" id="scanIn" accept="image/*" multiple hidden>
+        </div>
+        <p class="muted" style="font-size:14px;margin:0 0 6px">${s.proxy
+          ? "Reads the page with AI on your Cloudflare Worker. For a recipe that spans pages, pick up to 4 photos."
+          : `Needs your Cloudflare Worker: <a href="#/settings">set it up in Settings</a>. Or copy the text yourself below.`}</p>
+        <p class="px" style="margin:16px 0 4px;font-size:15px">Or copy the text yourself (free, works offline)</p>
         <ol class="howto">
           <li>Tap <b>Choose photo</b> and pick (or take) a photo of the recipe.</li>
           <li>Press and hold on the text in the photo, then tap <b>Select All</b> → <b>Copy</b>. If selecting doesn't work here, do the same in the Photos app.</li>
@@ -91,6 +100,31 @@ export function addView(params) {
 
   document.getElementById("urlForm").onsubmit = e => { e.preventDefault(); run(); };
   document.getElementById("manualBtn").onclick = () => manual();
+
+  // Scan photo with AI (Worker + Workers AI)
+  document.getElementById("scanIn").onchange = async e => {
+    const files = [...e.target.files].slice(0, 4);
+    e.target.value = "";
+    if (!files.length) return;
+    const st = store.settings();
+    editorEl.innerHTML = "";
+    statusEl.innerHTML = `<p class="note" id="st">Preparing photo…</p>`;
+    try {
+      const r = await scanPhotos(files, { worker: st.proxy, model: st.scanModel, key: st.scanKey },
+        msg => { const el = document.getElementById("st"); if (el) el.textContent = msg; });
+      statusEl.innerHTML = r.ingredients.length
+        ? `<p class="note">Read ${r.ingredients.length} ingredients and ${r.steps.length} steps. Check it against the page, then save.</p>`
+        : `<p class="note error">The model didn't find ingredients. Fill them in below, or try another model in Settings.</p>`;
+      showEditor(editorEl, {
+        id: uid(), title: r.title, url: "", site: "", author: "",
+        yield: r.yield, yieldText: r.yieldText, prepMin: r.prepMin, cookMin: r.cookMin, totalMin: r.totalMin,
+        ingredients: r.ingredients, steps: r.steps, nutrition: null,
+        tags: autoTags(r), rating: 0, notes: r.description || ""
+      }, true);
+    } catch (err) {
+      statusEl.innerHTML = `<div class="note error"><b>${esc(err.message)}</b><p style="margin:6px 0 0">You can still copy the text from the photo yourself (steps below).</p></div>`;
+    }
+  };
 
   // From text / photo
   const rtext = document.getElementById("rtext");

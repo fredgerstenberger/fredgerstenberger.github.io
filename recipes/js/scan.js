@@ -1,0 +1,89 @@
+// Read cookbook photos with an open-weight vision model, via your Cloudflare Worker (Workers AI).
+import { parseRecipeText } from "./parse.js";
+
+export const SCAN_MODELS = [
+  ["@cf/qwen/qwen3.8-27b", "Qwen 3.8 27B"],
+  ["@cf/mistralai/mistral-small-3.1-24b-instruct", "Mistral Small 3.1 24B"],
+  ["@cf/google/gemma-3-12b-it", "Gemma 3 12B (fastest)"],
+  ["@cf/meta/llama-3.2-11b-vision-instruct", "Llama 3.2 11B Vision"]
+];
+
+// Shrink a photo to a JPEG data URL (long side ≤ maxSide) so uploads are fast and cheap.
+export async function shrinkPhoto(file, maxSide = 1600, quality = 0.85) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error("Couldn't open that photo."));
+      i.src = url;
+    });
+    const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.round(img.naturalWidth * scale), h = Math.round(img.naturalHeight * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL("image/jpeg", quality);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+const num = v => { const n = parseFloat(v); return isNaN(n) || n <= 0 ? 0 : Math.round(n); };
+const strs = a => (Array.isArray(a) ? a : typeof a === "string" ? a.split("\n") : [])
+  .map(x => (typeof x === "string" ? x : x?.text || x?.name || "").replace(/\s+/g, " ").trim())
+  .filter(Boolean);
+
+// Turn whatever the model returned into the app's recipe shape.
+export function normalizeScan(data) {
+  if (data.recipe) {
+    const r = data.recipe;
+    const prep = num(r.prepMin), cook = num(r.cookMin);
+    return {
+      title: String(r.title || "").trim() || "Untitled recipe",
+      yield: num(r.servings) || null,
+      yieldText: "",
+      prepMin: prep, cookMin: cook,
+      totalMin: num(r.totalMin) || prep + cook,
+      ingredients: strs(r.ingredients).map(s => s.replace(/^[-•*▢]\s*/, "")),
+      steps: strs(r.steps).map(s => s.replace(/^(step\s*)?\d+[.):]\s*/i, "")),
+      description: String(r.notes || "").trim(),
+      siteKeywords: []
+    };
+  }
+  // The model answered in plain text: run it through the same parser as pasted text.
+  return parseRecipeText(data.text || "");
+}
+
+export async function scanPhotos(files, { worker, model, key }, onStatus = () => {}) {
+  if (!worker) throw new Error("Set up your Cloudflare Worker first (Settings → Recipe import).");
+  onStatus("Preparing photo…");
+  const images = [];
+  for (const f of files) images.push(await shrinkPhoto(f));
+  onStatus("Reading the recipe… this can take 20–60 seconds.");
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 150000);
+  let res;
+  try {
+    res = await fetch(`${worker.replace(/\/+$/, "")}/scan`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(key ? { "X-App-Key": key } : {}) },
+      body: JSON.stringify({ images, model }),
+      signal: ctrl.signal
+    });
+  } catch (e) {
+    throw new Error(e.name === "AbortError" ? "The scan took too long. Try again, or a faster model in Settings." : "Couldn't reach your Worker. Check the address in Settings.");
+  } finally {
+    clearTimeout(t);
+  }
+  let data = {};
+  try { data = await res.json(); } catch {}
+  if (res.status === 404 || res.status === 405) throw new Error("Your Worker doesn't have photo scanning yet. Paste the latest worker.js into Cloudflare and deploy (see the setup guide).");
+  if (!res.ok) throw new Error(data.error || `Scan failed (HTTP ${res.status}).`);
+  const r = normalizeScan(data);
+  r.model = data.model;
+  return r;
+}

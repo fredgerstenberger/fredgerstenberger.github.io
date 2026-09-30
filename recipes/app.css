@@ -235,7 +235,7 @@ button { font: inherit; color: inherit; }
 
 .field { display: block; margin: 0 0 14px; }
 .field > span { display: block; font-family: var(--pixel); font-size: 15px; margin-bottom: 4px; }
-.field small { display: block; color: var(--muted); font-size: 14px; margin-top: 4px; }
+.field small { display: block; color: var(--muted); font-size: 14px; margin-top: 4px; font-family: var(--body); }
 input[type="text"], input[type="url"], input[type="number"], input[type="search"], select, textarea {
   width: 100%;
   font: inherit;
