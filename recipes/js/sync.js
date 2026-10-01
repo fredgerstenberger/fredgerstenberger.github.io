@@ -4,6 +4,7 @@
 // pantry, prices and settings. Every record remembers when it was last edited on this device;
 // the newest edit of a record wins. Edits made offline are sent the next time sync runs.
 import * as store from "./store.js";
+import { bump } from "./data.js";
 
 const KEY = "recipebox.sync";
 let meta = loadMeta();
@@ -49,6 +50,8 @@ function records() {
   for (const [wk, g] of Object.entries(s.grocery || {})) out["g:" + wk] = g;
   out.pantry = s.pantry || {};
   out.prices = s.prices || {};
+  out.foods = s.foods || {};
+  out.asked = s.asked || {};
   const settings = { ...s.settings };
   for (const k of DEVICE_ONLY_SETTINGS) delete settings[k];
   out.settings = settings;
@@ -72,6 +75,7 @@ function apply(k, v) {
     else if (s[coll][id]) fill(s[coll][id], v);
     else s[coll][id] = v;
   } else if (k === "pantry") fill(s.pantry ||= {}, v || {});
+  else if (k === "foods" || k === "asked") { fill(s[k] ||= {}, v || {}); bump(); }
   else if (k === "prices") { fill(s.prices ||= {}, v || {}); s.pricesUpdated = Date.now(); }
   else if (k === "settings" && v) {
     const keep = Object.fromEntries(DEVICE_ONLY_SETTINGS.map(x => [x, s.settings[x]]));

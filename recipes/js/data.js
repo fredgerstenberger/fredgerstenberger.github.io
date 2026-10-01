@@ -91,6 +91,26 @@ let fdcCache = read(FDC_KEY) || {};
 const queue = new Set(), inflight = new Set();
 let timer = null;
 
+// An ingredient you described yourself (Fill in ingredient info). Same shape as the built-in table.
+export function customFood(key) {
+  const c = store.get().foods?.[key];
+  if (!c) return null;
+  const f = { name: key, aliases: [key], aisle: "other", kind: "F", pkg: null, liquid: false, custom: true, nu: c.nu || null };
+  if (c.gCup) f.gCup = c.gCup;
+  if (c.gEach) f.gEach = c.gEach;
+  return f;
+}
+
+// Your info changed: recompute nutrition and costs.
+export const bump = changed;
+
+export const lookupsPending = () => queue.size + inflight.size > 0;
+export async function waitForLookups(ms = 5000) {
+  const end = Date.now() + ms;
+  await new Promise(r => setTimeout(r, 700)); // lookups start after a short pause
+  while (lookupsPending() && Date.now() < end) await new Promise(r => setTimeout(r, 200));
+}
+
 // A food-like object (same shape as the built-in table) for an ingredient looked up at USDA.
 export function usdaFood(key) {
   const hit = fdcCache[key];
