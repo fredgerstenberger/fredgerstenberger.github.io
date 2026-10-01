@@ -6,6 +6,7 @@ import { REGIONS } from "../prices.js";
 import { SCAN_MODELS } from "../scan.js";
 import * as sync from "../sync.js";
 import { modal } from "../ui.js";
+import { APP_VERSION, RELEASED, WHATS_NEW } from "../version.js";
 
 function ago(t) {
   if (!t) return "never";
@@ -61,6 +62,36 @@ function askJoin(invite, worker) {
     close();
     settingsView();
   };
+}
+
+async function showWorkerVersion(s) {
+  const el = document.getElementById("workerVer");
+  if (!el || !s.proxy) return;
+  try {
+    const res = await fetch(`${s.proxy.replace(/\/+$/, "")}/status`, { cache: "no-store" });
+    const st = await res.json();
+    el.textContent = `Worker: ${st.version || "old version"}${st.fdcKey ? " · USDA key ✓" : ""}`;
+  } catch { el.textContent = "Worker: couldn't reach it"; }
+}
+
+// Ask the server for the newest version.js; if it's newer than what's running, reload into it.
+async function checkForUpdate(btn) {
+  btn.disabled = true;
+  btn.textContent = "Checking…";
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    await reg?.update().catch(() => {});
+    const src = await (await fetch(`js/version.js?t=${Date.now()}`, { cache: "no-store" })).text();
+    const latest = Number(src.match(/APP_VERSION\s*=\s*(\d+)/)?.[1]);
+    if (latest > APP_VERSION) {
+      toast(`Updating to version ${latest}…`);
+      setTimeout(() => location.reload(), 800);
+      return;
+    }
+    toast("You're on the latest version");
+  } catch { toast("Couldn't check. Are you online?"); }
+  btn.disabled = false;
+  btn.textContent = "Check for updates";
 }
 
 export function settingsView() {
@@ -139,9 +170,11 @@ export function settingsView() {
       <p class="muted" style="font-size:14px">It opens full-screen, works offline for cooking, and iOS is much less likely to clear its data.</p>
       <p class="note">Heads up: on iPhone, the Home Screen app and Safari keep <b>separate</b> data. Recipes and settings saved in one won't appear in the other. Pick one (the Home Screen app is best) or move data with Export/Import.</p>
 
-      <h2 class="sect">Danger zone</h2>
-      <button class="btn danger" id="wipe">Delete all data</button>`,
-    status: `<span>${Object.keys(st.recipes).length} recipes</span><span>Recipe Box v1</span>`
+      <h2 class="sect">Version</h2>
+      <div class="setrow"><span>Recipe Box ${APP_VERSION}<small>Released ${new Date(RELEASED + "T12:00").toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}</small><small id="workerVer">${s.proxy ? "Worker: checking…" : "Worker: not set up"}</small></span>
+        <button class="btn small" id="checkUpdate">Check for updates</button></div>
+      <details class="breakdown"><summary>What's new</summary><ul class="howto">${WHATS_NEW.map(x => `<li>${esc(x)}</li>`).join("")}</ul></details>`,
+    status: `<span>${Object.keys(st.recipes).length} recipes</span><span>Version ${APP_VERSION}</span>`
   }), { keepScroll: true });
 
   const root = document.getElementById("app");
@@ -294,9 +327,6 @@ export function settingsView() {
       settingsView();
     } catch (err) { toast(err.message || "Import failed"); }
   };
-  document.getElementById("wipe").onclick = async () => {
-    if (await confirmBox("Delete every recipe, plan, list and setting on this device? Export a backup first if you might want them back.", "Delete everything")) {
-      store.resetAll(); applyTheme(); toast("All data deleted"); settingsView();
-    }
-  };
+  showWorkerVersion(s);
+  document.getElementById("checkUpdate").onclick = e => checkForUpdate(e.currentTarget);
 }
