@@ -155,6 +155,14 @@ export function sectionize(weekKey) {
   const items = buildList(weekKey).filter(i => !g.hidden[i.key]);
   const ask = [], buy = [], have = [];
   for (const it of items) {
+    // Your edits for this week (name / amount / note) override the automatic values.
+    const ed = g.edits?.[it.key];
+    if (ed) {
+      if (ed.name) it.name = ed.name;
+      if (ed.amount != null) it.amount = ed.amount;
+      it.note = ed.note || "";
+      it.edited = true;
+    }
     const kind = it.food ? it.food.kind : "F";
     const p = s.pantry[it.key];
     it.checked = !!g.checked[it.key];
@@ -171,7 +179,7 @@ export function sectionize(weekKey) {
 
 export function listAsText(weekKey, sections) {
   const lines = [];
-  for (const it of sections.buy.filter(i => !i.checked)) lines.push(`☐ ${it.name}${it.amount ? " — " + it.amount : ""}`);
+  for (const it of sections.buy.filter(i => !i.checked)) lines.push(`☐ ${it.name}${it.amount ? " — " + it.amount : ""}${it.note ? ` (${it.note})` : ""}`);
   for (const e of sections.extras.filter(e => !e.checked)) lines.push(`☐ ${e.text}`);
   return lines.join("\n");
 }

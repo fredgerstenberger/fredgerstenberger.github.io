@@ -81,6 +81,7 @@ export function groceryState(key) {
   if (!state.grocery[key]) state.grocery[key] = { checked: {}, extras: [], hidden: {} };
   const g = state.grocery[key];
   g.hidden ||= {};
+  g.edits ||= {};
   return g;
 }
 
