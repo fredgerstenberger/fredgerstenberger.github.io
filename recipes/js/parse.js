@@ -246,10 +246,37 @@ export function extractRecipe(html, url) {
   return r;
 }
 
-export async function importFromUrl(url, workerUrl, onStatus) {
+// Visible text of a page, minus scripts, menus and footers (for AI reading).
+function pageText(html) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  doc.querySelectorAll("script, style, noscript, svg, iframe, nav, header, footer, aside, form, [aria-hidden=true]").forEach(n => n.remove());
+  const main = doc.querySelector("article, main, [class*=recipe i]") || doc.body;
+  return (main?.innerText || main?.textContent || "").replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").trim();
+}
+
+async function readWithAI(html, url, ai, onStatus) {
+  onStatus && onStatus("No recipe data on this page. Asking AI to read it… (up to a minute)");
+  const res = await fetch(`${ai.worker.replace(/\/+$/, "")}/read`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(ai.key ? { "X-App-Key": ai.key } : {}) },
+    body: JSON.stringify({ text: pageText(html), model: ai.model })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `AI reading failed (HTTP ${res.status}).`);
+  const { normalizeScan } = await import("./scan.js");
+  const r = normalizeScan(data);
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  if (!r.title || r.title === "Untitled recipe") r.title = text(doc.querySelector("h1")?.textContent || doc.title) || "Untitled recipe";
+  return { ...r, author: "", nutrition: null, siteKeywords: r.siteKeywords || [], url, site: domainOf(url), viaAI: true };
+}
+
+export async function importFromUrl(url, workerUrl, onStatus, ai = null) {
   const html = await fetchPage(url, workerUrl, onStatus);
   onStatus && onStatus("Reading recipe…");
-  const r = extractRecipe(html, url);
+  let r = extractRecipe(html, url);
+  if ((!r || !r.ingredients.length) && ai?.worker) {
+    try { r = await readWithAI(html, url, ai, onStatus); } catch (e) { console.warn(e); }
+  }
   if (!r || !r.ingredients.length) {
     const e = new Error("Downloaded the page but couldn't find a recipe on it.");
     e.details = ["The site may not publish structured recipe data, or it showed a bot check to the proxy."];

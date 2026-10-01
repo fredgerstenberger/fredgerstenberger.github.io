@@ -33,10 +33,16 @@ export function weekNav(key, base) {
 }
 
 const slotName = s => { const [d, m] = s.split("-"); return `${SHORT[d]} ${m}`; };
+const sortSlots = arr => [...new Set(arr)].sort((a, b) => slotIdx(a) - slotIdx(b));
+
+// Move mode: { type: "slot", mealId, slot } moves/swaps one meal; { type: "day", day } swaps whole days.
+let moving = null;
+window.addEventListener("hashchange", () => { if (!location.hash.startsWith("#/plan")) moving = null; });
 
 export function planView(key) {
   key = key || currentWeek();
   setWeek(key);
+  if (moving && moving.key !== key) moving = null;
   const wk = store.week(key);
   const meals = (wk.meals || []).filter(m => store.recipe(m.rid));
   const mon = parseWeekKey(key);
@@ -54,21 +60,32 @@ export function planView(key) {
         const n = nutritionFor(store.recipe(x.rid));
         kcal += n.kcal || 0; protein += n.protein || 0; if (n.source === "estimate") est = true;
       }
-      return `<div class="slotrow">
+      const isSource = moving?.type === "slot" && moving.slot === slot;
+      const target = moving?.type === "slot" && !isSource;
+      const chips = here.map(x => {
+        const r = store.recipe(x.rid);
+        const first = sortSlots(x.slots)[0] === slot;
+        return `<button class="mealchip ${first ? "" : "left"}" data-meal="${x.id}" data-slot="${slot}" ${moving ? 'tabindex="-1"' : ""}>${esc(r.title)}${first ? "" : `<span class="lo">leftovers</span>`}</button>`;
+      }).join("");
+      return `<div class="slotrow ${isSource ? "source" : ""} ${target ? "target" : ""}" ${target ? `data-target="${slot}" role="button" tabindex="0" aria-label="${here.length ? "Swap with" : "Move to"} ${SHORT[d]} ${m}"` : ""}>
         <div class="slotname">${cap(m)}</div>
         <div class="slotmeals">
-          ${here.map(x => {
-            const r = store.recipe(x.rid);
-            const first = [...x.slots].sort((a, b) => slotIdx(a) - slotIdx(b))[0] === slot;
-            return `<button class="mealchip ${first ? "" : "left"}" data-meal="${x.id}">${esc(r.title)}${first ? "" : `<span class="lo">leftovers</span>`}</button>`;
-          }).join("")}
-          <button class="addslot" data-add="${slot}" aria-label="Add ${m} on ${d}">+</button>
+          ${chips}
+          ${target ? `<span class="droptag">${here.length ? "⇄ Swap" : "↓ Move here"}</span>`
+            : !moving && !here.length ? `<button class="addslot" data-add="${slot}" aria-label="Add ${m} on ${d}">+</button>` : ""}
         </div>
       </div>`;
     }).join("");
     const t = est ? "~" : "";
-    return `<section class="day ${date.getTime() === todayStr ? "today-day" : ""}">
-      <div class="dayhead"><span class="px">${SHORT[d]} ${date.getDate()}</span>${kcal ? `<small>${t}${Math.round(kcal)} kcal · ${t}${Math.round(protein)} g protein</small>` : ""}</div>
+    const daySource = moving?.type === "day" && moving.day === d;
+    const dayTarget = moving?.type === "day" && !daySource;
+    const hasMeals = meals.some(x => x.slots.some(sl => sl.startsWith(d + "-")));
+    return `<section class="day ${date.getTime() === todayStr ? "today-day" : ""} ${daySource ? "source" : ""}">
+      <div class="dayhead"><span class="px">${SHORT[d]} ${date.getDate()}</span>
+        <span class="dayright">${kcal ? `<small>${t}${Math.round(kcal)} kcal · ${t}${Math.round(protein)} g P</small>` : ""}
+        ${dayTarget ? `<button class="btn small primary" data-dayswap="${d}">⇄ Swap with ${SHORT[moving.day]}</button>`
+          : !moving && hasMeals ? `<button class="daybtn" data-moveday="${d}" aria-label="Swap ${SHORT[d]} with another day">⇅ Day</button>` : ""}</span>
+      </div>
       ${rows}
     </section>`;
   }).join("");
@@ -86,6 +103,12 @@ export function planView(key) {
     title: "Meal plan",
     body: `
       ${weekNav(key, "#/plan")}
+      ${moving ? `<div class="movebar win" role="status">
+        <span>${moving.type === "slot"
+          ? `Moving <b>${esc(store.recipe(meals.find(x => x.id === moving.mealId)?.rid)?.title || "")}</b> from ${slotName(moving.slot)}. Tap an empty slot to move it, or a filled one to swap.`
+          : `Swapping <b>${DAY_LONG[moving.day]}</b>. Tap “Swap” on another day.`}</span>
+        <button class="btn small" id="cancelMove">Cancel</button>
+      </div>` : ""}
       <div class="banner">
         <span><span class="px">Shop &amp; prep:</span> ${fmtDate(prepDay, { weekday: "short", month: "short", day: "numeric" })}</span>
         <a class="btn small" href="#/grocery/${key}">Grocery list ▸</a>
@@ -104,15 +127,85 @@ export function planView(key) {
   }), { keepScroll: true });
 
   document.querySelectorAll("[data-add]").forEach(b => b.onclick = () => pickRecipe(key, b.dataset.add));
-  document.querySelectorAll("[data-meal]").forEach(b => b.onclick = () => {
+  if (!moving) document.querySelectorAll("[data-meal]").forEach(b => b.onclick = () => {
     const m = meals.find(x => x.id === b.dataset.meal);
-    mealOptions(key, m.rid, m);
+    chipActions(key, m, b.dataset.slot);
   });
+  document.querySelectorAll("[data-target]").forEach(row => {
+    const go = () => moveMealTo(key, row.dataset.target);
+    row.onclick = go;
+    row.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } };
+  });
+  document.querySelectorAll("[data-moveday]").forEach(b => b.onclick = () => { moving = { type: "day", day: b.dataset.moveday, key }; planView(key); });
+  document.querySelectorAll("[data-dayswap]").forEach(b => b.onclick = () => swapDays(key, moving.day, b.dataset.dayswap));
+  document.getElementById("cancelMove")?.addEventListener("click", () => { moving = null; planView(key); });
   document.getElementById("clearWeek")?.addEventListener("click", () => {
     const { el, close } = modal("Clear week?", `<p style="margin-top:0">Remove all ${meals.length} meals from ${weekLabel(key)}?</p><div class="btnrow"><button class="btn danger" id="yes">Clear week</button><button class="btn" id="no">Cancel</button></div>`);
     el.querySelector("#yes").onclick = () => { wk.meals = []; store.save(); close(); planView(key); };
     el.querySelector("#no").onclick = close;
   });
+}
+
+const DAY_LONG = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
+
+// Tap a planned meal: quick actions.
+function chipActions(key, meal, slot) {
+  const r = store.recipe(meal.rid);
+  const wk = store.week(key);
+  const sl = sortSlots(meal.slots);
+  const many = sl.length > 1;
+  const { el, close } = modal(slotName(slot), `
+    <p style="margin:0 0 2px;font-weight:700;font-size:18px">${esc(r.title)}</p>
+    <p class="muted" style="margin:0 0 14px;font-size:14px">${sl[0] === slot ? "Cooked here" : "Leftovers"}${many ? ` · planned ${sl.length}× (${sl.map(slotName).join(", ")})` : ""} · ${meal.servings} servings</p>
+    <div class="actlist">
+      <button class="btn primary" id="aMove">⇄ Move or swap</button>
+      <a class="btn" href="#/r/${r.id}">Open recipe</a>
+      <button class="btn" id="aEdit">Edit days &amp; servings</button>
+      <button class="btn danger" id="aRm">${many ? `Remove from ${slotName(slot)}` : "Remove from plan"}</button>
+      ${many ? `<button class="btn danger" id="aRmAll">Remove all ${sl.length}</button>` : ""}
+    </div>`);
+  el.querySelector("#aMove").onclick = () => { moving = { type: "slot", mealId: meal.id, slot, key }; close(); planView(key); };
+  el.querySelector("#aEdit").onclick = () => mealOptions(key, meal.rid, meal);
+  el.querySelector("#aRm").onclick = () => {
+    meal.slots = meal.slots.filter(x => x !== slot);
+    if (!meal.slots.length) wk.meals = wk.meals.filter(x => x !== meal);
+    store.save(); close(); toast("Removed"); planView(key);
+  };
+  el.querySelector("#aRmAll")?.addEventListener("click", () => {
+    wk.meals = wk.meals.filter(x => x !== meal);
+    store.save(); close(); toast("Removed from plan"); planView(key);
+  });
+}
+
+// Move one planned meal to another slot; if that slot is taken, swap them.
+function moveMealTo(key, target) {
+  const wk = store.week(key);
+  const m1 = wk.meals.find(x => x.id === moving?.mealId);
+  const from = moving?.slot;
+  moving = null;
+  if (!m1 || !from || target === from) return planView(key);
+  if (m1.slots.includes(target)) { toast("It's already planned there"); return planView(key); }
+  const others = wk.meals.filter(x => x !== m1 && x.slots.includes(target));
+  m1.slots = sortSlots(m1.slots.map(x => (x === from ? target : x)));
+  for (const m2 of others) m2.slots = sortSlots(m2.slots.map(x => (x === target ? from : x)));
+  store.save();
+  toast(others.length ? `Swapped ${slotName(from)} ↔ ${slotName(target)}` : `Moved to ${slotName(target)}`);
+  planView(key);
+}
+
+// Swap every meal between two days (breakfast ↔ breakfast, lunch ↔ lunch, dinner ↔ dinner).
+function swapDays(key, a, b) {
+  const wk = store.week(key);
+  moving = null;
+  for (const m of wk.meals) {
+    m.slots = sortSlots(m.slots.map(x => {
+      const [d, meal] = x.split("-");
+      return d === a ? `${b}-${meal}` : d === b ? `${a}-${meal}` : x;
+    }));
+  }
+  store.save();
+  toast(`Swapped ${DAY_LONG[a]} ↔ ${DAY_LONG[b]}`);
+  planView(key);
 }
 
 // From the recipe page: choose slots in the current planning week.
@@ -149,12 +242,26 @@ function pickRecipe(key, slot) {
   draw();
 }
 
+function shortTitle(t) {
+  const w = t.replace(/^(the|a|an|easy|best|my|one[- ]pot|simple|quick)\s+/i, "").split(/\s+/);
+  const s = w.slice(0, 2).join(" ");
+  return s.length > 12 ? s.slice(0, 11) + "…" : s;
+}
+
 function mealOptions(key, rid, existing, presetSlot) {
   const r = store.recipe(rid);
   if (!r) return;
   const people = store.settings().people || 1;
   const wk = store.week(key);
-  const chosen = new Set(existing ? existing.slots : presetSlot ? [presetSlot] : []);
+  // Slots already used by other planned meals can't be picked.
+  const taken = {};
+  for (const x of wk.meals || []) {
+    if (x === existing) continue;
+    const rr = store.recipe(x.rid);
+    if (!rr) continue;
+    for (const sl of x.slots) taken[sl] = rr.title;
+  }
+  const chosen = new Set((existing ? existing.slots : presetSlot ? [presetSlot] : []).filter(sl => !taken[sl]));
   const base = servingsOf(r);
   const suggest = () => Math.max(base, chosen.size * people);
   let servings = existing ? existing.servings : suggest();
@@ -168,11 +275,12 @@ function mealOptions(key, rid, existing, presetSlot) {
       <span class="stepper"><button id="m" aria-label="Fewer">−</button><output id="sv">${servings}</output><button id="p" aria-label="More">+</button></span>
     </div>
     <p style="margin:14px 0 6px;font-family:var(--pixel)">When will you eat it?</p>
-    <p class="muted" style="margin:0 0 10px;font-size:14px">Cook once; extra ticks are leftovers. Groceries count it once.</p>
+    <p class="muted" style="margin:0 0 10px;font-size:14px">Cook once; extra ticks are leftovers. Groceries count it once. Gray slots already have a meal.</p>
     <div class="slotpick">
       <span></span>${MEALS.map(m => `<span class="h">${cap(m)}</span>`).join("")}
       ${DAYS.map(d => `<span class="d">${SHORT[d]} ${addDays(parseWeekKey(key), DAYS.indexOf(d)).getDate()}</span>${MEALS.map(m => {
         const s = `${d}-${m}`;
+        if (taken[s]) return `<span class="taken" title="${esc(taken[s])}"><span class="sr">${SHORT[d]} ${m}: taken by </span>${esc(shortTitle(taken[s]))}</span>`;
         return `<label><input type="checkbox" data-slot="${s}" ${chosen.has(s) ? "checked" : ""} aria-label="${SHORT[d]} ${m}"></label>`;
       }).join("")}`).join("")}
     </div>

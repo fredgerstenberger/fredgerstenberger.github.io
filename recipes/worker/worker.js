@@ -4,6 +4,7 @@
 //      Downloads a recipe page for the app (browsers can't read other sites directly).
 //
 //   2. POST /scan   { images: ["data:image/jpeg;base64,…"], model?: "@cf/…" }
+//      POST /read   { text: "…page text…", model?: "@cf/…" }  (recipe pages with no structured data)
 //      Reads a cookbook photo with an open-weight vision model on Cloudflare Workers AI
 //      and returns the recipe as JSON. Needs a Workers AI binding named "AI"
 //      (Worker → Settings → Bindings → Add → Workers AI → name it AI).
@@ -49,6 +50,10 @@ Rules:
 - If there are several recipes, return the main (largest) one. If several photos are pages of the same recipe, combine them in order.
 - Do not invent anything that isn't on the page. Use null or "" when something isn't shown.
 - "notes" is for headnotes, tips or variations printed with the recipe (short).`;
+
+const READ_PROMPT = PROMPT.replace("You are reading a photo of a recipe, usually a cookbook page.",
+  "You are reading the text of a recipe web page (with menus, ads and comments mixed in). Ignore everything that isn't the recipe.")
+  .replace("If several photos are pages of the same recipe, combine them in order.", "");
 
 function cors(origin) {
   return {
@@ -127,15 +132,17 @@ function dataUrlBytes(dataUrl) {
   return bytes;
 }
 
-async function runModel(env, model, images) {
+async function runModel(env, model, images, text) {
   // Chat format with OpenAI-style image parts — used by the current vision models.
   const chat = {
     messages: [{
       role: "user",
-      content: [
-        { type: "text", text: PROMPT },
-        ...images.map(url => ({ type: "image_url", image_url: { url } }))
-      ]
+      content: text != null
+        ? `${READ_PROMPT}\n\n--- PAGE TEXT ---\n${text}`
+        : [
+          { type: "text", text: PROMPT },
+          ...images.map(url => ({ type: "image_url", image_url: { url } }))
+        ]
     }],
     max_tokens: 4096,
     temperature: 0.1
@@ -144,7 +151,7 @@ async function runModel(env, model, images) {
     return await env.AI.run(model, chat);
   } catch (e) {
     // Older Llama vision format: one image as raw bytes plus a prompt.
-    if (model.includes("llama-3.2")) {
+    if (model.includes("llama-3.2") && images.length) {
       return await env.AI.run(model, { prompt: PROMPT, image: [...dataUrlBytes(images[0])], max_tokens: 4096 });
     }
     throw e;
@@ -163,13 +170,15 @@ async function scan(request, env, headers) {
 
   let body;
   try { body = await request.json(); } catch { return json({ error: "Bad request" }, 400, headers); }
-  const images = (body.images || []).filter(s => typeof s === "string" && s.startsWith("data:image/")).slice(0, 4);
-  if (!images.length) return json({ error: "No photo received." }, 400, headers);
+  const isRead = new URL(request.url).pathname.replace(/\/+$/, "") === "/read";
+  const images = isRead ? [] : (body.images || []).filter(s => typeof s === "string" && s.startsWith("data:image/")).slice(0, 4);
+  const pageText = isRead ? String(body.text || "").slice(0, 40000) : null;
+  if (isRead ? pageText.trim().length < 50 : !images.length) return json({ error: isRead ? "No page text received." : "No photo received." }, 400, headers);
   const model = MODELS.includes(body.model) ? body.model : MODELS[0];
 
   let out;
   try {
-    out = await runModel(env, model, images);
+    out = await runModel(env, model, images, pageText);
   } catch (e) {
     const msg = String(e.message || e);
     const hint = /agree/i.test(msg) && model.includes("llama")
@@ -193,7 +202,7 @@ export default {
     if (origin && !ALLOWED_ORIGINS.includes(origin)) return new Response("Forbidden", { status: 403, headers });
 
     const path = new URL(request.url).pathname.replace(/\/+$/, "");
-    if (path === "/scan") {
+    if (path === "/scan" || path === "/read") {
       if (request.method !== "POST") return json({ error: "Use POST" }, 405, headers);
       return scan(request, env, headers);
     }
