@@ -1,6 +1,6 @@
 // Offline support: app files are cached so recipes open in the kitchen with no signal.
 // Bump VERSION whenever app files change so phones pick up the update.
-const VERSION = "rb-v4";
+const VERSION = "rb-v5";
 const FILES = [
   "./", "index.html", "app.css", "manifest.webmanifest", "icons/icon.svg", "icons/icon-180.png",
   "js/app.js", "js/ui.js", "js/util.js", "js/store.js", "js/fooddb.js", "js/ingredients.js",

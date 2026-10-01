@@ -74,8 +74,10 @@ export function addView(params) {
     editorEl.innerHTML = "";
     statusEl.innerHTML = `<p class="note" id="st">Starting…</p>`;
     try {
-      const r = await importFromUrl(url, store.settings().proxy, msg => { const el = document.getElementById("st"); if (el) el.textContent = msg; });
-      statusEl.innerHTML = `<p class="note">Found it. Check it over, then save.</p>`;
+      const st = store.settings();
+      const r = await importFromUrl(url, st.proxy, msg => { const el = document.getElementById("st"); if (el) el.textContent = msg; },
+        st.proxy ? { worker: st.proxy, model: st.scanModel, key: st.scanKey } : null);
+      statusEl.innerHTML = `<p class="note">${r.viaAI ? "This site had no recipe data, so AI read the page. Check it carefully, then save." : "Found it. Check it over, then save."}</p>`;
       showEditor(editorEl, {
         id: uid(), title: r.title, url: r.url, site: r.site, author: r.author,
         yield: r.yield, yieldText: r.yieldText, prepMin: r.prepMin, cookMin: r.cookMin, totalMin: r.totalMin,
