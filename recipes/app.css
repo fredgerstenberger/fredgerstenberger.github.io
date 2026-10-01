@@ -128,7 +128,7 @@ button { font: inherit; color: inherit; }
 .backbtn svg { width: 18px; height: auto; display: block; }
 #modal-close svg { width: 14px; }
 .backbtn::after { content: ""; position: absolute; inset: -8px; } /* bigger tap target */
-.backbtn:hover { background: var(--select); color: var(--select-ink); }
+
 .backbtn:active { box-shadow: none; transform: translate(2px, 2px); }
 .tb-btn {
   font-family: var(--pixel); font-weight: var(--pxw);
@@ -141,7 +141,7 @@ button { font: inherit; color: inherit; }
   text-decoration: none;
   color: var(--ink);
 }
-.tb-btn:hover { background: var(--select); color: var(--select-ink); }
+
 .wbody { padding: 18px 16px 22px; }
 @media (min-width: 700px) { .wbody { padding: 24px 28px 30px; } }
 .statusbar {
@@ -195,8 +195,8 @@ button { font: inherit; color: inherit; }
   padding: 1px 5px;
 }
 .icon .badge { font-size: 13px; color: var(--muted); margin-top: -8px; font-family: var(--body); }
-.icon:hover .label, .icon:focus-visible .label { background: var(--select); color: var(--select-ink); }
-.icon:hover svg, .icon:focus-visible svg { filter: brightness(0.85); }
+.icon:focus-visible .label { background: var(--select); color: var(--select-ink); }
+.icon:focus-visible svg { filter: brightness(0.85); }
 .icon:active svg { transform: translate(2px, 2px); }
 .today { margin-top: 22px; }
 .today .wbody { padding-top: 14px; padding-bottom: 16px; }
@@ -224,12 +224,12 @@ button { font: inherit; color: inherit; }
   white-space: nowrap;
   cursor: pointer;
 }
-.btn:hover { background: var(--select); color: var(--select-ink); }
+
 .btn:active { box-shadow: none; transform: translate(3px, 3px); }
 .btn.primary { background: var(--select); color: var(--select-ink); }
-.btn.primary:hover { filter: brightness(1.1); }
+
 .btn.danger { color: var(--warn); }
-.btn.danger:hover { background: var(--warn); color: var(--window); }
+
 .btn.small { font-size: 14px; min-height: 34px; padding: 4px 10px; box-shadow: 2px 2px 0 var(--ink); }
 .btn:disabled { opacity: 0.5; pointer-events: none; }
 .btnrow { display: flex; flex-wrap: wrap; gap: 12px 12px; margin: 16px 0; }
@@ -282,7 +282,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 0.8; }
 
 .stepper { display: inline-flex; align-items: center; border: 2px solid var(--ink); }
 .stepper button { width: 38px; height: 36px; border: 0; background: var(--window); font-family: var(--pixel); font-weight: var(--pxw); font-size: 20px; cursor: pointer; }
-.stepper button:hover { background: var(--select); color: var(--select-ink); }
+
 .stepper output { min-width: 44px; text-align: center; font-family: var(--pixel); font-weight: var(--pxw); font-size: 18px; border-left: 2px solid var(--ink); border-right: 2px solid var(--ink); line-height: 36px; padding: 0 4px; }
 
 /* ---------- Chips / tags ---------- */
@@ -335,7 +335,7 @@ h2.sect:first-child, h3.sect:first-child { margin-top: 0; }
 .card { border-bottom: 2px dotted var(--muted); }
 .card:last-child { border-bottom: 0; }
 .card a { display: block; padding: 14px 4px; text-decoration: none; }
-.card a:hover .ctitle, .card a:focus-visible .ctitle { background: var(--select); color: var(--select-ink); }
+.card a:focus-visible .ctitle { background: var(--select); color: var(--select-ink); }
 .ctitle { font-weight: 700; font-size: 18px; line-height: 1.3; display: inline; padding: 0 2px; margin: 0 -2px; }
 .cmeta { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 15px; color: var(--muted); margin-top: 4px; align-items: center; }
 .cmeta .mstars { color: var(--ink); letter-spacing: 1px; }
@@ -405,7 +405,7 @@ h2.sect:first-child, h3.sect:first-child { margin-top: 0; }
   white-space: nowrap;
 }
 .timelink svg { width: 20px; height: auto; display: block; }
-.timelink:hover { background: var(--select); color: var(--select-ink); }
+
 .timelink:active { box-shadow: none; transform: translate(2px, 2px); }
 body.cook .timelink { font-size: 18px; min-height: 44px; }
 .nutri { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 10px; margin: 0 0 10px; }
@@ -479,10 +479,10 @@ body.cook .cook-on { display: inline-flex; }
 }
 .mealchip.left { font-weight: 400; border-style: dashed; }
 .mealchip .lo { font-family: var(--pixel); font-weight: var(--pxw); font-size: 12px; color: var(--muted); margin-left: 4px; }
-.mealchip:hover { background: var(--select); color: var(--select-ink); }
-.mealchip:hover .lo { color: inherit; }
+
+
 .addslot { border: 2px dashed var(--muted); background: none; color: var(--muted); font-family: var(--pixel); font-weight: var(--pxw); font-size: 14px; padding: 4px 10px; cursor: pointer; min-height: 32px; }
-.addslot:hover { border-color: var(--select); color: var(--select); }
+
 .preplist { list-style: none; margin: 0; padding: 0; }
 .preplist li { padding: 10px 0; border-bottom: 2px dotted var(--sunk); }
 .preplist li:last-child { border-bottom: 0; }
@@ -494,8 +494,8 @@ body.cook .cook-on { display: inline-flex; }
 .slotpick label:has(input:checked) { border-color: var(--select); }
 .picklist { list-style: none; margin: 8px 0 0; padding: 0; max-height: 46dvh; overflow: auto; border-top: 2px dotted var(--muted); }
 .picklist button { width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--sunk); background: none; padding: 10px 4px; cursor: pointer; }
-.picklist button:hover { background: var(--select); color: var(--select-ink); }
-.picklist button:hover .muted { color: inherit; }
+
+
 .picklist b { display: block; font-size: 17px; }
 .picklist .muted { font-size: 14px; }
 
@@ -518,9 +518,9 @@ body.cook .cook-on { display: inline-flex; }
 .gl small { display: block; color: var(--muted); font-size: 13px; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; }
 .gl li.got .nm, .gl li.got .am { color: var(--muted); text-decoration: line-through; font-weight: 400; }
 .iconbtn { border: 0; background: none; color: var(--muted); font-size: 18px; width: 40px; min-height: 44px; cursor: pointer; flex: none; }
-.iconbtn:hover { color: var(--warn); }
+
 .iconbtn.edit { width: 34px; }
-.iconbtn.edit:hover { color: var(--select); }
+
 .gl small.inote { color: var(--ink); font-style: italic; }
 .have summary { font-family: var(--pixel); font-weight: var(--pxw); font-size: 16px; cursor: pointer; padding: 8px 0; }
 .have li { align-items: center; }
@@ -628,7 +628,7 @@ body.has-timers .toast { bottom: calc(92px + var(--safe-b)); }
 .pricerow { width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border: 0; background: none; padding: 4px 0; cursor: pointer; text-align: left; font-size: 16px; }
 .pricerow .pr { font-family: var(--pixel); font-weight: var(--pxw); white-space: nowrap; }
 .pricerow .pr small { font-family: var(--body); color: var(--muted); font-size: 13px; }
-.pricerow:hover { color: var(--select); }
+
 
 /* ---------- Add from text / photo ---------- */
 .fromtext { border: 2px solid var(--ink); padding: 10px 12px; margin: 18px 0; background: var(--sunk); }
@@ -639,10 +639,10 @@ body.has-timers .toast { bottom: calc(92px + var(--safe-b)); }
 /* ---------- Plan: move / swap ---------- */
 .dayright { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .daybtn { border: 2px solid var(--ink); background: var(--window); font-family: var(--pixel); font-weight: var(--pxw); font-size: 13px; padding: 2px 8px; cursor: pointer; min-height: 30px; }
-.daybtn:hover { background: var(--select); color: var(--select-ink); }
+
 .movebar { position: sticky; top: 52px; z-index: 4; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; margin: 0 0 14px; font-size: 15px; box-shadow: 3px 3px 0 var(--select); }
 .slotrow.target { cursor: pointer; background-image: repeating-linear-gradient(135deg, transparent 0 8px, var(--sunk) 8px 16px); }
-.slotrow.target:hover, .slotrow.target:focus-visible { outline: 2px dashed var(--select); outline-offset: -3px; }
+.slotrow.target:focus-visible { outline: 2px dashed var(--select); outline-offset: -3px; }
 .slotrow.target .mealchip { pointer-events: none; }
 .slotrow.source { background: var(--sunk); }
 .slotrow.source .mealchip { background: var(--select); color: var(--select-ink); border-color: var(--select); }
@@ -655,3 +655,27 @@ body.has-timers .toast { bottom: calc(92px + var(--safe-b)); }
 /* ---------- Inline ingredient editing ---------- */
 .ings li.ingedit { display: flex; gap: 6px; align-items: center; padding: 6px 0; border-bottom: 0; }
 .ings li.ingedit input { flex: 1; min-width: 0; font-size: 17px; padding: 8px 10px; }
+
+/* Hover effects only where there's a real mouse; on iPhone a tap leaves :hover stuck on. */
+@media (hover: hover) {
+  .backbtn:hover { background: var(--select); color: var(--select-ink); }
+  .tb-btn:hover { background: var(--select); color: var(--select-ink); }
+  .icon:hover .label { background: var(--select); color: var(--select-ink); }
+  .icon:hover svg { filter: brightness(0.85); }
+  .btn:hover { background: var(--select); color: var(--select-ink); }
+  .btn.primary:hover { filter: brightness(1.1); }
+  .btn.danger:hover { background: var(--warn); color: var(--window); }
+  .stepper button:hover { background: var(--select); color: var(--select-ink); }
+  .card a:hover .ctitle { background: var(--select); color: var(--select-ink); }
+  .timelink:hover { background: var(--select); color: var(--select-ink); }
+  .mealchip:hover { background: var(--select); color: var(--select-ink); }
+  .mealchip:hover .lo { color: inherit; }
+  .addslot:hover { border-color: var(--select); color: var(--select); }
+  .picklist button:hover { background: var(--select); color: var(--select-ink); }
+  .picklist button:hover .muted { color: inherit; }
+  .iconbtn:hover { color: var(--warn); }
+  .iconbtn.edit:hover { color: var(--select); }
+  .pricerow:hover { color: var(--select); }
+  .daybtn:hover { background: var(--select); color: var(--select-ink); }
+  .slotrow.target:hover { outline: 2px dashed var(--select); outline-offset: -3px; }
+}
