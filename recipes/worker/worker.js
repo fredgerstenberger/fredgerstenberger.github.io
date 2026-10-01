@@ -27,6 +27,9 @@ const MODELS = [
   "@cf/meta/llama-3.2-11b-vision-instruct"
 ];
 
+// Shown at /status so you can confirm which version Cloudflare is running.
+const VERSION = "2026-10-01";
+
 const MAX_PAGE_BYTES = 5_000_000;
 const MAX_SCAN_BYTES = 8_000_000; // request body: up to a few resized photos
 
@@ -207,7 +210,7 @@ export default {
       return scan(request, env, headers);
     }
     if (path === "/status") {
-      return json({ ok: true, ai: !!env.AI, keyRequired: !!env.APP_KEY, models: MODELS }, 200, headers);
+      return json({ ok: true, version: VERSION, ai: !!env.AI, keyRequired: !!env.APP_KEY, models: MODELS }, 200, headers);
     }
     if (request.method !== "GET") return new Response("Method not allowed", { status: 405, headers });
     return proxy(request, headers);
