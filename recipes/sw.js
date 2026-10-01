@@ -4,7 +4,7 @@ const VERSION = "rb-v13"; // keep in step with APP_VERSION in js/version.js
 const FILES = [
   "./", "index.html", "app.css", "manifest.webmanifest", "icons/icon.svg", "icons/icon-180.png",
   "js/app.js", "js/ui.js", "js/util.js", "js/store.js", "js/fooddb.js", "js/ingredients.js",
-  "js/nutrition.js", "js/prices.js", "js/parse.js", "js/scan.js", "js/sync.js", "js/data.js", "js/version.js", "js/fillin.js", "js/tags.js", "js/grocery.js", "js/sprites.js", "js/timers.js",
+  "js/nutrition.js", "js/prices.js", "js/parse.js", "js/scan.js", "js/sync.js", "js/fields.js", "js/data.js", "js/version.js", "js/fillin.js", "js/tags.js", "js/grocery.js", "js/sprites.js", "js/timers.js",
   "js/views/book.js", "js/views/recipe.js", "js/views/editor.js", "js/views/plan.js",
   "js/views/grocery.js", "js/views/pantry.js", "js/views/convert.js", "js/views/settings.js", "js/views/prices.js"
 ];
