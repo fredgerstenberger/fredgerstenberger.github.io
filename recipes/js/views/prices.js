@@ -4,6 +4,7 @@ import { esc } from "../util.js";
 import { shell, render, modal, toast } from "../ui.js";
 import { FOODS, AISLES } from "../fooddb.js";
 import { priceEntry, basisLabel, basisGrams, BASE_PRICES, regionFactor, money, REGIONS } from "../prices.js";
+import { officialInfo, refreshPrices } from "../data.js";
 
 let query = "";
 let onlyMine = false;
@@ -17,7 +18,9 @@ export function pricesView() {
     title: "Prices",
     back: "#/",
     body: `
-      <p style="margin-top:0">Estimated prices for <b>${esc(region)}</b> (<a href="#/settings">change</a>). Tap an item to enter what <b>your</b> store charges; your prices are used exactly and marked ★.</p>
+      <p style="margin-top:0">Prices for <b>${esc(region)}</b> (<a href="#/settings">change</a>). Tap an item to enter what <b>your</b> store charges; your prices are used exactly and marked ★.</p>
+      ${officialInfo() ? `<p class="note" style="font-size:14px">${officialInfo().count} items use <b>official U.S. average prices</b> from the Bureau of Labor Statistics (${esc(officialInfo().period)}), adjusted for your region and refreshed monthly. They're marked <span class="kind">BLS</span>. Others are estimates.</p>`
+        : `<p class="note" style="font-size:14px">Connect your Worker in Settings to use official monthly prices from the Bureau of Labor Statistics for ~30 staples.</p>`}
       <input type="search" id="pq" placeholder="Search ingredients…" value="${esc(query)}" autocomplete="off" autocapitalize="none">
       <div class="chips" style="margin:10px 0 4px">
         <button class="chip" id="mineOnly" aria-pressed="${onlyMine}">★ My prices (${mineCount})</button>
@@ -38,7 +41,7 @@ export function pricesView() {
       if (!fs.length) return "";
       return `<div class="aisle">${label}</div><ul class="plist">${fs.map(f => {
         const e = priceEntry(f.name);
-        return `<li><button class="pricerow" data-food="${esc(f.name)}"><span>${esc(f.name)}${e.mine ? ` <span class="kind">★ yours</span>` : ""}</span><span class="pr">${money(e.price)} <small>/ ${esc(basisLabel(f, e.basis))}</small></span></button></li>`;
+        return `<li><button class="pricerow" data-food="${esc(f.name)}"><span>${esc(f.name)}${e.mine ? ` <span class="kind">★ yours</span>` : e.official ? ` <span class="kind">BLS</span>` : ""}</span><span class="pr">${money(e.price)} <small>/ ${esc(basisLabel(f, e.basis))}</small></span></button></li>`;
       }).join("")}</ul>`;
     }).join("") || `<p class="muted">No matches.</p>`;
   }
@@ -49,6 +52,7 @@ export function pricesView() {
     if (b) editPrice(b.dataset.food, () => pricesView());
   });
   draw();
+  refreshPrices().then(() => { if (location.hash === "#/prices") draw(); });
 }
 
 export function editPrice(name, done) {

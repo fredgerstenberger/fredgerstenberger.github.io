@@ -21,9 +21,9 @@ function syncHTML(s) {
   if (!sync.enabled()) return `
     <p style="margin-top:0">Keep recipes, meal plans, grocery lists, pantry and prices the same on your phone, iPad, computer, or a partner's phone. It also backs everything up to your Cloudflare account.</p>
     <div class="btnrow"><button class="btn primary" id="syncOn">Turn on sync</button></div>
-    <details class="breakdown"><summary>Have an invite link or code from another device?</summary>
+    <details class="breakdown"><summary>Have an invite from another device?</summary>
       <form id="joinForm" class="inline" style="margin-top:8px">
-        <input type="text" id="joinCode" placeholder="Paste invite link or code" autocapitalize="none" autocomplete="off" spellcheck="false">
+        <input type="text" id="joinCode" placeholder="Invite link or 10-letter code" autocapitalize="characters" autocomplete="off" spellcheck="false">
         <button class="btn small" type="submit">Join</button>
       </form>
     </details>`;
@@ -31,17 +31,21 @@ function syncHTML(s) {
   return `
     <div class="setrow" style="border-top:1px solid var(--sunk)"><span>Status<small id="syncStatus">${i.error ? esc(i.error) : `Last synced ${ago(i.last)}${i.pending ? ` · ${i.pending} change${i.pending > 1 ? "s" : ""} waiting` : ""}`}</small></span>
       <button class="btn small" id="syncNow">Sync now</button></div>
-    <p style="margin:14px 0 6px"><b>Add another device or a partner:</b> open this invite link on it.</p>
-    <div class="code" id="inviteLink">${esc(sync.inviteLink())}</div>
-    <div class="btnrow"><button class="btn small" id="shareInvite">Share invite link</button></div>
-    <p class="note" style="font-size:14px">Anyone with this link can see and edit your recipe box, so only share it with people you trust.</p>
+    <p style="margin:14px 0 6px"><b>Add another device or a partner</b></p>
+    <p class="muted" style="font-size:14px;margin:0 0 8px">Each invite works <b>once</b> and expires after 24 hours.</p>
+    <div id="inviteOut"></div>
+    <div class="btnrow"><button class="btn small primary" id="newInvite">Create invite</button></div>
+    <details class="breakdown"><summary>Remove access for other devices</summary>
+      <p style="font-size:14px">Starts a new recipe box with a new secret code. This device keeps everything; other devices stop syncing until you invite them again.</p>
+      <button class="btn small danger" id="resetCode">Reset sync code</button>
+    </details>
     <div class="btnrow"><button class="btn small danger" id="syncOff">Turn off sync on this device</button></div>`;
 }
 
 const APP_URL = new URL(".", location.href).href.replace(/#.*$/, "");
 const WORKER_HELP = "https://github.com/fredgerstenberger/fredgerstenberger.github.io/blob/main/recipes/worker/README.md";
 
-function askJoin(code, worker) {
+function askJoin(invite, worker) {
   const { el, close } = modal("Join recipe box?", `
     <p style="margin-top:0">This device will sync with the recipe box from your invite link. Recipes and plans already on this device are kept and added to the box.</p>
     ${worker ? `<p class="muted" style="font-size:14px">Worker: ${esc(worker)}</p>` : ""}
@@ -52,7 +56,7 @@ function askJoin(code, worker) {
     if (!store.settings().proxy) { toast("Enter your Worker address first"); close(); return; }
     el.querySelector("#jYes").disabled = true;
     el.querySelector("#jYes").textContent = "Syncing…";
-    try { const r = await sync.enable(code); toast(`Joined · ${r.applied} item${r.applied === 1 ? "" : "s"} synced`); }
+    try { const r = await sync.redeemInvite(invite, worker); toast(`Joined · ${r.applied} item${r.applied === 1 ? "" : "s"} synced`); }
     catch (err) { toast(err.message); }
     close();
     settingsView();
@@ -222,17 +226,39 @@ export function settingsView() {
     e.preventDefault();
     const v = document.getElementById("joinCode").value.trim();
     let code = v, worker = "";
-    try { const u = new URL(v); code = u.searchParams.get("join") || ""; worker = u.searchParams.get("w") || ""; } catch {}
-    if (!/^[A-Za-z0-9_-]{20,64}$/.test(code)) { toast("That doesn't look like an invite link or code"); return; }
+    try { const u = new URL(v); code = u.searchParams.get("invite") || ""; worker = u.searchParams.get("w") || ""; } catch {}
+    code = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (code.length !== 10) { toast("That doesn't look like an invite link or code"); return; }
     askJoin(code, worker);
   });
   document.getElementById("syncNow")?.addEventListener("click", () => runSync());
-  document.getElementById("shareInvite")?.addEventListener("click", async () => {
-    const link = sync.inviteLink();
+  document.getElementById("newInvite")?.addEventListener("click", async e => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
     try {
-      if (navigator.share) await navigator.share({ title: "Join my Recipe Box", text: "Open this to sync our Recipe Box:", url: link });
-      else { await navigator.clipboard.writeText(link); toast("Invite link copied"); }
-    } catch {}
+      const inv = await sync.createInvite();
+      const pretty = inv.token.slice(0, 5) + "-" + inv.token.slice(5);
+      const out = document.getElementById("inviteOut");
+      out.innerHTML = `
+        <p style="margin:0 0 4px">Invite code: <b class="px" style="font-size:20px;letter-spacing:1px">${pretty}</b></p>
+        <div class="code">${esc(inv.link)}</div>
+        <p class="muted" style="font-size:13px;margin:4px 0 0">Works once · expires ${new Date(inv.expires).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}</p>
+        <div class="btnrow"><button class="btn small" id="shareInvite">Share invite</button></div>`;
+      document.getElementById("shareInvite").onclick = async () => {
+        try {
+          if (navigator.share) await navigator.share({ title: "Join my Recipe Box", text: `Join my Recipe Box (code ${pretty}, works once):`, url: inv.link });
+          else { await navigator.clipboard.writeText(inv.link); toast("Invite link copied"); }
+        } catch {}
+      };
+      btn.textContent = "Create another invite";
+    } catch (err) { toast(err.message); }
+    btn.disabled = false;
+  });
+  document.getElementById("resetCode")?.addEventListener("click", async () => {
+    if (await confirmBox("Start a new recipe box with a new secret code? Every other device and person stops syncing until you send them a new invite. Nothing is deleted from this device.", "Reset sync code", true)) {
+      try { await sync.resetCode(); toast("New sync code · other devices removed"); } catch (err) { toast(err.message); }
+      settingsView();
+    }
   });
   document.getElementById("syncOff")?.addEventListener("click", async () => {
     if (await confirmBox("Stop syncing on this device? Your recipes stay here, and other devices keep their copies.", "Turn off sync", true)) {
@@ -242,7 +268,7 @@ export function settingsView() {
   // Opened from an invite link
   let pending = null;
   try { pending = JSON.parse(sessionStorage.getItem("rb.join")); sessionStorage.removeItem("rb.join"); } catch {}
-  if (pending?.code) askJoin(pending.code, pending.worker);
+  if (pending?.invite) askJoin(String(pending.invite).toUpperCase(), pending.worker);
 
   document.getElementById("export").onclick = async () => {
     const json = store.exportJSON();

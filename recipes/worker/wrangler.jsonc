@@ -8,7 +8,15 @@
   "ai": { "binding": "AI" },
   // Sync storage: one small built-in database per recipe box (free plan: SQLite-backed Durable Objects).
   "durable_objects": {
-    "bindings": [{ "name": "SYNC", "class_name": "RecipeSync" }]
+    "bindings": [
+      { "name": "SYNC", "class_name": "RecipeSync" },
+      { "name": "CACHE", "class_name": "DataCache" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RecipeSync"] }]
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["RecipeSync"] },
+    { "tag": "v2", "new_sqlite_classes": ["DataCache"] }
+  ],
+  // Refresh official grocery prices monthly (BLS publishes mid-month): 14:17 UTC on the 18th.
+  "triggers": { "crons": ["17 14 18 * *"] }
 }

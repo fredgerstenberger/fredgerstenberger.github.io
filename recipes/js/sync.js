@@ -188,11 +188,42 @@ export function disable() {
   clearInterval(interval);
 }
 
-export function inviteLink() {
-  if (!meta) return "";
+// ---- One-time invites ----
+// The box's secret code never goes in a link. Instead the Worker issues a random 10-letter invite
+// that works once and expires after 24 hours; redeeming it hands the secret to the new device.
+async function post(path, body, worker) {
+  const st = store.settings();
+  const w = (worker || st.proxy || "").replace(/\/+$/, "");
+  if (!w) throw new Error("Set your Worker address first.");
+  let res;
+  try {
+    res = await fetch(`${w}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(st.scanKey ? { "X-App-Key": st.scanKey } : {}) },
+      body: JSON.stringify(body)
+    });
+  } catch { throw new Error("Couldn't reach your Worker. Check your connection."); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Request failed (HTTP ${res.status}).`);
+  return data;
+}
+
+export async function createInvite() {
+  if (!meta) throw new Error("Turn on sync first.");
+  const { token, expires } = await post("/invite", { box: meta.code });
   const base = new URL(".", location.href).href.replace(/#.*$/, "");
   const w = store.settings().proxy;
-  return `${base}?join=${encodeURIComponent(meta.code)}${w ? `&w=${encodeURIComponent(w)}` : ""}`;
+  return { token, expires, link: `${base}?invite=${token}${w ? `&w=${encodeURIComponent(w)}` : ""}` };
+}
+
+export async function redeemInvite(token, worker) {
+  const { box } = await post("/invite/redeem", { token }, worker);
+  return enable(box);
+}
+
+// Start a fresh box with a new secret code (removes access for every other device).
+export async function resetCode() {
+  return enable();
 }
 
 let started = false;

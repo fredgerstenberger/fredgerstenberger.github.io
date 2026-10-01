@@ -1,7 +1,7 @@
 // Grocery list for a week: merged, rounded to packages, with pantry questions.
 import * as store from "../store.js";
 import { esc, uid } from "../util.js";
-import { shell, render, toast } from "../ui.js";
+import { shell, render, toast, modal } from "../ui.js";
 import { AISLES } from "../fooddb.js";
 import { sectionize, listAsText } from "../grocery.js";
 import { weekNav, weekLabel, currentWeek, setWeek } from "./plan.js";
@@ -32,6 +32,7 @@ export function groceryView(key) {
   const extras = sec.extras.length ? `<div class="aisle">Added by you</div><ul class="gl">${sec.extras.map(e => `
     <li class="${e.checked ? "got" : ""}">
       <label><input type="checkbox" data-extra="${e.id}" ${e.checked ? "checked" : ""}><span><span class="nm">${esc(e.text)}</span></span></label>
+      <button class="iconbtn edit" data-editextra="${e.id}" aria-label="Edit ${esc(e.text)}">✎</button>
       <button class="iconbtn" data-rmextra="${e.id}" aria-label="Remove ${esc(e.text)}">✕</button>
     </li>`).join("")}</ul>` : "";
 
@@ -39,6 +40,10 @@ export function groceryView(key) {
     title: "Grocery list",
     body: `
       ${weekNav(key, "#/grocery")}
+      <form id="addForm" class="inline" style="margin:0 0 16px">
+        <input type="text" id="addIn" placeholder="Add to list (paper towels, 2 lb apples…)" autocomplete="off">
+        <button class="btn small" type="submit">Add</button>
+      </form>
       ${!meals.length ? `<div class="empty"><span class="px">Nothing planned for this week</span>Plan some meals and the list builds itself.<div class="btnrow" style="justify-content:center"><a class="btn primary" href="#/plan/${key}">Go to meal plan</a></div></div>` : ""}
 
       ${sec.ask.length ? `<div class="ask">
@@ -51,13 +56,8 @@ export function groceryView(key) {
       </div>` : ""}
 
       ${sec.buy.length ? `<div class="banner"><span><span class="px">Est. total</span> ~${money(est)}${estLeft !== est ? ` · ~${money(estLeft)} left` : ""}</span><a href="#/prices" class="muted" style="font-size:14px">${unpriced ? `${unpriced} not priced · ` : ""}Prices ▸</a></div>` : ""}
-      ${byAisle}
       ${extras}
-
-      <form id="addForm" class="inline" style="margin-top:18px">
-        <input type="text" id="addIn" placeholder="Add something else (paper towels…)" autocomplete="off">
-        <button class="btn small" type="submit">Add</button>
-      </form>
+      ${byAisle}
 
       ${sec.have.length ? `<details class="have" style="margin-top:20px">
         <summary>Already in your pantry (${sec.have.length})</summary>
@@ -92,6 +92,19 @@ export function groceryView(key) {
   root.querySelectorAll("[data-need]").forEach(b => b.onclick = () => { pantry[b.dataset.need] = false; store.save(); redraw(); });
   root.querySelectorAll("[data-outof]").forEach(b => b.onclick = () => { pantry[b.dataset.outof] = false; store.save(); toast("Added to the list"); redraw(); });
   root.querySelectorAll("[data-extra]").forEach(c => c.onchange = () => { const e = g.extras.find(x => x.id === c.dataset.extra); e.checked = c.checked; store.save(); redraw(); });
+  root.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => {
+    const it = sec.buy.find(i => i.key === b.dataset.edit);
+    if (it) editItem(g, it, redraw);
+  });
+  root.querySelectorAll("[data-editextra]").forEach(b => b.onclick = () => {
+    const e = g.extras.find(x => x.id === b.dataset.editextra);
+    if (!e) return;
+    const { el, close } = modal("Edit item", `
+      <label class="field"><span>Item</span><input type="text" id="exText" value="${esc(e.text)}" autocomplete="off"></label>
+      <div class="btnrow"><button class="btn primary" id="exSave">Save</button><button class="btn" id="exCancel">Cancel</button></div>`);
+    el.querySelector("#exSave").onclick = () => { const v = el.querySelector("#exText").value.trim(); if (v) { e.text = v; store.save(); } close(); redraw(); };
+    el.querySelector("#exCancel").onclick = close;
+  });
   root.querySelectorAll("[data-rmextra]").forEach(b => b.onclick = () => { g.extras = g.extras.filter(x => x.id !== b.dataset.rmextra); store.save(); redraw(); });
   document.getElementById("addForm").onsubmit = e => {
     e.preventDefault();
@@ -118,9 +131,35 @@ function itemHTML(i) {
       <input type="checkbox" data-item="${esc(i.key)}" ${i.checked ? "checked" : ""}>
       <span>
         <span class="nm">${esc(cap1(i.name))}</span>${i.amount ? ` <span class="am">· ${esc(i.amount)}</span>` : ""}
-        <small>${i.cost != null ? `~${money(i.cost)} · ` : ""}${esc(i.sources.join(", "))}</small>
+        ${i.note ? `<small class="inote">${esc(i.note)}</small>` : ""}
+        <small>${i.edited ? "edited · " : i.cost != null ? `~${money(i.cost)} · ` : ""}${esc(i.sources.join(", "))}</small>
       </span>
     </label>
+    <button class="iconbtn edit" data-edit="${esc(i.key)}" aria-label="Edit ${esc(i.name)}">✎</button>
     <button class="iconbtn" data-hide="${esc(i.key)}" aria-label="Remove ${esc(i.name)} from list">✕</button>
   </li>`;
+}
+
+// Change what the list says for an item this week (e.g. "2 lb" → "3 lb", or a brand note).
+function editItem(g, it, redraw) {
+  const ed = g.edits[it.key];
+  const { el, close } = modal("Edit item", `
+    <label class="field"><span>Item</span><input type="text" id="eName" value="${esc(it.name)}" autocomplete="off"></label>
+    <label class="field"><span>Amount</span><input type="text" id="eAmt" value="${esc(it.amount || "")}" placeholder="e.g. 2 lb, 1 box" autocomplete="off"></label>
+    <label class="field"><span>Note<small>Brand, store, size…</small></span><input type="text" id="eNote" value="${esc(it.note || "")}" placeholder="e.g. Trader Joe's, organic" autocomplete="off"></label>
+    <p class="muted" style="font-size:14px;margin:0">Applies to this week's list. ${ed ? "" : "The automatic amount is based on your planned recipes."}</p>
+    <div class="btnrow">
+      <button class="btn primary" id="eSave">Save</button>
+      ${ed ? `<button class="btn" id="eReset">Back to automatic</button>` : `<button class="btn" id="eCancel">Cancel</button>`}
+    </div>`);
+  el.querySelector("#eSave").onclick = () => {
+    g.edits[it.key] = {
+      name: el.querySelector("#eName").value.trim(),
+      amount: el.querySelector("#eAmt").value.trim(),
+      note: el.querySelector("#eNote").value.trim()
+    };
+    store.save(); close(); redraw();
+  };
+  el.querySelector("#eReset")?.addEventListener("click", () => { delete g.edits[it.key]; store.save(); close(); redraw(); });
+  el.querySelector("#eCancel")?.addEventListener("click", close);
 }

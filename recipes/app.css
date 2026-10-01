@@ -518,6 +518,9 @@ body.cook .cook-on { display: inline-flex; }
 .gl li.got .nm, .gl li.got .am { color: var(--muted); text-decoration: line-through; font-weight: 400; }
 .iconbtn { border: 0; background: none; color: var(--muted); font-size: 18px; width: 40px; min-height: 44px; cursor: pointer; flex: none; }
 .iconbtn:hover { color: var(--warn); }
+.iconbtn.edit { width: 34px; }
+.iconbtn.edit:hover { color: var(--select); }
+.gl small.inote { color: var(--ink); font-style: italic; }
 .have summary { font-family: var(--pixel); font-size: 16px; cursor: pointer; padding: 8px 0; }
 .have li { align-items: center; }
 .have .nm { font-weight: 400; font-size: 16px; padding: 10px 2px; flex: 1; }
@@ -647,3 +650,7 @@ body.has-timers .toast { bottom: calc(92px + var(--safe-b)); }
 .actlist { display: flex; flex-direction: column; gap: 12px; }
 .actlist .btn { width: 100%; }
 .slotpick .taken { display: grid; place-items: center; min-height: 36px; border: 2px dashed var(--muted); background: var(--sunk); color: var(--muted); font-size: 11px; line-height: 1.15; text-align: center; padding: 2px; overflow: hidden; word-break: break-word; cursor: not-allowed; }
+
+/* ---------- Inline ingredient editing ---------- */
+.ings li.ingedit { display: flex; gap: 6px; align-items: center; padding: 6px 0; border-bottom: 0; }
+.ings li.ingedit input { flex: 1; min-width: 0; font-size: 17px; padding: 8px 10px; }

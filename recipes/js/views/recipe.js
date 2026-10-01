@@ -10,6 +10,9 @@ import { openAddToPlan } from "./plan.js";
 import { recipeCost, money, REGIONS } from "../prices.js";
 
 const progress = {}; // id → { ings:Set, steps:Set, servings, cook }
+let redrawCurrent = null;
+// New official data (USDA/BLS) arrived: refresh the open recipe in place, keeping your scroll position.
+export function refreshRecipe() { redrawCurrent?.(); }
 let wakeLock = null;
 
 async function lockScreen() {
@@ -58,6 +61,12 @@ export function recipeView(id) {
 
     let stepNo = 0;
     const firstOpen = (() => { let i = 0; for (const st of r.steps || []) { if (!st.startsWith("#")) { if (!P.steps.has(i)) return i; i++; } } return -1; })();
+
+    const ingEditHTML = (r.ingredients || []).map((line, i) => `
+      <li class="ingedit"><input type="text" data-ingtext="${i}" value="${esc(line)}" aria-label="Ingredient ${i + 1}" autocomplete="off">
+      <button class="iconbtn" data-ingdel="${i}" aria-label="Remove ingredient">✕</button></li>`).join("") + `
+      <li class="ingedit"><input type="text" id="ingAdd" placeholder="+ Add ingredient (e.g. 1 tsp cumin)" autocomplete="off">
+      <button class="btn small" id="ingAddBtn">Add</button></li>`;
 
     const ingHTML = (r.ingredients || []).map((line, i) => {
       const ing = parseIngredient(line);
@@ -113,14 +122,16 @@ export function recipeView(id) {
           <button class="btn danger" id="delBtn">Delete</button>
         </div>
 
-        <h2 class="sect">Ingredients <small>${P.ings.size ? `${P.ings.size} checked · <button class="btn small" id="clearIngs" style="min-height:28px">Clear</button>` : ""}</small></h2>
+        <h2 class="sect">Ingredients <small>${P.ings.size && !P.editIngs ? `${P.ings.size} checked · <button class="btn small" id="clearIngs" style="min-height:28px">Clear</button> ` : ""}<button class="btn small" id="editIngs" style="min-height:28px">${P.editIngs ? "Done" : "✎ Edit"}</button></small></h2>
+        ${P.editIngs ? `<p class="muted" style="font-size:14px;margin:0 0 8px">Changes save as you go. Start a line with # for a section heading.</p>
+        <ul class="ings">${ingEditHTML}</ul>` : `
         <div class="cookbar">
           <div class="seg" role="group" aria-label="Units">
             ${[["original", "Original"], ["us", "US"], ["metric", "Metric"]].map(([v, l]) => `<button data-mode="${v}" aria-pressed="${mode === v}">${l}</button>`).join("")}
           </div>
           <span class="muted" style="font-size:13px">Tap an amount to convert</span>
         </div>
-        <ul class="ings">${ingHTML || `<li class="muted">No ingredients yet.</li>`}</ul>
+        <ul class="ings">${ingHTML || `<li class="muted">No ingredients yet.</li>`}</ul>`}
 
         <h2 class="sect">Steps <small>${P.steps.size ? `<button class="btn small" id="clearSteps" style="min-height:28px">Reset</button>` : "Tap a step when done"}</small></h2>
         <ol class="steps">${stepHTML || `<li class="muted">No steps yet.</li>`}</ol>
@@ -141,7 +152,7 @@ export function recipeView(id) {
             : `From ${esc(r.site || "the recipe")}${nu.serving ? ` · serving: ${esc(nu.serving)}` : ""}.`}</p>
           ${nu.rows && nu.rows.length ? `<details class="breakdown"><summary>Ingredient breakdown</summary><table>
             ${nu.rows.map(row => row.food
-              ? `<tr><td>${esc(row.line)}<br><span class="muted">→ ${esc(row.food)}${row.grams ? `, ${Math.round(row.grams)} g` : ""}</span></td><td class="n">${Math.round(row.kcal)} kcal<br>${Math.round(row.protein)} g P</td></tr>`
+              ? `<tr><td>${esc(row.line)}<br><span class="muted">→ ${esc(row.usda ? `USDA: ${row.usda}` : row.food)}${row.grams ? `, ${Math.round(row.grams)} g` : ""}</span></td><td class="n">${Math.round(row.kcal)} kcal<br>${Math.round(row.protein)} g P</td></tr>`
               : `<tr class="miss"><td>${esc(row.line)}<br><span>not recognized — not counted</span></td><td class="n">?</td></tr>`).join("")}
           </table></details>` : ""}
 
@@ -196,6 +207,28 @@ export function recipeView(id) {
       c.closest("li").classList.toggle("done", c.checked);
     });
     document.getElementById("clearIngs")?.addEventListener("click", () => { P.ings.clear(); draw(); });
+    document.getElementById("editIngs").onclick = () => { P.editIngs = !P.editIngs; P.ings.clear(); draw(); };
+    if (P.editIngs) {
+      const saveIngs = () => { store.putRecipe(r); };
+      root.querySelectorAll("[data-ingtext]").forEach(inp => inp.addEventListener("change", () => {
+        const v = inp.value.trim();
+        const i = +inp.dataset.ingtext;
+        if (v) r.ingredients[i] = v; else r.ingredients.splice(i, 1);
+        saveIngs();
+        if (!v) draw();
+      }));
+      root.querySelectorAll("[data-ingdel]").forEach(b => b.onclick = () => { r.ingredients.splice(+b.dataset.ingdel, 1); saveIngs(); draw(); });
+      const addIng = () => {
+        const inp = document.getElementById("ingAdd");
+        const v = inp.value.trim();
+        if (!v) return;
+        (r.ingredients ||= []).push(v);
+        saveIngs(); draw();
+        document.getElementById("ingAdd")?.focus();
+      };
+      document.getElementById("ingAddBtn").onclick = addIng;
+      document.getElementById("ingAdd").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); addIng(); } });
+    }
     document.getElementById("clearSteps")?.addEventListener("click", () => { P.steps.clear(); draw(); });
     root.querySelectorAll("li.step").forEach(li => li.onclick = e => {
       const tb = e.target.closest(".timelink");
@@ -238,6 +271,7 @@ export function recipeView(id) {
     document.getElementById("notes").addEventListener("input", e => { saved.textContent = "…"; saveNotes(e.target.value); });
   }
 
+  redrawCurrent = () => { if (location.hash === `#/r/${id}`) draw(true); };
   draw(false);
 }
 

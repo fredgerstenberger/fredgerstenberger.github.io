@@ -1,5 +1,6 @@
 // Nutrition: use the site's numbers when published, otherwise estimate from ingredients.
 import { parseIngredient, toGrams } from "./ingredients.js";
+import { dataVersion } from "./data.js";
 
 const cache = new Map();
 
@@ -20,7 +21,7 @@ export function estimate(recipe) {
     if (ing.food && g != null) {
       covered++;
       const k = g / 100;
-      const row = { line, food: ing.food.name, grams: g };
+      const row = { line, food: ing.food.name, grams: g, usda: ing.food.usda?.description || "" };
       for (const key of Object.keys(totals)) {
         const v = ing.food.nu[key] * k;
         totals[key] += v;
@@ -41,7 +42,7 @@ export function estimate(recipe) {
 }
 
 export function nutritionFor(recipe) {
-  const key = recipe.id + ":" + (recipe.updated || 0);
+  const key = recipe.id + ":" + (recipe.updated || 0) + ":" + dataVersion();
   if (cache.has(key)) return cache.get(key);
   let out;
   const site = recipe.nutrition;

@@ -1,5 +1,6 @@
 // Ingredient line parsing, unit conversion and friendly formatting.
 import { matchFood } from "./fooddb.js";
+import { usdaFood, noteUnknown } from "./data.js";
 
 // ---- Units ----
 // dim: "mass" (base g), "vol" (base ml), "count"
@@ -191,7 +192,13 @@ export function parseIngredient(line) {
   const ci = s.indexOf(",");
   if (ci > 0) { name = s.slice(0, ci).trim(); note = s.slice(ci + 1).trim(); }
 
-  const food = matchFood(name) || matchFood(s);
+  let food = matchFood(name) || matchFood(s);
+  if (!food) {
+    // Not in the built-in table: use a USDA lookup if we have one, otherwise ask for it in the background.
+    const key = cleanName(name);
+    food = usdaFood(key);
+    if (!food) noteUnknown(key);
+  }
   return { raw, qty, qtyMax, unit, size, name: name.trim(), note, food };
 }
 

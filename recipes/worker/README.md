@@ -5,7 +5,8 @@ Recipe Box runs entirely on your phone, so it needs a small helper in the cloud 
 1. **Importing recipe links.** Browsers won't let one website read another website's pages, so the Worker downloads the page for the app.
 2. **Scanning cookbook photos.** The Worker sends the photo to an open-weight vision model (Qwen, Mistral, Gemma or Llama) that Cloudflare runs for you on **Workers AI**, and returns the recipe.
 
-3. **Syncing between devices.** Each recipe box is stored in its own small built-in database (a SQLite-backed Durable Object, on the free plan), set up automatically by `wrangler.jsonc` when you deploy from GitHub. The secret sync code is never stored; boxes are looked up by its hash.
+3. **Syncing between devices.** Each recipe box is stored in its own small built-in database (a SQLite-backed Durable Object, on the free plan), set up automatically by `wrangler.jsonc` when you deploy from GitHub. The secret sync code is never stored; boxes are looked up by its hash. Invites are random 10-letter codes that work **once** and expire after 24 hours, so the secret itself never goes in a link.
+4. **Official food data.** Once a month (and on first use) the Worker fetches U.S. average grocery prices from the **Bureau of Labor Statistics**, and it looks up foods the app doesn't know in **USDA FoodData Central** (calories, protein, carbs, fat, fiber, and cup/each weights). Results are cached, so each food is looked up only once for everyone.
 
 It's all on Cloudflare's free plan, only answers your Recipe Box, and doesn't store your photos.
 
@@ -48,6 +49,13 @@ Anyone who finds your Worker's address could try to use your free AI allowance. 
 1. In the Worker's **Settings → Variables and Secrets**, click **Add**, choose type **Secret**, name it `APP_KEY`, and set any password-like value. Deploy.
 2. In Recipe Box **Settings → App key**, enter the same value.
 
+### 6. (Recommended) Add free data keys
+Both work without keys, but keys give you higher limits:
+- **`FDC_KEY`** (USDA nutrition): sign up free at [api.data.gov/signup](https://api.data.gov/signup/), and the key arrives by email. Without it the Worker uses the shared `DEMO_KEY`, which allows only a few lookups an hour.
+- **`BLS_KEY`** (prices, optional): register free at [data.bls.gov/registrationEngine](https://data.bls.gov/registrationEngine/). Without it, the Worker uses the keyless version, which is plenty for one monthly refresh.
+
+Add each one in the Worker's **Settings → Variables and Secrets → Add**, choose type **Secret**, and paste in the key. Never put keys in `worker.js` or anywhere else in the repository; it's public. Open `https://<your worker>/status` to check: it shows `"fdcKey":true` and `"blsKey":true`.
+
 ## Choosing a model
 
 **Settings → Photo scanning model** lets you switch models. Try your trickiest cookbook page with each:
@@ -65,7 +73,7 @@ Workers AI includes a free daily allowance, and occasional recipe scans should n
 
 ## Updating
 
-When Recipe Box gets a new `worker.js`, repeat step 2 (paste and deploy). Your AI binding and secret stay in place.
+If you deployed from GitHub, the Worker updates itself when `main` changes. If you pasted it, repeat step 2. Your AI binding and secrets stay in place. Open `/status` to see the version.
 
 ## Troubleshooting
 
