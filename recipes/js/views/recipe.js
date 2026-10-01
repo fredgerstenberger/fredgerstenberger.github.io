@@ -8,6 +8,7 @@ import { findTimes, startTimer } from "../timers.js";
 import { sprite } from "../sprites.js";
 import { openAddToPlan } from "./plan.js";
 import { recipeCost, money, REGIONS } from "../prices.js";
+import { infoItems, openInfo, askAfterSave } from "../fillin.js";
 
 const progress = {}; // id → { ings:Set, steps:Set, servings, cook }
 let redrawCurrent = null;
@@ -152,7 +153,7 @@ export function recipeView(id) {
             : `From ${esc(r.site || "the recipe")}${nu.serving ? ` · serving: ${esc(nu.serving)}` : ""}.`}</p>
           ${nu.rows && nu.rows.length ? `<details class="breakdown"><summary>Ingredient breakdown</summary><table>
             ${nu.rows.map(row => row.food
-              ? `<tr><td>${esc(row.line)}<br><span class="muted">→ ${esc(row.usda ? `USDA: ${row.usda}` : row.food)}${row.grams ? `, ${Math.round(row.grams)} g` : ""}</span></td><td class="n">${Math.round(row.kcal)} kcal<br>${Math.round(row.protein)} g P</td></tr>`
+              ? `<tr><td>${esc(row.line)}<br><span class="muted">→ ${esc(row.usda ? `USDA: ${row.usda}` : row.mine ? `${row.food} (your info)` : row.food)}${row.grams ? `, ${Math.round(row.grams)} g` : ""}</span></td><td class="n">${Math.round(row.kcal)} kcal<br>${Math.round(row.protein)} g P</td></tr>`
               : `<tr class="miss"><td>${esc(row.line)}<br><span>not recognized — not counted</span></td><td class="n">?</td></tr>`).join("")}
           </table></details>` : ""}
 
@@ -167,6 +168,7 @@ export function recipeView(id) {
               ? `<tr><td>${esc(row.line)}</td><td class="n">${money(row.cost)}</td></tr>`
               : `<tr class="miss"><td>${esc(row.line)}<br><span>no price — not counted</span></td><td class="n">?</td></tr>`).join("")}
           </table></details>
+          ${infoItems(r, true).length ? `<div class="btnrow"><button class="btn small" id="ingInfo">✎ Ingredient info</button></div>` : ""}
 
           <h2 class="sect">Keywords</h2>
           <div class="chips" id="tags">
@@ -207,7 +209,8 @@ export function recipeView(id) {
       c.closest("li").classList.toggle("done", c.checked);
     });
     document.getElementById("clearIngs")?.addEventListener("click", () => { P.ings.clear(); draw(); });
-    document.getElementById("editIngs").onclick = () => { P.editIngs = !P.editIngs; P.ings.clear(); draw(); };
+    document.getElementById("editIngs").onclick = () => { P.editIngs = !P.editIngs; P.ings.clear(); draw(); if (!P.editIngs) askAfterSave(r.id); };
+    document.getElementById("ingInfo")?.addEventListener("click", () => openInfo(r, infoItems(r, true)));
     if (P.editIngs) {
       const saveIngs = () => { store.putRecipe(r); };
       root.querySelectorAll("[data-ingtext]").forEach(inp => inp.addEventListener("change", () => {

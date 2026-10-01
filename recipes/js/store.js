@@ -22,7 +22,7 @@ export const DEFAULT_SETTINGS = {
 function freshState() {
   const pantry = {};
   for (const f of FOODS) if (f.kind === "S") pantry[f.name] = true;
-  return { version: 1, recipes: {}, plan: {}, grocery: {}, pantry, prices: {}, pricesUpdated: 0, settings: { ...DEFAULT_SETTINGS }, lastBackup: 0 };
+  return { version: 1, recipes: {}, plan: {}, grocery: {}, pantry, prices: {}, pricesUpdated: 0, foods: {}, asked: {}, settings: { ...DEFAULT_SETTINGS }, lastBackup: 0 };
 }
 
 let state = load();
@@ -95,6 +95,20 @@ export function setPrice(name, price, basis) {
   if (price == null) delete state.prices[name];
   else state.prices[name] = { price, basis };
   state.pricesUpdated = Date.now();
+  save();
+}
+
+// ---- Your own info for ingredients (nutrition and the raw price you typed) ----
+// foods[key] = { nu (per 100 g), gCup, gEach, nuRef: {qty, unit, kcal, protein, carbs, fat}, priceRef: {price, qty, unit} }
+// asked[key] = time you were first asked about it, so each ingredient is only asked about once.
+export function putFood(key, entry) {
+  state.foods ||= {};
+  if (entry) state.foods[key] = entry; else delete state.foods[key];
+  save();
+}
+export function markAsked(keys) {
+  state.asked ||= {};
+  for (const k of keys) state.asked[k] ||= Date.now();
   save();
 }
 

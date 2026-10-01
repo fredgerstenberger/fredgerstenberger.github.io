@@ -657,6 +657,18 @@ body.has-timers .toast { bottom: calc(92px + var(--safe-b)); }
 .ings li.ingedit { display: flex; gap: 6px; align-items: center; padding: 6px 0; border-bottom: 0; }
 .ings li.ingedit input { flex: 1; min-width: 0; font-size: 17px; padding: 8px 10px; }
 
+/* ---------- Fill in ingredient info ---------- */
+.fillitem { border: 2px solid var(--ink); margin: 0 0 12px; padding: 6px 10px 10px; }
+.fillitem legend { font-family: var(--pixel); font-weight: var(--pxw); padding: 0 4px; }
+.fillitem > small { display: block; margin-bottom: 6px; }
+.fillrow { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 6px 0; }
+.fillrow input { width: 64px; }
+.fillrow select { width: auto; min-width: 78px; flex: none; }
+.fillgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+.fillgrid label { font-size: 14px; color: var(--muted); }
+.fillgrid input { width: 100%; display: block; }
+.fillitem input, .fillitem select { font: inherit; padding: 6px 8px; border: 2px solid var(--ink); background: var(--window); color: var(--ink); border-radius: 0; min-height: 40px; }
+
 /* Hover effects only where there's a real mouse; on iPhone a tap leaves :hover stuck on. */
 @media (hover: hover) {
   .backbtn:hover { background: var(--select); color: var(--select-ink); }

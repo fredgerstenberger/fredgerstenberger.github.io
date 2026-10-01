@@ -5,6 +5,7 @@ import { shell, render, toast, go } from "../ui.js";
 import { importFromUrl, parseRecipeText } from "../parse.js";
 import { scanPhotos } from "../scan.js";
 import { autoTags } from "../tags.js";
+import { askAfterSave } from "../fillin.js";
 
 export function addView(params) {
   const s = store.settings();
@@ -233,6 +234,7 @@ function showEditor(el, r, isNew) {
     store.putRecipe(r);
     toast(isNew ? "Saved to your recipe book" : "Saved");
     go(`#/r/${r.id}`);
+    askAfterSave(r.id);
   };
   if (isNew) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }

@@ -18,10 +18,10 @@ export function estimate(recipe) {
     if (ing.food && ing.food.kind === "X") continue; // water
     counted++;
     const g = toGrams(ing);
-    if (ing.food && g != null) {
+    if (ing.food?.nu && g != null) {
       covered++;
       const k = g / 100;
-      const row = { line, food: ing.food.name, grams: g, usda: ing.food.usda?.description || "" };
+      const row = { line, food: ing.food.name, grams: g, usda: ing.food.usda?.description || "", mine: !!ing.food.custom && !!ing.food.nu };
       for (const key of Object.keys(totals)) {
         const v = ing.food.nu[key] * k;
         totals[key] += v;
