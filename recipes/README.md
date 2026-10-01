@@ -15,7 +15,7 @@ Live at **https://fredgerstenberger.github.io/recipes/** (after this folder is o
 - **Prices:** estimated cost per serving for each recipe (a Budget filter and cost sort), weekly food cost in the meal plan, and an estimated total on the grocery list. Built-in US-average prices are adjusted for your region (e.g. Irvine ≈ +15%), and you can enter your own store's prices.
 - **Pantry, converter, light/dark mode, offline support** (add it to your iPhone home screen).
 
-Data is stored on the device (localStorage). Use **Settings → Export backup**.
+Data is stored on the device (localStorage). **Sync** (Settings → Sync) keeps it the same across your devices and a partner's, through your Cloudflare Worker: each recipe, week plan, grocery list, pantry, prices and settings syncs separately and the newest edit wins. Invite another device with the invite link. **Settings → Export backup** is still available.
 
 ## Files
 - `index.html`, `app.css`: page shell and styles (same 8-bit look as the portfolio)
@@ -27,6 +27,7 @@ Data is stored on the device (localStorage). Use **Settings → Export backup**.
 - `js/views/*`: screens
 - `sw.js`, `manifest.webmanifest`, `icons/`: installable, offline-capable app
 - `js/scan.js`: photo shrinking and the scan request
+- `js/sync.js`: device sync (change tracking, push/pull, invites)
 - `worker/`: Cloudflare Worker for reliable link imports and AI photo scanning (see its README for setup)
 
 No build step. To run locally: `python3 -m http.server 8000`, then open http://localhost:8000/recipes/.

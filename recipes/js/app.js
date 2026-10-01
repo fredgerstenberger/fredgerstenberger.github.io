@@ -14,6 +14,7 @@ import { convertView } from "./views/convert.js";
 import { settingsView } from "./views/settings.js";
 import { pricesView } from "./views/prices.js";
 import { sectionize } from "./grocery.js";
+import * as sync from "./sync.js";
 
 // ---- Home ----
 function homeView() {
@@ -63,7 +64,7 @@ function homeView() {
       </nav>
       <div class="statusbar">
         <span>${plural(n, "recipe")}</span>
-        <span>Saved on this device</span>
+        <span>${sync.enabled() ? (sync.info().error ? "Sync paused" : "Synced") : "Saved on this device"}</span>
       </div>
     </section>
     ${today.length ? `
@@ -92,6 +93,7 @@ function themeLabel() {
 }
 
 function backupNag(s) {
+  if (sync.enabled()) return "";
   const n = Object.keys(s.recipes).length;
   const days = (Date.now() - (s.lastBackup || 0)) / 86400000;
   if (n < 5 || days < 30) return "";
@@ -127,6 +129,12 @@ function route() {
 // Support share links like /recipes/?url=https://… (from an iOS Shortcut or bookmarklet).
 function handleIncomingUrl() {
   const p = new URLSearchParams(location.search);
+  // Invite link from another device: ?join=<code>&w=<worker address>
+  if (p.get("join")) {
+    try { sessionStorage.setItem("rb.join", JSON.stringify({ code: p.get("join"), worker: p.get("w") || "" })); } catch {}
+    history.replaceState(null, "", location.pathname + "#/settings");
+    return;
+  }
   const u = p.get("url") || p.get("text");
   if (u) {
     const found = (u.match(/https?:\/\/\S+/) || [])[0];
@@ -146,6 +154,15 @@ function init() {
   handleIncomingUrl();
   window.addEventListener("hashchange", route);
   route();
+  // Changes arrived from another device: refresh the screen unless you're in the middle of typing or a dialog.
+  window.addEventListener("rb:synced", () => {
+    const a = document.activeElement;
+    const typing = a && (a.matches("input, textarea, select") || a.isContentEditable);
+    const h = location.hash || "#/";
+    const safe = /^#\/?$|^#\/(plan|grocery|pantry|prices|book)/.test(h) && !(h === "#/book" && window.scrollY > 80);
+    if (!typing && !document.getElementById("modal").open && safe) route();
+  });
+  sync.start();
   store.requestPersistence();
   if ("serviceWorker" in navigator && location.protocol === "https:") {
     navigator.serviceWorker.register("sw.js").catch(() => {});

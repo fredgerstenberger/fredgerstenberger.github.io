@@ -5,6 +5,10 @@
 //
 //   2. POST /scan   { images: ["data:image/jpeg;base64,…"], model?: "@cf/…" }
 //      POST /read   { text: "…page text…", model?: "@cf/…" }  (recipe pages with no structured data)
+//
+//   3. POST /sync   { box: "<secret code>", since: 0, changes: [{ k, u, v }] }
+//      Keeps your recipes, plans, lists and settings in sync between devices. Each recipe box
+//      (identified by its secret code) is stored in its own Durable Object (built-in database).
 //      Reads a cookbook photo with an open-weight vision model on Cloudflare Workers AI
 //      and returns the recipe as JSON. Needs a Workers AI binding named "AI"
 //      (Worker → Settings → Bindings → Add → Workers AI → name it AI).
@@ -28,7 +32,7 @@ const MODELS = [
 ];
 
 // Shown at /status so you can confirm which version Cloudflare is running.
-const VERSION = "2026-10-01";
+const VERSION = "2026-10-02";
 
 const MAX_PAGE_BYTES = 5_000_000;
 const MAX_SCAN_BYTES = 8_000_000; // request body: up to a few resized photos
@@ -196,6 +200,57 @@ async function scan(request, env, headers) {
   return json({ model, recipe }, 200, headers);
 }
 
+// ---------- 3. Sync ----------
+
+async function sha256(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function sync(request, env, headers) {
+  if (!env.SYNC) return json({ error: "Sync storage isn't set up on this Worker yet. Redeploy it from GitHub (it's in the config)." }, 500, headers);
+  if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) {
+    return json({ error: "Wrong or missing app key. Enter the same key in Recipe Box → Settings." }, 401, headers);
+  }
+  let body;
+  try { body = await request.json(); } catch { return json({ error: "Bad request" }, 400, headers); }
+  const box = String(body.box || "");
+  if (!/^[A-Za-z0-9_-]{20,64}$/.test(box)) return json({ error: "Invalid sync code." }, 400, headers);
+  const changes = Array.isArray(body.changes) ? body.changes.slice(0, 2000) : [];
+  // The secret code itself is never stored; the box is looked up by its hash.
+  const stub = env.SYNC.get(env.SYNC.idFromName(await sha256(box)));
+  const res = await stub.fetch("https://sync/box", {
+    method: "POST",
+    body: JSON.stringify({ since: Number(body.since) || 0, changes })
+  });
+  return new Response(res.body, { status: res.status, headers: { ...headers, "Content-Type": "application/json" } });
+}
+
+// One Durable Object per recipe box. Records: "k:<key>" → { u: edited-at ms, v: value|null, s: sequence }.
+// Newest edit wins per record; clients pull everything changed since their last sequence number.
+export class RecipeSync {
+  constructor(state) { this.storage = state.storage; }
+
+  async fetch(request) {
+    const { since, changes } = await request.json();
+    let seq = (await this.storage.get("__seq")) || 0;
+    const writes = {};
+    for (const c of changes) {
+      if (!c || typeof c.k !== "string" || c.k.length > 200 || typeof c.u !== "number") continue;
+      const key = "k:" + c.k;
+      const cur = writes[key] || await this.storage.get(key);
+      if (!cur || c.u > cur.u) writes[key] = { u: c.u, v: c.v === undefined ? null : c.v, s: ++seq };
+    }
+    const entries = Object.entries(writes);
+    for (let i = 0; i < entries.length; i += 100) await this.storage.put(Object.fromEntries(entries.slice(i, i + 100)));
+    await this.storage.put("__seq", seq);
+    const all = await this.storage.list({ prefix: "k:" });
+    const records = [];
+    for (const [key, r] of all) if (r.s > since) records.push({ k: key.slice(2), u: r.u, v: r.v });
+    return new Response(JSON.stringify({ seq, records }), { headers: { "Content-Type": "application/json" } });
+  }
+}
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
@@ -209,8 +264,12 @@ export default {
       if (request.method !== "POST") return json({ error: "Use POST" }, 405, headers);
       return scan(request, env, headers);
     }
+    if (path === "/sync") {
+      if (request.method !== "POST") return json({ error: "Use POST" }, 405, headers);
+      return sync(request, env, headers);
+    }
     if (path === "/status") {
-      return json({ ok: true, version: VERSION, ai: !!env.AI, keyRequired: !!env.APP_KEY, models: MODELS }, 200, headers);
+      return json({ ok: true, version: VERSION, ai: !!env.AI, sync: !!env.SYNC, keyRequired: !!env.APP_KEY, models: MODELS }, 200, headers);
     }
     if (request.method !== "GET") return new Response("Method not allowed", { status: 405, headers });
     return proxy(request, headers);

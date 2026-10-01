@@ -4,9 +4,60 @@ import { esc } from "../util.js";
 import { shell, render, toast, confirmBox, applyTheme } from "../ui.js";
 import { REGIONS } from "../prices.js";
 import { SCAN_MODELS } from "../scan.js";
+import * as sync from "../sync.js";
+import { modal } from "../ui.js";
+
+function ago(t) {
+  if (!t) return "never";
+  const s = Math.round((Date.now() - t) / 1000);
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  if (s < 86400) return `${Math.round(s / 3600)} hr ago`;
+  return new Date(t).toLocaleDateString();
+}
+
+function syncHTML(s) {
+  if (!s.proxy) return `<p class="muted" style="margin-top:0">Set your Worker address above first; sync runs through it.</p>`;
+  if (!sync.enabled()) return `
+    <p style="margin-top:0">Keep recipes, meal plans, grocery lists, pantry and prices the same on your phone, iPad, computer, or a partner's phone. It also backs everything up to your Cloudflare account.</p>
+    <div class="btnrow"><button class="btn primary" id="syncOn">Turn on sync</button></div>
+    <details class="breakdown"><summary>Have an invite link or code from another device?</summary>
+      <form id="joinForm" class="inline" style="margin-top:8px">
+        <input type="text" id="joinCode" placeholder="Paste invite link or code" autocapitalize="none" autocomplete="off" spellcheck="false">
+        <button class="btn small" type="submit">Join</button>
+      </form>
+    </details>`;
+  const i = sync.info();
+  return `
+    <div class="setrow" style="border-top:1px solid var(--sunk)"><span>Status<small id="syncStatus">${i.error ? esc(i.error) : `Last synced ${ago(i.last)}${i.pending ? ` · ${i.pending} change${i.pending > 1 ? "s" : ""} waiting` : ""}`}</small></span>
+      <button class="btn small" id="syncNow">Sync now</button></div>
+    <p style="margin:14px 0 6px"><b>Add another device or a partner:</b> open this invite link on it.</p>
+    <div class="code" id="inviteLink">${esc(sync.inviteLink())}</div>
+    <div class="btnrow"><button class="btn small" id="shareInvite">Share invite link</button></div>
+    <p class="note" style="font-size:14px">Anyone with this link can see and edit your recipe box, so only share it with people you trust.</p>
+    <div class="btnrow"><button class="btn small danger" id="syncOff">Turn off sync on this device</button></div>`;
+}
 
 const APP_URL = new URL(".", location.href).href.replace(/#.*$/, "");
 const WORKER_HELP = "https://github.com/fredgerstenberger/fredgerstenberger.github.io/blob/main/recipes/worker/README.md";
+
+function askJoin(code, worker) {
+  const { el, close } = modal("Join recipe box?", `
+    <p style="margin-top:0">This device will sync with the recipe box from your invite link. Recipes and plans already on this device are kept and added to the box.</p>
+    ${worker ? `<p class="muted" style="font-size:14px">Worker: ${esc(worker)}</p>` : ""}
+    <div class="btnrow"><button class="btn primary" id="jYes">Join and sync</button><button class="btn" id="jNo">Cancel</button></div>`);
+  el.querySelector("#jNo").onclick = close;
+  el.querySelector("#jYes").onclick = async () => {
+    if (worker) store.setSetting("proxy", worker.replace(/\/+$/, ""));
+    if (!store.settings().proxy) { toast("Enter your Worker address first"); close(); return; }
+    el.querySelector("#jYes").disabled = true;
+    el.querySelector("#jYes").textContent = "Syncing…";
+    try { const r = await sync.enable(code); toast(`Joined · ${r.applied} item${r.applied === 1 ? "" : "s"} synced`); }
+    catch (err) { toast(err.message); }
+    close();
+    settingsView();
+  };
+}
 
 export function settingsView() {
   const s = store.settings();
@@ -63,8 +114,11 @@ export function settingsView() {
         <div class="code">${esc(bookmarklet)}</div>
       </details>
 
+      <h2 class="sect">Sync</h2>
+      <div id="syncBox">${syncHTML(s)}</div>
+
       <h2 class="sect">Backup</h2>
-      <p style="margin-top:0">Everything is saved on this device only. Export a backup now and then, especially before switching phones.</p>
+      <p style="margin-top:0">${sync.enabled() ? "Sync keeps a copy in your Cloudflare account. A backup file is still handy as an extra safety net." : "Everything is saved on this device only. Export a backup now and then, especially before switching phones, or turn on sync above."}</p>
       <div class="btnrow">
         <button class="btn primary" id="export">Export backup</button>
         <label class="btn" for="importFile">Import backup</label>
@@ -152,6 +206,44 @@ export function settingsView() {
         : st.ai ? line(true, `Photo scanning: ready${st.keyRequired ? (store.settings().scanKey ? " (app key set)" : " — but the Worker needs an app key; enter it below") : ""}`)
         : line(false, "Photo scanning: add a Workers AI binding named AI to the Worker, then deploy."));
   };
+  // ---- Sync ----
+  const runSync = async (msg) => {
+    const el = document.getElementById("syncStatus");
+    if (el) el.textContent = "Syncing…";
+    try { const r = await sync.syncNow(); toast(msg || (r.applied ? `Synced · ${r.applied} update${r.applied > 1 ? "s" : ""}` : "Synced")); }
+    catch (err) { toast(err.message); }
+    if (location.hash === "#/settings") settingsView();
+  };
+  document.getElementById("syncOn")?.addEventListener("click", async () => {
+    try { await sync.enable(); toast("Sync is on"); } catch (err) { toast(err.message); }
+    settingsView();
+  });
+  document.getElementById("joinForm")?.addEventListener("submit", e => {
+    e.preventDefault();
+    const v = document.getElementById("joinCode").value.trim();
+    let code = v, worker = "";
+    try { const u = new URL(v); code = u.searchParams.get("join") || ""; worker = u.searchParams.get("w") || ""; } catch {}
+    if (!/^[A-Za-z0-9_-]{20,64}$/.test(code)) { toast("That doesn't look like an invite link or code"); return; }
+    askJoin(code, worker);
+  });
+  document.getElementById("syncNow")?.addEventListener("click", () => runSync());
+  document.getElementById("shareInvite")?.addEventListener("click", async () => {
+    const link = sync.inviteLink();
+    try {
+      if (navigator.share) await navigator.share({ title: "Join my Recipe Box", text: "Open this to sync our Recipe Box:", url: link });
+      else { await navigator.clipboard.writeText(link); toast("Invite link copied"); }
+    } catch {}
+  });
+  document.getElementById("syncOff")?.addEventListener("click", async () => {
+    if (await confirmBox("Stop syncing on this device? Your recipes stay here, and other devices keep their copies.", "Turn off sync", true)) {
+      sync.disable(); toast("Sync is off on this device"); settingsView();
+    }
+  });
+  // Opened from an invite link
+  let pending = null;
+  try { pending = JSON.parse(sessionStorage.getItem("rb.join")); sessionStorage.removeItem("rb.join"); } catch {}
+  if (pending?.code) askJoin(pending.code, pending.worker);
+
   document.getElementById("export").onclick = async () => {
     const json = store.exportJSON();
     const name = `recipe-box-${new Date().toISOString().slice(0, 10)}.json`;
