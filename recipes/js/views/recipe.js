@@ -10,6 +10,9 @@ import { openAddToPlan } from "./plan.js";
 import { recipeCost, money, REGIONS } from "../prices.js";
 
 const progress = {}; // id → { ings:Set, steps:Set, servings, cook }
+let redrawCurrent = null;
+// New official data (USDA/BLS) arrived: refresh the open recipe in place, keeping your scroll position.
+export function refreshRecipe() { redrawCurrent?.(); }
 let wakeLock = null;
 
 async function lockScreen() {
@@ -149,7 +152,7 @@ export function recipeView(id) {
             : `From ${esc(r.site || "the recipe")}${nu.serving ? ` · serving: ${esc(nu.serving)}` : ""}.`}</p>
           ${nu.rows && nu.rows.length ? `<details class="breakdown"><summary>Ingredient breakdown</summary><table>
             ${nu.rows.map(row => row.food
-              ? `<tr><td>${esc(row.line)}<br><span class="muted">→ ${esc(row.food)}${row.grams ? `, ${Math.round(row.grams)} g` : ""}</span></td><td class="n">${Math.round(row.kcal)} kcal<br>${Math.round(row.protein)} g P</td></tr>`
+              ? `<tr><td>${esc(row.line)}<br><span class="muted">→ ${esc(row.usda ? `USDA: ${row.usda}` : row.food)}${row.grams ? `, ${Math.round(row.grams)} g` : ""}</span></td><td class="n">${Math.round(row.kcal)} kcal<br>${Math.round(row.protein)} g P</td></tr>`
               : `<tr class="miss"><td>${esc(row.line)}<br><span>not recognized — not counted</span></td><td class="n">?</td></tr>`).join("")}
           </table></details>` : ""}
 
@@ -268,6 +271,7 @@ export function recipeView(id) {
     document.getElementById("notes").addEventListener("input", e => { saved.textContent = "…"; saveNotes(e.target.value); });
   }
 
+  redrawCurrent = () => { if (location.hash === `#/r/${id}`) draw(true); };
   draw(false);
 }
 

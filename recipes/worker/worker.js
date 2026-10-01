@@ -9,6 +9,18 @@
 //   3. POST /sync   { box: "<secret code>", since: 0, changes: [{ k, u, v }] }
 //      Keeps your recipes, plans, lists and settings in sync between devices. Each recipe box
 //      (identified by its secret code) is stored in its own Durable Object (built-in database).
+//
+//      POST /invite         { box }   → one-time invite code (expires in 24 h)
+//      POST /invite/redeem  { token } → the box's secret, once; the invite is deleted
+//
+//   4. GET /prices            Official average grocery prices from the U.S. Bureau of Labor Statistics,
+//                             refreshed monthly (cron trigger) and cached.
+//      GET /nutrition?q=name  USDA FoodData Central nutrition + portion weights for an ingredient
+//                             the app doesn't know; each ingredient is looked up once and cached.
+//
+// Optional secrets (Worker → Settings → Variables and Secrets), never put keys in this file:
+//   FDC_KEY  free key from https://api.data.gov/signup (without it, USDA's very limited DEMO_KEY is used)
+//   BLS_KEY  free key from https://data.bls.gov/registrationEngine/ (optional; works without one)
 //      Reads a cookbook photo with an open-weight vision model on Cloudflare Workers AI
 //      and returns the recipe as JSON. Needs a Workers AI binding named "AI"
 //      (Worker → Settings → Bindings → Add → Workers AI → name it AI).
@@ -32,7 +44,7 @@ const MODELS = [
 ];
 
 // Shown at /status so you can confirm which version Cloudflare is running.
-const VERSION = "2026-10-02";
+const VERSION = "2026-10-03";
 
 const MAX_PAGE_BYTES = 5_000_000;
 const MAX_SCAN_BYTES = 8_000_000; // request body: up to a few resized photos
@@ -200,6 +212,180 @@ async function scan(request, env, headers) {
   return json({ model, recipe }, 200, headers);
 }
 
+// ---------- 4. Official data: BLS prices + USDA nutrition ----------
+
+// BLS Average Price series (U.S. city average). Item codes verified against BLS/FRED.
+const BLS_SERIES = {
+  APU0000708111: "eggs (dozen)", APU0000703112: "ground beef (lb)", APU0000FF1101: "chicken breast, boneless (lb)",
+  APU0000706111: "chicken, whole (lb)", APU0000709112: "milk, whole (gallon)", APU0000702111: "bread, white (lb)",
+  APU0000701312: "rice, white (lb)", APU0000701322: "spaghetti & macaroni (lb)", APU0000FS1101: "butter (lb)",
+  APU0000710212: "cheddar (lb)", APU0000704111: "bacon (lb)", APU0000712112: "potatoes (lb)",
+  APU0000711211: "bananas (lb)", APU0000701111: "flour (lb)", APU0000715211: "sugar (lb)",
+  APU0000712311: "tomatoes (lb)", APU0000712211: "lettuce, iceberg (lb)", APU0000711311: "oranges (lb)",
+  APU0000703613: "sirloin steak (lb)", APU0000704211: "pork chops (lb)", APU0000716141: "peanut butter (lb)",
+  APU0000712404: "onions, yellow (lb)", APU0000712405: "green onions (lb)", APU0000712406: "sweet peppers (lb)",
+  APU0000712403: "carrots (lb)", APU0000712409: "cucumbers (lb)", APU0000711415: "strawberries (12 oz)",
+  APU0000711412: "lemons (lb)", APU0000711111: "apples (lb)", APU0000703432: "beef for stew (lb)",
+  APU0000704311: "ham (lb)"
+};
+
+async function cacheOp(env, body) {
+  const stub = env.CACHE.get(env.CACHE.idFromName("shared-data"));
+  const res = await stub.fetch("https://cache/op", { method: "POST", body: JSON.stringify(body) });
+  return res.json();
+}
+
+async function refreshPrices(env) {
+  const ids = Object.keys(BLS_SERIES);
+  const year = new Date().getUTCFullYear();
+  const items = {};
+  const per = env.BLS_KEY ? 50 : 25;
+  for (let i = 0; i < ids.length; i += per) {
+    const body = { seriesid: ids.slice(i, i + per), startyear: String(year - 1), endyear: String(year) };
+    if (env.BLS_KEY) body.registrationkey = env.BLS_KEY;
+    const res = await fetch(`https://api.bls.gov/publicAPI/${env.BLS_KEY ? "v2" : "v1"}/timeseries/data/`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    for (const s of data?.Results?.series || []) {
+      const latest = (s.data || []).find(d => /^M\d\d$/.test(d.period) && d.period !== "M13" && !isNaN(parseFloat(d.value)));
+      if (latest) items[s.seriesID] = { value: parseFloat(latest.value), year: +latest.year, month: +latest.period.slice(1) };
+    }
+  }
+  if (!Object.keys(items).length) throw new Error("BLS returned no prices");
+  const record = { updated: Date.now(), items };
+  await cacheOp(env, { put: { "bls:prices": record } });
+  return record;
+}
+
+async function prices(env, headers) {
+  if (!env.CACHE) return json({ error: "Data cache isn't set up yet. Redeploy the Worker from GitHub." }, 500, headers);
+  let rec = (await cacheOp(env, { get: ["bls:prices"] }))["bls:prices"];
+  // Normally the monthly cron keeps this fresh; refresh here too if it's missing or over 40 days old.
+  if (!rec || Date.now() - rec.updated > 40 * 86400000) {
+    try { rec = await refreshPrices(env); } catch (e) { if (!rec) return json({ error: `Couldn't get BLS prices: ${e.message}` }, 502, headers); }
+  }
+  return json({ source: "U.S. Bureau of Labor Statistics, Average Price Data (U.S. city average)", ...rec }, 200, headers);
+}
+
+const NUTRIENTS = { kcal: [1008, 2047, 2048], protein: [1003], fat: [1004], carbs: [1005], fiber: [1079] };
+
+function pickNutrients(list) {
+  const out = {};
+  for (const [k, ids] of Object.entries(NUTRIENTS)) {
+    for (const id of ids) {
+      const n = (list || []).find(x => (x.nutrientId ?? x.nutrient?.id) === id);
+      const v = n ? (n.value ?? n.amount) : undefined;
+      if (v != null) { out[k] = +v; break; }
+    }
+    out[k] ??= 0;
+  }
+  return out;
+}
+
+// Score search results: every query word present, prefer plain raw/whole foods, avoid baby food and restaurant items.
+function scoreFood(f, words) {
+  const d = (f.description || "").toLowerCase();
+  let s = 0;
+  for (const w of words) s += d.includes(w) ? 3 : -4;
+  if (/\braw\b/.test(d)) s += 2;
+  if (/babyfood|baby food|infant|toddler|restaurant|fast food|school lunch|formulated/.test(d)) s -= 10;
+  if (f.dataType === "Foundation") s += 1;
+  s -= d.split(",").length * 0.3; // simpler descriptions first
+  return s;
+}
+
+function portions(food) {
+  let gCup = null, gEach = null;
+  for (const p of food.foodPortions || []) {
+    const unit = `${p.measureUnit?.name || ""} ${p.modifier || ""} ${p.portionDescription || ""}`.toLowerCase();
+    const amt = p.amount || p.value || 1;
+    const g = p.gramWeight / amt;
+    if (!g) continue;
+    if (!gCup && /\bcup\b/.test(unit)) gCup = g;
+    else if (!gCup && /\btbsp\b|tablespoon/.test(unit)) gCup = g * 16;
+    else if (!gEach && /medium|large|whole|each|item|fruit|small|slice|piece|clove|link|breast|thigh|egg|bulb|head|stalk|ear|fillet|leaf|sprig/.test(unit)) gEach = g;
+  }
+  return { gCup: gCup ? Math.round(gCup) : null, gEach: gEach ? Math.round(gEach) : null };
+}
+
+async function nutrition(request, env, headers) {
+  if (!env.CACHE) return json({ error: "Data cache isn't set up yet. Redeploy the Worker from GitHub." }, 500, headers);
+  if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) return json({ error: "Wrong or missing app key." }, 401, headers);
+  const q = String(new URL(request.url).searchParams.get("q") || "").toLowerCase().replace(/[^a-z0-9 '%-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+  if (q.length < 2) return json({ error: "Missing ?q=" }, 400, headers);
+  const key = "fdc:" + q;
+  const hit = (await cacheOp(env, { get: [key] }))[key];
+  if (hit) return json(hit, 200, headers);
+
+  const apiKey = env.FDC_KEY || "DEMO_KEY";
+  const base = "https://api.nal.usda.gov/fdc/v1";
+  const sres = await fetch(`${base}/foods/search?api_key=${apiKey}&query=${encodeURIComponent(q)}&dataType=${encodeURIComponent("Foundation,SR Legacy")}&pageSize=10`);
+  if (!sres.ok) return json({ error: `USDA lookup failed (HTTP ${sres.status}).${sres.status === 429 ? " Add a free FDC_KEY secret for a higher limit." : ""}` }, 502, headers);
+  const found = (await sres.json()).foods || [];
+  const words = q.split(" ").filter(w => w.length > 2);
+  const best = found.map(f => ({ f, s: scoreFood(f, words) })).sort((a, b) => b.s - a.s)[0];
+  let result = { q, match: null };
+  if (best && best.s > 0) {
+    let food = best.f, por = { gCup: null, gEach: null };
+    try {
+      const dres = await fetch(`${base}/food/${food.fdcId}?api_key=${apiKey}`);
+      if (dres.ok) { const detail = await dres.json(); por = portions(detail); if (!food.foodNutrients?.length) food = detail; }
+    } catch {}
+    result = { q, match: { fdcId: food.fdcId, description: food.description, dataType: food.dataType, nu: pickNutrients(food.foodNutrients), ...por } };
+  }
+  await cacheOp(env, { put: { [key]: result } });
+  return json(result, 200, headers);
+}
+
+// Shared cache for official data (one Durable Object for everyone): simple get/put of JSON values.
+export class DataCache {
+  constructor(state) { this.storage = state.storage; }
+  async fetch(request) {
+    const body = await request.json();
+    const out = {};
+    if (body.get) for (const k of body.get) out[k] = (await this.storage.get(k)) ?? null;
+    if (body.put) await this.storage.put(body.put);
+    // "take": read and delete in one step (one-time invites can't be redeemed twice).
+    if (body.take) {
+      for (const k of body.take) { out[k] = (await this.storage.get(k)) ?? null; await this.storage.delete(k); }
+    }
+    return new Response(JSON.stringify(out), { headers: { "Content-Type": "application/json" } });
+  }
+}
+
+// ---------- 3b. One-time invites ----------
+// A device that's already in the box asks for an invite code. The code works once and expires
+// after 24 hours; redeeming it hands the box's secret to the new device and deletes the invite.
+const INVITE_TTL = 24 * 3600 * 1000;
+const INVITE_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O or 1/I mix-ups
+
+function inviteToken() {
+  const b = crypto.getRandomValues(new Uint8Array(10));
+  return [...b].map(x => INVITE_ABC[x % INVITE_ABC.length]).join("");
+}
+
+async function invite(request, env, headers) {
+  if (!env.CACHE) return json({ error: "Data cache isn't set up yet. Redeploy the Worker from GitHub." }, 500, headers);
+  if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) return json({ error: "Wrong or missing app key." }, 401, headers);
+  let body;
+  try { body = await request.json(); } catch { return json({ error: "Bad request" }, 400, headers); }
+  const url = new URL(request.url);
+  if (url.pathname.replace(/\/+$/, "") === "/invite/redeem") {
+    const token = String(body.token || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (token.length !== 10) return json({ error: "That invite code isn't valid." }, 400, headers);
+    const rec = (await cacheOp(env, { take: ["inv:" + token] }))["inv:" + token];
+    if (!rec || rec.exp < Date.now()) return json({ error: "That invite has already been used or has expired. Ask for a new one." }, 404, headers);
+    return json({ box: rec.box }, 200, headers);
+  }
+  const box = String(body.box || "");
+  if (!/^[A-Za-z0-9_-]{20,64}$/.test(box)) return json({ error: "Invalid sync code." }, 400, headers);
+  const token = inviteToken();
+  const exp = Date.now() + INVITE_TTL;
+  await cacheOp(env, { put: { ["inv:" + token]: { box, exp } } });
+  return json({ token, expires: exp }, 200, headers);
+}
+
 // ---------- 3. Sync ----------
 
 async function sha256(text) {
@@ -252,6 +438,11 @@ export class RecipeSync {
 }
 
 export default {
+  // Monthly cron (see wrangler.jsonc): refresh official prices after BLS publishes them.
+  async scheduled(event, env, ctx) {
+    if (env.CACHE) ctx.waitUntil(refreshPrices(env).catch(e => console.error("BLS refresh failed", e)));
+  },
+
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
     const headers = cors(origin);
@@ -268,8 +459,14 @@ export default {
       if (request.method !== "POST") return json({ error: "Use POST" }, 405, headers);
       return sync(request, env, headers);
     }
+    if (path === "/invite" || path === "/invite/redeem") {
+      if (request.method !== "POST") return json({ error: "Use POST" }, 405, headers);
+      return invite(request, env, headers);
+    }
+    if (path === "/prices") return prices(env, headers);
+    if (path === "/nutrition") return nutrition(request, env, headers);
     if (path === "/status") {
-      return json({ ok: true, version: VERSION, ai: !!env.AI, sync: !!env.SYNC, keyRequired: !!env.APP_KEY, models: MODELS }, 200, headers);
+      return json({ ok: true, version: VERSION, ai: !!env.AI, sync: !!env.SYNC, data: !!env.CACHE, fdcKey: !!env.FDC_KEY, blsKey: !!env.BLS_KEY, keyRequired: !!env.APP_KEY, models: MODELS }, 200, headers);
     }
     if (request.method !== "GET") return new Response("Method not allowed", { status: 405, headers });
     return proxy(request, headers);

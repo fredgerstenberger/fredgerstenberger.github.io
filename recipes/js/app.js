@@ -15,6 +15,8 @@ import { settingsView } from "./views/settings.js";
 import { pricesView } from "./views/prices.js";
 import { sectionize } from "./grocery.js";
 import * as sync from "./sync.js";
+import { refreshPrices } from "./data.js";
+import { refreshRecipe } from "./views/recipe.js";
 
 // ---- Home ----
 function homeView() {
@@ -130,8 +132,8 @@ function route() {
 function handleIncomingUrl() {
   const p = new URLSearchParams(location.search);
   // Invite link from another device: ?join=<code>&w=<worker address>
-  if (p.get("join")) {
-    try { sessionStorage.setItem("rb.join", JSON.stringify({ code: p.get("join"), worker: p.get("w") || "" })); } catch {}
+  if (p.get("invite")) {
+    try { sessionStorage.setItem("rb.join", JSON.stringify({ invite: p.get("invite"), worker: p.get("w") || "" })); } catch {}
     history.replaceState(null, "", location.pathname + "#/settings");
     return;
   }
@@ -155,13 +157,18 @@ function init() {
   window.addEventListener("hashchange", route);
   route();
   // Changes arrived from another device: refresh the screen unless you're in the middle of typing or a dialog.
-  window.addEventListener("rb:synced", () => {
+  const refresh = () => {
     const a = document.activeElement;
     const typing = a && (a.matches("input, textarea, select") || a.isContentEditable);
+    if (typing || document.getElementById("modal").open) return;
     const h = location.hash || "#/";
+    if (h.startsWith("#/r/")) return refreshRecipe();
     const safe = /^#\/?$|^#\/(plan|grocery|pantry|prices|book)/.test(h) && !(h === "#/book" && window.scrollY > 80);
-    if (!typing && !document.getElementById("modal").open && safe) route();
-  });
+    if (safe) route();
+  };
+  window.addEventListener("rb:synced", refresh);
+  window.addEventListener("rb:data", refresh); // new official prices / USDA nutrition arrived
+  refreshPrices();
   sync.start();
   store.requestPersistence();
   if ("serviceWorker" in navigator && location.protocol === "https:") {

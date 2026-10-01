@@ -3,6 +3,7 @@
 import { FOODS, FOOD_BY_NAME } from "./fooddb.js";
 import { parseIngredient, toGrams } from "./ingredients.js";
 import * as store from "./store.js";
+import { officialPrice, dataVersion } from "./data.js";
 
 // name | price | basis   (p = per package from fooddb, l = per pound, e = each)
 const RAW = `
@@ -304,6 +305,9 @@ export function regionFactor(s = store.settings()) {
 export function priceEntry(name) {
   const mine = store.get().prices?.[name];
   if (mine && mine.price >= 0) return { ...mine, mine: true };
+  // Official U.S. average (BLS), adjusted to your region the same way as the estimates.
+  const off = officialPrice(name);
+  if (off) return { price: Math.round(off.price * regionFactor() * 100) / 100, basis: off.basis, mine: false, official: off.period };
   const base = BASE_PRICES[name];
   if (!base) return null;
   return { price: Math.round(base.price * regionFactor() * 100) / 100, basis: base.basis, mine: false };
@@ -347,7 +351,7 @@ const cache = new Map();
 /** Cost of the amounts a recipe actually uses (2 tbsp of a $12 bottle ≈ 36¢). */
 export function recipeCost(recipe) {
   const s = store.settings();
-  const key = `${recipe.id}:${recipe.updated || 0}:${s.priceRegion}:${s.priceCustomPct}:${store.get().pricesUpdated || 0}`;
+  const key = `${recipe.id}:${recipe.updated || 0}:${s.priceRegion}:${s.priceCustomPct}:${store.get().pricesUpdated || 0}:${dataVersion()}`;
   if (cache.has(key)) return cache.get(key);
   let total = 0, counted = 0, covered = 0;
   const rows = [];
