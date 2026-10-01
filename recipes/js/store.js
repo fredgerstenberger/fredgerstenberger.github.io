@@ -42,13 +42,14 @@ function load() {
   return freshState();
 }
 
-export function save() {
+// info (optional) is passed to listeners; sync uses info.times to keep imported records' edit times.
+export function save(info) {
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
   } catch (e) {
     alert("Couldn't save — storage may be full or blocked. Export a backup from Settings.");
   }
-  listeners.forEach(fn => fn());
+  listeners.forEach(fn => fn(info));
 }
 
 export const get = () => state;
@@ -119,21 +120,50 @@ export function exportJSON() {
   return JSON.stringify({ app: "recipe-box", exported: new Date().toISOString(), ...state }, null, 1);
 }
 
-export function importJSON(text, mode = "merge") {
+export function readBackup(text) {
   const data = JSON.parse(text);
   if (!data || typeof data.recipes !== "object") throw new Error("That file isn't a Recipe Box backup.");
+  return data;
+}
+
+/**
+ * Restore a backup.
+ * merge:   adds what's missing; where a recipe is in both, the newer copy (by its `updated` time) is
+ *          kept. Pantry answers, prices and your ingredient info already on this device are kept.
+ *          Imported records keep their original edit times, so with sync on they never beat
+ *          changes made after the backup, here or on other devices.
+ * replace: this device becomes exactly the backup. With sync on, that's sent everywhere as a new
+ *          edit (the settings screen warns about this first).
+ */
+export function importJSON(text, mode = "merge") {
+  const data = readBackup(text);
+  const exported = Date.parse(data.exported) || 0;
   if (mode === "replace") {
     const base = freshState();
     state = { ...base, ...data, settings: { ...base.settings, ...(data.settings || {}) } };
     delete state.app; delete state.exported;
-  } else {
-    Object.assign(state.recipes, data.recipes);
-    for (const [k, v] of Object.entries(data.plan || {})) if (!state.plan[k]) state.plan[k] = v;
-    Object.assign(state.pantry, data.pantry || {});
-    state.prices = { ...(data.prices || {}), ...(state.prices || {}) };
+    save();
+    return Object.keys(data.recipes).length;
   }
-  save();
-  return Object.keys(data.recipes).length;
+  const times = {};
+  let n = 0;
+  for (const [id, r] of Object.entries(data.recipes || {})) {
+    const mine = state.recipes[id];
+    if (!r || (mine && (mine.updated || 0) >= (r.updated || 0))) continue;
+    state.recipes[id] = r;
+    times["r:" + id] = r.updated || exported;
+    n++;
+  }
+  for (const [k, v] of Object.entries(data.plan || {})) {
+    if (!state.plan[k] && v?.meals?.length) { state.plan[k] = v; times["p:" + k] = exported; }
+  }
+  for (const coll of ["pantry", "prices", "foods", "asked"]) {
+    state[coll] ||= {};
+    for (const [k, v] of Object.entries(data[coll] || {})) if (!(k in state[coll]) && k !== "_ft") { state[coll][k] = v; times[coll] = exported; }
+  }
+  if (times.prices) state.pricesUpdated = Date.now();
+  save({ times });
+  return n;
 }
 
 // Ask the browser not to evict our data (helps on iOS when installed to home screen).

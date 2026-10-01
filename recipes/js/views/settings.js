@@ -94,6 +94,32 @@ async function checkForUpdate(btn) {
   btn.textContent = "Check for updates";
 }
 
+// Restoring a backup: merge (safe, keeps anything newer) or replace (exactly the backup).
+function askRestore(data) {
+  const when = Date.parse(data.exported);
+  const date = when ? new Date(when).toLocaleString([], { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "an unknown date";
+  const count = Object.keys(data.recipes || {}).length;
+  const synced = sync.enabled();
+  return new Promise(resolve => {
+    let handled = false;
+    const { el, close } = modal("Restore backup?", `
+      <p style="margin-top:0">Backup from <b>${esc(date)}</b> · ${count} recipe${count === 1 ? "" : "s"}.</p>
+      <div class="btnrow"><button class="btn primary" id="rMerge">Merge</button></div>
+      <p class="muted" style="font-size:14px;margin:4px 0 12px">Adds what's missing. Where a recipe is in both, the newer version is kept. Nothing newer is lost${synced ? ", on this phone or on your other synced devices" : ""}.</p>
+      <div class="btnrow"><button class="btn danger" id="rReplace">Replace everything</button></div>
+      <p class="muted" style="font-size:14px;margin:4px 0 12px">Makes this phone match the backup exactly.${synced ? " <b>Sync is on, so it also replaces everything on your other devices</b>, including changes made after the backup." : ""}</p>
+      <div class="btnrow"><button class="btn" id="rCancel">Cancel</button></div>`, { onClose: () => { if (!handled) resolve(null); } });
+    el.querySelector("#rMerge").onclick = () => { handled = true; close(); resolve("merge"); };
+    el.querySelector("#rCancel").onclick = close;
+    el.querySelector("#rReplace").onclick = async () => {
+      handled = true;
+      close();
+      if (synced && !(await confirmBox(`Replace the recipes, plans, lists and settings on every synced device with this backup from ${date}? Anything changed since then is lost everywhere.`, "Replace everywhere", true))) { resolve(null); return; }
+      resolve("replace");
+    };
+  });
+}
+
 export function settingsView() {
   const s = store.settings();
   const st = store.get();
@@ -318,12 +344,15 @@ export function settingsView() {
   document.getElementById("importFile").onchange = async e => {
     const f = e.target.files[0];
     if (!f) return;
+    e.target.value = "";
     try {
       const text = await f.text();
-      const replace = await confirmBox("Replace everything on this device with the backup? Choose Cancel to merge the backup's recipes into your current book instead.", "Replace all", true);
-      const n = store.importJSON(text, replace ? "replace" : "merge");
+      const data = store.readBackup(text);
+      const mode = await askRestore(data);
+      if (!mode) return;
+      const n = store.importJSON(text, mode);
       applyTheme();
-      toast(`Imported ${n} recipes`);
+      toast(mode === "replace" ? "Restored the backup" : `Merged · ${n} recipe${n === 1 ? "" : "s"} added or updated`);
       settingsView();
     } catch (err) { toast(err.message || "Import failed"); }
   };

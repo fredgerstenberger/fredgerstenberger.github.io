@@ -12,6 +12,7 @@ import { fp, isFieldRecord, toFields, fromFields, stampFields, mergeFields, FT }
 const KEY = "recipebox.sync";
 let meta = loadMeta();
 let running = null, again = false, timer = null, interval = null;
+const retries = new Map();
 
 function loadMeta() {
   try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch { return null; }
@@ -75,16 +76,20 @@ function apply(k, v) {
 }
 
 // Called after every local save: note which records changed and when.
-function stamp() {
+// info.times: { recordKey: time } for records restored from a backup, which keep their original
+// edit times instead of "now" so they don't beat newer edits made elsewhere.
+function stamp(info) {
   if (!meta) return;
   const now = Date.now();
+  const when = k => info?.times?.[k] ?? now;
   const recs = records();
   const dirty = new Set(meta.dirty);
   for (const [k, v] of Object.entries(recs)) {
     const h = fp(v);
     if (meta.h[k] !== h) {
-      meta.h[k] = h; meta.u[k] = now; dirty.add(k);
-      if (isFieldRecord(k)) stampFields(times(k), toFields(k, v), now);
+      const t = when(k);
+      meta.h[k] = h; meta.u[k] = k in meta.u && t <= meta.u[k] ? meta.u[k] + 1 : t; dirty.add(k);
+      if (isFieldRecord(k)) stampFields(times(k), toFields(k, v), when(k));
     }
   }
   for (const k of Object.keys(meta.h)) {
@@ -130,6 +135,18 @@ export async function syncNow() {
     }
     // Sent records are done unless they were edited again while we were waiting.
     meta.dirty = meta.dirty.filter(k => !(sent.includes(k) && meta.h[k] === sentHash[k]));
+    // The box echoes back every write it accepted. One that didn't come back lost to a copy with the
+    // same or a later time (two phones in the same millisecond, or clocks that disagree) that we've
+    // already merged; send ours again, timed after it, so the edit isn't silently dropped.
+    const echoed = new Set((data.records || []).map(r => r.k));
+    for (const k of sent) {
+      if (echoed.has(k)) { retries.delete(k); continue; }
+      const n = (retries.get(k) || 0) + 1;
+      retries.set(k, n);
+      if (n > 5) continue; // give up on this one for now (the box keeps refusing it)
+      meta.u[k] = Math.max(Date.now(), (meta.u[k] || 0) + 1);
+      if (!meta.dirty.includes(k)) meta.dirty.push(k);
+    }
     let applied = 0;
     for (const r of data.records || []) {
       if (isFieldRecord(r.k)) { applied += mergeIn(r); continue; }

@@ -13,7 +13,7 @@ export async function resolve(specifier, context, next) {
   return r;
 }
 
-const NAMES = ["localStorage", "window", "document", "location", "fetch", "navigator", "setTimeout", "clearTimeout", "setInterval", "clearInterval"];
+const NAMES = ["localStorage", "window", "document", "location", "fetch", "navigator", "setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"];
 
 export async function load(url, context, next) {
   const r = await next(url, context);
