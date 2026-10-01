@@ -5,5 +5,10 @@
   "name": "recipe-proxy",
   "main": "worker.js",
   "compatibility_date": "2025-09-01",
-  "ai": { "binding": "AI" }
+  "ai": { "binding": "AI" },
+  // Sync storage: one small built-in database per recipe box (free plan: SQLite-backed Durable Objects).
+  "durable_objects": {
+    "bindings": [{ "name": "SYNC", "class_name": "RecipeSync" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RecipeSync"] }]
 }
