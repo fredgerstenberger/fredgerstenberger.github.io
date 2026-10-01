@@ -122,11 +122,6 @@ export function importJSON(text, mode = "merge") {
   return Object.keys(data.recipes).length;
 }
 
-export function resetAll() {
-  state = freshState();
-  save();
-}
-
 // Ask the browser not to evict our data (helps on iOS when installed to home screen).
 export function requestPersistence() {
   try { navigator.storage?.persist?.(); } catch {}
