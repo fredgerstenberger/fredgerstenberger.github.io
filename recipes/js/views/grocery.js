@@ -68,12 +68,22 @@ function progressHTML(done, total, left) {
   return `<div class="gprog" role="status">${bar}<b>${done} of ${total}</b>${left ? `<span>· ~${left} left</span>` : ""}</div>`;
 }
 
+// "1 pint (16 fl oz)" → "1 pint" with "16 fl oz" as a small second line, so the name gets the room and a
+// size never breaks in the middle ("16 fl / oz").
+const nb = t => esc(t).replace(/ /g, "\u00a0");
+function amountHTML(amount) {
+  return amount.split(" + ").map(part => {
+    const m = part.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+    return m && m[1] ? `<span class="gq">${nb(m[1])}<small>${nb(m[2])}</small></span>` : `<span class="gq">${nb(part)}</span>`;
+  }).join(`<span class="gplus">+</span>`);
+}
+
 function rowHTML({ id, kind, name, amount, sub, checked, who }) {
   return `<li class="grow ${checked ? "got" : ""}" data-id="${esc(id)}" data-kind="${kind}">
     <button class="grow-main" aria-pressed="${checked}">
       <span class="gbox">${checked ? pix("check", 16) : ""}</span>
       <span class="gname">${esc(cap1(name))}${who ? `<span class="gby" title="${esc(who)}">${esc(live.initial(who))}</span>` : ""}${sub ? `<small>${esc(sub)}</small>` : ""}</span>
-      ${amount ? `<span class="gamt">${esc(amount)}</span>` : ""}
+      ${amount ? `<span class="gamt">${amountHTML(amount)}</span>` : ""}
     </button>
     <div class="grow-actions" aria-hidden="true"><button class="more" tabindex="-1">Details</button><button class="rm" tabindex="-1">Remove</button></div>
   </li>`;

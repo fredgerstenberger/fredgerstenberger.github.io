@@ -1024,3 +1024,17 @@ body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
   -webkit-appearance: none; appearance: none; font: 600 17px var(--body); color: var(--c-ink); padding: var(--s3) 0; }
 .gadd input[type="text"]:focus-visible { outline: none; }
 .gadd:focus-within { border-color: var(--c-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 18%, transparent); }
+
+/* Amounts: "1 pint" with the package size as a small second line; the name gets priority for width */
+.gamt { max-width: 40%; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.gamt .gq { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; line-height: 1.2; }
+.gamt .gq small { font: 600 12px/1.2 var(--body); color: var(--c-faint); }
+.gamt .gplus { font-size: 12px; line-height: 1; color: var(--c-faint); }
+.got .gamt .gq small { color: inherit; }
+.gname { hyphens: none; overflow-wrap: break-word; }
+.shopping .gamt { max-width: 38%; }
+.shopping .gamt .gq { font-size: 17px; }
+.shopping .gamt .gq small { font-size: 13px; }
+@media (max-width: 360px) { .shopping .grow-main { font-size: 18px; gap: var(--s3); } .shopping .gamt .gq { font-size: 16px; } }
+.gshopbar .cbtn { white-space: nowrap; }
+@media (max-width: 360px) { .gshopbar .cbtn:not(.primary) { padding: 0 var(--s4); } .gshopbar .cbtn { font-size: 16px; } }
