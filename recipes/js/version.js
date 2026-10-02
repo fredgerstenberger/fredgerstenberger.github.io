@@ -1,7 +1,16 @@
 // App version shown in Settings. Bump together with VERSION in sw.js ("rb-v" + APP_VERSION).
-export const APP_VERSION = 17;
+export const APP_VERSION = 18;
 export const RELEASED = "2026-10-02";
 export const WHATS_NEW = [
+  "A calmer, roomier look everywhere, with the pixel icons kept as accents. Works in light and dark.",
+  "Grocery list: tap a row to check it off; it folds into In cart, with Undo. Press and hold, or swipe left, for details.",
+  "Fast add: type \"2 lb chicken thighs\" and it lands in the right aisle. Suggestions and chips come from what you usually buy, and repeats merge.",
+  "Things you add stay on one household list, so they don't disappear when the week changes.",
+  "Stores: drag the aisles into the order you walk them.",
+  "Shopping mode: bigger rows, only what's left, and the screen stays on. Done shopping clears what you bought.",
+  "See your partner's changes within seconds: \"Emma checked eggs\".",
+  "A spoonful of granola or miso now shows as one bag or tub, not \"2 tbsp\".",
+  "Add from a link or Siri: …/recipes/?add=milk, eggs (see the README for the iOS Shortcut).",
   "Shared ratings: everyone rates recipes themselves and the average is what shows. Set your name in Settings → Sync.",
   "Planning together: meals added, moved or removed on two phones at once all stick, and recipe edits (rating on one phone, notes on the other) both keep.",
   "\"half a dozen eggs\", \"2 + 1/2 cups\" and the grocery list's \"2 dozen (24 eggs)\" now read right.",

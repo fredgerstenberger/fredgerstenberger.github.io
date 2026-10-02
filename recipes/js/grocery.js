@@ -5,7 +5,7 @@ import * as store from "./store.js";
 import { FOOD_BY_NAME } from "./fooddb.js";
 import { perGram, packagePrice, eachPrice } from "./prices.js";
 
-function singular(w) {
+export function singular(w) {
   if (/(ss|us|is)$/.test(w) || w.length <= 3) return w;
   if (/ies$/.test(w)) return w.slice(0, -3) + "y";
   if (/(oes|ches|shes|xes)$/.test(w)) return w.slice(0, -2);
@@ -120,6 +120,12 @@ function amountText(a) {
   const parts = [];
   const pg = perGram(f);
   a.cost = null;
+  const countUnits = Object.keys(a.counts).length;
+  // Buyable amounts: a small amount of something not in the food table ("2 tbsp granola", "1 tsp
+  // za'atar") is bought as one of whatever it comes in, so the list shows just the name. A pantry
+  // food in the table that couldn't be weighed still rounds to one package.
+  if (!f && !countUnits && ((a.vol && !a.mass && a.vol <= 118.3) || (a.mass && !a.vol && a.mass <= 56.7))) return "";
+  if (f && f.pkg && "PS".includes(f.kind) && !a.pkgCount && !a.grams && (a.vol || a.mass) && !countUnits) a.pkgCount = 1, a.vol = a.mass = 0;
   if (f && f.pkg && (a.pkgCount || a.grams)) {
     const n = Math.max(1, Math.ceil(a.pkgCount + a.grams / f.pkg.g - 0.05));
     const pp = packagePrice(f);

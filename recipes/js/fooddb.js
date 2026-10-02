@@ -144,6 +144,7 @@ cooked rice|cooked white rice,cooked jasmine rice,leftover rice,cooked brown ric
 quinoa|dry quinoa,uncooked quinoa|dry|P|368,14,64,6,7|170||bag:340:12 oz|
 couscous|pearl couscous,israeli couscous|dry|P|376,12.8,77,0.6,5|173||box:283:10 oz|
 oats|rolled oats,old-fashioned oats,old fashioned oats,old-fashioned rolled oats,quick oats,quick-cooking oats,oatmeal,steel cut oats|dry|P|379,13,68,6.5,10|81||canister:510:18 oz|
+granola|granola clusters,muesli|dry|P|471,10,64,20,7|122||bag:340:12 oz|
 lentils|red lentils,green lentils,brown lentils,dried lentils,french lentils|dry|P|352,24.6,63,1.1,10.7|192||bag:454:1 lb|
 cornmeal|polenta,yellow cornmeal,grits|dry|P|370,7,79,1.8,7|157||bag:680:24 oz|
 tortilla chips|chips,potato chips|dry|F|489,7,63,23,4.4|||bag:312:11 oz|
@@ -173,6 +174,7 @@ fish sauce||condiments|P|35,5,3.6,0,0|288||bottle:200:7 fl oz|L
 oyster sauce||condiments|P|51,1.4,11,0.3,0.3|288||bottle:255:9 oz|
 hoisin sauce|hoisin|condiments|P|220,3.3,44,3.4,2.8|258||jar:240:8.5 oz|
 sriracha|hot sauce,chili garlic sauce,sambal oelek,tabasco,buffalo sauce,gochujang|condiments|P|93,1.9,19,0.9,2.2|272||bottle:482:17 oz|
+miso|miso paste,white miso,red miso,yellow miso,shiro miso|condiments|P|198,12,26,6,5.4|275||tub:397:14 oz|
 worcestershire sauce|worcestershire|condiments|P|78,0,19.5,0,0|275||bottle:296:10 fl oz|L
 mustard|dijon mustard,dijon,whole grain mustard,yellow mustard,stone ground mustard|condiments|P|66,4.4,5.8,4,4|250||jar:227:8 oz|
 ketchup||condiments|P|101,1,27,0.1,0.3|240||bottle:567:20 oz|
@@ -222,6 +224,7 @@ peanuts|cashews,roasted peanuts,raw cashews,pistachios|dry|P|567,22,25,47,6|146|
 pine nuts||dry|P|673,13.7,13,68,3.7|135||bag:113:4 oz|
 sesame seeds|toasted sesame seeds|spices|P|573,17.7,23,49.7,11.8|144||jar:57:2 oz|
 chia seeds|flax seeds,flaxseed,ground flaxseed,hemp seeds|dry|P|486,16.5,42,31,34|160||bag:340:12 oz|
+hemp hearts|hemp heart,hulled hemp seeds,shelled hemp seeds|dry|P|553,31.6,8.7,48.8,4|160||bag:227:8 oz|
 dried fruit|raisins,dried cranberries,craisins,dates,medjool dates|dry|P|299,3,79,0.5,3.7|145||box:340:12 oz|
 protein powder|whey protein,whey protein powder|other|P|400,80,10,5,0|120|30|container:907:2 lb|
 salt|table salt,sea salt,fine salt,fine sea salt,salt to taste|spices|S|0,0,0,0,0|288|||
@@ -240,6 +243,7 @@ turmeric|ground turmeric|spices|P|312,9.7,67,3.3,22.7|150||jar:45:1.6 oz|
 curry powder|madras curry powder|spices|P|325,14,58,14,53|100||jar:45:1.6 oz|
 garam masala||spices|P|380,15,50,15,30|100||jar:45:1.6 oz|
 cinnamon|ground cinnamon,cinnamon stick,cinnamon sticks|spices|P|247,4,81,1.2,53|125|3|jar:70:2.5 oz|
+saffron|saffron threads|spices|P|310,11,65,6,3.9|21||jar:0.5:0.5 g|
 nutmeg|ground nutmeg,freshly grated nutmeg|spices|P|525,5.8,49,36,21|110||jar:30:1 oz|
 ground ginger|ginger powder,dried ginger|spices|P|335,9,72,4.2,14|90||jar:40:1.4 oz|
 oregano|dried oregano,dry oregano,mexican oregano|spices|P|265,9,69,4.3,42.5|45||jar:20:0.75 oz|

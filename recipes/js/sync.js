@@ -36,6 +36,9 @@ function records() {
   out.prices = s.prices || {};
   out.foods = s.foods || {};
   out.asked = s.asked || {};
+  out.history = s.history || {};
+  out.stores = s.stores || {};
+  out.household = s.household || {};
   const settings = { ...s.settings };
   for (const k of DEVICE_ONLY_SETTINGS) delete settings[k];
   out.settings = settings;
@@ -75,6 +78,7 @@ function apply(k, v) {
     else s[coll][id] = v;
   } else if (k === "pantry") fill(s.pantry ||= {}, v || {});
   else if (k === "foods" || k === "asked") { fill(s[k] ||= {}, v || {}); bump(); }
+  else if (k === "history" || k === "stores" || k === "household") fill(s[k] ||= {}, v || {});
   else if (k === "prices") { fill(s.prices ||= {}, v || {}); s.pricesUpdated = Date.now(); }
   else if (k === "settings" && v) {
     const keep = Object.fromEntries(DEVICE_ONLY_SETTINGS.map(x => [x, s.settings[x]]));
@@ -325,15 +329,15 @@ export function start() {
     window.addEventListener("online", () => { if (meta) schedule(300); });
   }
   migrate();
-  // Every minute normally; every 8 seconds while a grocery list is open, so a partner's checks show up fast.
+  // Every minute normally; every 4 seconds while a grocery list is open, so a partner's checks show up fast.
   clearInterval(interval);
   let lastPoll = Date.now();
   interval = setInterval(() => {
     if (!meta || document.visibilityState !== "visible") return;
-    if (Date.now() - lastPoll < (onGrocery() ? 8000 : 60000)) return;
+    if (Date.now() - lastPoll < (onGrocery() ? 4000 : 60000)) return;
     lastPoll = Date.now();
     syncNow().catch(() => {});
-  }, 4000);
+  }, 1000);
   stamp();
   schedule(500);
 }

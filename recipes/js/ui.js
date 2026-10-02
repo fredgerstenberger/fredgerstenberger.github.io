@@ -16,9 +16,11 @@ export const app = () => document.getElementById("app");
 
 export function go(hash) { location.hash = hash; }
 
-/** A full-page retro window. The close box goes back (or home). */
-export function shell({ title, body, status = "", actions = "", back = "#/" }) {
-  return `<main class="page">
+/** A full page in the Calm Pixel style: a quiet top bar (back arrow, title once you scroll, actions) and
+ * a large title. bigTitle: false for screens that draw their own title. */
+export function shell({ title, body, status = "", actions = "", back = "#/", calm = true, bigTitle = true }) {
+  if (calm && bigTitle) body = `<h1 class="ctitle">${esc(title)}</h1>` + body;
+  return `<main class="page${calm ? " calm" : ""}">
     <section class="win screen">
       <div class="titlebar">
         <span class="tb-left"><a class="backbtn" href="${esc(back)}" aria-label="${back === "#/" ? "Home" : "Back"}">${sprite("back")}</a></span>
@@ -30,6 +32,9 @@ export function shell({ title, body, status = "", actions = "", back = "#/" }) {
     </section>
   </main>`;
 }
+
+// Calm pages show the title in the top bar once the big title has scrolled away.
+addEventListener("scroll", () => document.querySelector(".page.calm")?.classList.toggle("scrolled", scrollY > 56), { passive: true });
 
 export function render(html, { keepScroll = false } = {}) {
   const y = window.scrollY;
@@ -78,12 +83,23 @@ export function confirmBox(message, okLabel = "Delete", danger = true) {
 
 // ---- Toast ----
 let toastTimer;
-export function toast(msg) {
+// action: { label, run } adds a button (e.g. Undo) and keeps the toast up a little longer.
+// badge: a person's initial shown first (for a partner's changes).
+export function toast(msg, action = null, badge = "") {
   const t = document.getElementById("toast");
   t.textContent = msg;
+  if (badge) { const b = document.createElement("span"); b.className = "gby"; b.textContent = badge; t.prepend(b); }
+  t.classList.toggle("act", !!action);
+  t.classList.toggle("who", !!badge);
+  if (action) {
+    const b = document.createElement("button");
+    b.textContent = action.label;
+    b.onclick = () => { t.hidden = true; action.run(); };
+    t.append(b);
+  }
   t.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.hidden = true; }, 2200);
+  toastTimer = setTimeout(() => { t.hidden = true; }, action ? 4000 : 2200);
 }
 
 // ---- Stars ----

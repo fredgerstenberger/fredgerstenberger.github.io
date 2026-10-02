@@ -1,5 +1,6 @@
 // Recipe Box — entry point: theme, routing, home screen.
 import * as store from "./store.js";
+import { items as houseItems } from "./household.js";
 import { esc, planningWeekKey, weekKey, DAYS, MEALS, cap, plural } from "./util.js";
 import { sprite } from "./sprites.js";
 import { render, initModal, closeModal, applyTheme } from "./ui.js";
@@ -8,7 +9,7 @@ import { bookView } from "./views/book.js";
 import { recipeView, leaveRecipe } from "./views/recipe.js";
 import { addView, editView } from "./views/editor.js";
 import { planView } from "./views/plan.js";
-import { groceryView } from "./views/grocery.js";
+import { groceryView, ADD_KEY } from "./views/grocery.js";
 import { pantryView } from "./views/pantry.js";
 import { convertView } from "./views/convert.js";
 import { settingsView } from "./views/settings.js";
@@ -25,7 +26,7 @@ function homeView() {
   const wk = planningWeekKey();
   const meals = store.week(wk).meals || [];
   let toBuy = 0;
-  try { const sec = sectionize(wk); toBuy = sec.buy.filter(i => !i.checked).length + sec.extras.filter(e => !e.checked).length; } catch {}
+  try { const sec = sectionize(wk); toBuy = sec.buy.filter(i => !i.checked).length + sec.extras.filter(e => !e.checked).length + houseItems().filter(h => !h.checked).length; } catch {}
 
   // Today's plan
   const now = new Date();
@@ -47,7 +48,7 @@ function homeView() {
     ["settings", "Settings", "#/settings", ""]
   ];
 
-  render(`<main class="page">
+  render(`<main class="page calm home">
     <header class="hero">
       <div>
         <h1><span>Recipe</span><span>Box</span></h1>
@@ -135,6 +136,12 @@ function handleIncomingUrl() {
   if (p.get("invite")) {
     try { sessionStorage.setItem("rb.join", JSON.stringify({ invite: p.get("invite"), worker: p.get("w") || "" })); } catch {}
     history.replaceState(null, "", location.pathname + "#/settings");
+    return;
+  }
+  // Quick add: /recipes/?add=milk, eggs (from a link or an iOS Shortcut) adds to the grocery list.
+  if (p.get("add")) {
+    try { sessionStorage.setItem(ADD_KEY, p.get("add").slice(0, 2000)); } catch {}
+    history.replaceState(null, "", location.pathname + "#/grocery");
     return;
   }
   const u = p.get("url") || p.get("text");
