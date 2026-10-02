@@ -67,6 +67,8 @@ No build step. To run locally: `python3 -m http.server 8000`, then open http://l
 
 ## Tests
 
+The tests below run on every pull request (GitHub Actions, **Tests** workflow). For what only a real phone can show (home-screen install, offline launch, camera, screen staying awake, dragging aisles), use the [iPhone checklist](PHONE-CHECKLIST.md).
+
 No build step and no dependencies. With Node 22 or later, from `recipes/`:
 
 ```

@@ -1,0 +1,24 @@
+# Runs Recipe Box's tests (about 270, a few seconds, no dependencies) on every pull request and every
+# push to main, so a change that breaks something shows a red check before it's merged.
+name: Tests
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: recipes
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check every app and Worker file
+        run: for f in js/*.js js/views/*.js sw.js worker/worker.js; do node --check "$f" || exit 1; done
+      - name: Tests
+        run: npm test
