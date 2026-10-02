@@ -15,7 +15,7 @@ Live at **https://fredgerstenberger.github.io/recipes/** (after this folder is o
   - **Tap a row to check it off.** It folds into **In cart** at the bottom, with Undo. Press and hold (or swipe left) for details, edit and remove. A progress bar and the estimated total left sit at the top.
   - **Fast add:** type "2 lb chicken thighs" and it goes to the right aisle with its amount. Suggestions come from what you've added before (most often first) and the food table; chips offer your usual items. Adding something already on the list adds to that line instead of repeating it.
   - **One household list for things you add** (paper towels, cat litter), shown with whichever week you're looking at, so it never disappears when the week changes.
-  - **Stores:** add your stores and drag the aisles into the order you walk them. Stores sync; which one you're shopping at is per phone.
+  - **Stores:** without one, the list goes produce, dairy, meat, then the packaged aisles, with frozen last. Add your stores and drag the aisles into the order you walk them. Stores sync; which one you're shopping at is per phone.
   - **Shopping mode:** bigger rows with only what's left, by aisle, and the screen kept awake (Safari 16.4+, home-screen app on iOS 18.4+). **Done shopping** clears what you added and bought, notes purchases, and can mark pantry foods as stocked.
   - **Live with a partner:** while the list is open it checks for changes every 4 seconds and says what happened ("Emma checked eggs"). Their initial shows on things they added or checked.
   - **Add from a link or Siri:** `…/recipes/?add=milk, eggs` adds items (see below).

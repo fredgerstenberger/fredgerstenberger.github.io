@@ -2,7 +2,7 @@
 // Each icon is rows of palette letters; "." is transparent. "currentColor" follows the text color.
 const ICONS = {
   produce:    { p: ["...gg...", "....g...", ".rrrrrr.", "rrrrrrrr", "rrrrrrwr", "rrrrrrrr", ".rrrrrr.", "..rrrr.."], c: { g: "#3E9E55", r: "#E0503C", w: "#FFB4A8" } },
-  meat:       { p: ["..rrr...", ".rrrrr..", "rrrrrrr.", "rrrrrrr.", ".rrrrr..", "...bb...", "....bb..", ".....ww."], c: { r: "#C8553D", b: "#E8C9A0", w: "#F4E6D2" } },
+  meat:       { p: [".rrr....", "rllrr...", "rlrrrr..", "rrrrrrd.", ".rrrrdk.", "..rddwk.", "....kwwk", ".....kk."], c: { r: "#D98A3D", l: "#F2B866", d: "#A85E24", w: "#F3E7D3", k: "#B9A07A" } }, // chicken drumstick
   seafood:    { p: ["........", "...bb...", "..bbbb.b", ".bwbbbbb", ".bbbbbbb", "..bbbb.b", "...bb...", "........"], c: { b: "#4A90C2", w: "#FFFFFF" } },
   dairy:      { p: ["..bbbb..", ".bwwwwb.", "bwwwwwwb", "bwbbbbwb", "bwbbbbwb", "bwwwwwwb", "bwwwwwwb", "bbbbbbbb"], c: { b: "#3B6FD8", w: "#FFFFFF" } },
   bakery:     { p: ["..yyyy..", ".yyyyyy.", "yyyyyyyy", "ylylylyy", "yyyyyyyy", "yyyyyyyy", ".yyyyyy.", "........"], c: { y: "#C98A3E", l: "#F0C27E" } },

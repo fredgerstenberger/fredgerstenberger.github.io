@@ -10,7 +10,7 @@ export function openStorePicker(onChange) {
   const { el, close } = modal("Where are you shopping?", `
     <p class="muted" style="margin-top:0;font-size:14px">The list follows each store's aisle order. Your stores sync with your partner; which one you pick stays on this phone.</p>
     <div class="card spick">
-      <label class="srow"><input type="radio" name="st" value="" ${cur ? "" : "checked"}><span>Any store<small>Standard aisle order</small></span></label>
+      <label class="srow"><input type="radio" name="st" value="" ${cur ? "" : "checked"}><span>Any store<small>Produce, dairy, meat, then packaged aisles; frozen last</small></span></label>
       ${all.map(s => `<div class="srow">
         <label><input type="radio" name="st" value="${esc(s.id)}" ${cur === s.id ? "checked" : ""}><span>${esc(s.name)}</span></label>
         <button class="btn small" data-edit="${esc(s.id)}">Aisles</button>
