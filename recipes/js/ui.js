@@ -119,8 +119,7 @@ export const miniStars = r => r ? "★".repeat(r) + "☆".repeat(5 - r) : "";
 export function nutriShort(r) {
   const n = nutritionFor(r);
   if (!n || !n.kcal) return "";
-  const t = n.source === "estimate" ? "~" : "";
-  return `${t}${Math.round(n.kcal)} kcal · ${t}${Math.round(n.protein)} g protein`;
+  return `${Math.round(n.kcal)} kcal · ${Math.round(n.protein)} g protein`;
 }
 
 export function metaLine(r) {

@@ -5,7 +5,7 @@ export const WHATS_NEW = [
   "Recipes: your rating is the big row of stars you tap; the household average is a small line under it.",
   "New Settings icon (two switches), and the grocery list icon has room under its last line.",
   "Recipe book: cards no longer list keywords; search and the filter chips still use them.",
-  "Prices drop the ~ (every price is an estimate). Estimated nutrition keeps its ~, since some recipes publish their own.",
+  "Prices and nutrition drop the ~ in front of every number.",
   "Oat, almond and soy milk (or whole, 2% and skim) stay separate lines on the grocery list. Adding \"2% milk\" when a recipe needs milk offers Use for recipe.",
   "\"half and half\" is read as the cream, and amounts like \"1,000 g\" or \"1,5 kg\" work.",
   "Reloading for an update no longer loses text you're typing in another tab.",

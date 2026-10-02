@@ -77,7 +77,6 @@ export function recipeView(id) {
     const nu = nutritionFor(r);
     const cost = recipeCost(r);
     const est = nu.source === "estimate";
-    const t = est ? "~" : "";
 
     let stepNo = 0;
     const firstOpen = (() => { let i = 0; for (const st of r.steps || []) { if (!st.startsWith("#")) { if (!P.steps.has(i)) return i; i++; } } return -1; })();
@@ -135,7 +134,7 @@ export function recipeView(id) {
             ${P.servings !== base ? `<br><button class="btn small" id="sReset" style="margin-top:8px">Reset to ${base}</button>` : ""}
           </dd></div>
           ${cost.total > 0 ? `<div><dt>Cost</dt><dd>${money(cost.perServing)}/serving<br><span class="muted" style="font-size:14px">${money(cost.perServing * P.servings)} for ${P.servings}</span></dd></div>` : ""}
-          ${nu.kcal ? `<div><dt>Per serving</dt><dd>${t}${fmtN(nu.kcal)} kcal<br><span class="muted" style="font-size:14px">${t}${fmtN(nu.protein)} g protein</span></dd></div>` : ""}
+          ${nu.kcal ? `<div><dt>Per serving</dt><dd>${fmtN(nu.kcal)} kcal<br><span class="muted" style="font-size:14px">${fmtN(nu.protein)} g protein</span></dd></div>` : ""}
         </dl>
         <div class="btnrow hide-cook">
           <button class="btn primary" id="planBtn">+ Meal plan</button>
@@ -161,11 +160,11 @@ export function recipeView(id) {
           <h2 class="sect">Nutrition <small>per serving</small></h2>
           ${nu.kcal ? `
           <div class="nutri">
-            <div><b>${t}${fmtN(nu.kcal)}</b><span>calories</span></div>
-            <div><b>${t}${fmtN(nu.protein)}g</b><span>protein</span></div>
-            <div><b>${t}${fmtN(nu.carbs)}g</b><span>carbs</span></div>
-            <div><b>${t}${fmtN(nu.fat)}g</b><span>fat</span></div>
-            <div><b>${t}${fmtN(nu.fiber)}g</b><span>fiber</span></div>
+            <div><b>${fmtN(nu.kcal)}</b><span>calories</span></div>
+            <div><b>${fmtN(nu.protein)}g</b><span>protein</span></div>
+            <div><b>${fmtN(nu.carbs)}g</b><span>carbs</span></div>
+            <div><b>${fmtN(nu.fat)}g</b><span>fat</span></div>
+            <div><b>${fmtN(nu.fiber)}g</b><span>fiber</span></div>
             ${nu.sodium != null ? `<div><b>${fmtN(nu.sodium)}</b><span>mg sodium</span></div>` : ""}
           </div>` : ""}
           <p class="muted" style="font-size:14px;margin:0 0 6px">${est
@@ -205,7 +204,7 @@ export function recipeView(id) {
             <div class="saved" id="saved"></div>
           </div>
         </div>`,
-      status: `<span>${r.created ? `Added ${new Date(r.created).toLocaleDateString()}` : ""}</span><span>${est ? "~ = estimate" : ""}</span>`
+      status: `<span>${r.created ? `Added ${new Date(r.created).toLocaleDateString()}` : ""}</span>`
     }), { keepScroll });
     document.body.classList.toggle("cook", P.cook);
     bind();
