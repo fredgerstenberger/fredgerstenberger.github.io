@@ -14,9 +14,11 @@ import * as stores from "../stores.js";
 import * as house from "../household.js";
 import { openStorePicker } from "./stores.js";
 import * as live from "../live.js";
+import * as sync from "../sync.js";
 
 const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
 const HINT_KEY = "rb.groceryHint";
+export const ADD_KEY = "rb.add";
 const CART_KEY = "rb.cartOpen";
 const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -253,9 +255,10 @@ export function groceryView(key) {
   };
 
   // Add what was typed. Something already on the list merges into its line instead of repeating.
-  function addManual(text) {
+  function addManual(text, quiet = false) {
     const p = parseAdd(text);
-    if (!p) return;
+    if (!p) return null;
+    const say = quiet ? () => {} : toast;
     const fromRecipes = [...sec.buy, ...sec.ask, ...sec.have].find(i => i.key === p.key) || (g.hidden[p.key] ? { key: p.key, hiddenOnly: true } : null);
     const extra = manual().find(e => parseAdd(e.text).key === p.key);
     if (fromRecipes) {
@@ -266,20 +269,34 @@ export function groceryView(key) {
         const cur = (g.edits[p.key]?.amount ?? fromRecipes.amount ?? "").replace(/\s*\([^)]*\)/g, "");
         g.edits[p.key] = { ...(g.edits[p.key] || {}), amount: cur ? `${cur} + ${p.amount}` : p.amount };
       }
-      toast(`${p.name} is already on the list${p.amount ? ` · added ${p.amount}` : ""}`);
+      say(`${p.name} is already on the list${p.amount ? ` · added ${p.amount}` : ""}`);
     } else if (extra) {
       const merged = mergeAdd(extra.text, p);
       if (extra.src === "house") { house.update(extra.id, { text: merged }); house.setChecked(extra.id, false); }
       else { const x = findExtra(extra.id); x.text = merged; x.checked = false; }
-      toast(`${p.name} is already on the list${p.amount ? ` · now ${parseAdd(merged).amount}` : ""}`);
+      say(`${p.name} is already on the list${p.amount ? ` · now ${parseAdd(merged).amount}` : ""}`);
     } else {
       house.add(text, me().name);
       const aisle = AISLES.find(a => a[0] === p.aisle);
-      toast(`Added ${p.name}${aisle ? ` · ${aisle[1]}` : ""}`);
+      say(`Added ${p.name}${aisle ? ` · ${aisle[1]}` : ""}`);
     }
     noteAdded(history(), p);
     store.save();
     paint();
+    return p;
+  }
+
+  // Items from a link or an iOS Shortcut (/recipes/?add=milk, eggs; see app.js and the README).
+  function addFromLink(textList) {
+    const added = String(textList).split(/[,;\n]+/).map(t => t.trim().slice(0, 80)).filter(Boolean).slice(0, 30)
+      .map(t => addManual(t, true)).filter(Boolean);
+    if (!added.length) return;
+    const names = added.map(p => p.name.toLowerCase());
+    const what = names.length <= 3 ? names.join(", ").replace(/, ([^,]*)$/, " and $1") : `${names.length} items`;
+    if (sync.enabled()) { sync.syncNow().catch(() => {}); toast(`Added ${what}`); }
+    // Opened in a browser that isn't connected to your household's sync (from a Shortcut that's
+    // Safari, whose storage is separate from the home-screen app).
+    else toast(`Added ${what} · this browser isn't synced`, { label: "Set up", run: () => { location.hash = "#/settings"; } });
   }
 
   function showSuggestions() {
@@ -374,6 +391,9 @@ export function groceryView(key) {
 
   paint();
   if (shopping()) keepAwake(true);
+  let fromLink = null;
+  try { fromLink = sessionStorage.getItem(ADD_KEY); sessionStorage.removeItem(ADD_KEY); } catch {}
+  if (fromLink) addFromLink(fromLink);
 }
 
 // Row gestures: tap = check; press and hold = details; swipe left = reveal Details / Remove.
