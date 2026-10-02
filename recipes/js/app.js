@@ -3,7 +3,7 @@ import * as store from "./store.js";
 import { items as houseItems } from "./household.js";
 import { esc, planningWeekKey, weekKey, DAYS, MEALS, cap, plural } from "./util.js";
 import { sprite } from "./sprites.js";
-import { render, initModal, closeModal, applyTheme } from "./ui.js";
+import { render, initModal, closeModal, applyTheme, toast } from "./ui.js";
 import { initTimers } from "./timers.js";
 import { bookView } from "./views/book.js";
 import { recipeView, leaveRecipe } from "./views/recipe.js";
@@ -178,9 +178,34 @@ function init() {
   refreshPrices();
   sync.start();
   store.requestPersistence();
-  if ("serviceWorker" in navigator && location.protocol === "https:") {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
-  }
+  // Offline and instant launch (see sw.js). On localhost only when asked (localStorage rb.sw = 1), so
+  // editing the app locally isn't served from a cache.
+  let sw = false;
+  try { sw = location.protocol === "https:" || !!localStorage.getItem("rb.sw"); } catch {}
+  if ("serviceWorker" in navigator && sw) watchForUpdates();
+}
+
+// A new release downloads in the background. When it's ready: "Updated · Reload" switches to it now;
+// otherwise it starts on the next launch. Home-screen apps rarely reload, so returning to the app checks
+// for a release too (at most every 30 minutes).
+function watchForUpdates() {
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloading = false, lastCheck = Date.now();
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    // The new release took over (from this page or another): reload so every module comes from it.
+    if (hadController && !reloading) { reloading = true; location.reload(); }
+  });
+  const offer = w => toast("Recipe Box updated", { label: "Reload", ms: 12000, run: () => w.postMessage("skip-waiting") });
+  navigator.serviceWorker.register("sw.js").then(reg => {
+    if (reg.waiting && hadController) offer(reg.waiting);
+    reg.addEventListener("updatefound", () => {
+      const w = reg.installing;
+      w?.addEventListener("statechange", () => { if (w.state === "installed" && navigator.serviceWorker.controller) offer(w); });
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && Date.now() - lastCheck > 30 * 60 * 1000) { lastCheck = Date.now(); reg.update().catch(() => {}); }
+    });
+  }).catch(() => {});
 }
 
 init();
