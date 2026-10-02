@@ -11,7 +11,7 @@
 // as edited at the time of that whole record (how everything synced before).
 
 export const FT = "_ft";
-const MAPS = ["pantry", "prices", "settings", "foods", "asked"];
+const MAPS = ["pantry", "prices", "settings", "foods", "asked", "history"];
 
 export const isFieldRecord = k => k.startsWith("r:") || k.startsWith("g:") || k.startsWith("p:") || MAPS.includes(k);
 
@@ -86,7 +86,7 @@ export function toFields(k, v) {
     for (const [i, on] of Object.entries(v.checked || {})) if (on) out["c|" + i] = true;
     for (const [i, on] of Object.entries(v.hidden || {})) if (on) out["h|" + i] = true;
     for (const [i, e] of Object.entries(v.edits || {})) if (e) out["e|" + i] = e;
-    (v.extras || []).forEach((e, n) => { if (e?.id) out["x|" + e.id] = { text: e.text, checked: !!e.checked, at: e.at ?? n }; });
+    (v.extras || []).forEach((e, n) => { if (e?.id) out["x|" + e.id] = { text: e.text, checked: !!e.checked, at: e.at ?? n, ...(e.by ? { by: e.by } : {}) }; });
     return out;
   }
   for (const [f, x] of Object.entries(v)) if (f !== FT && x != null) out[f] = x;

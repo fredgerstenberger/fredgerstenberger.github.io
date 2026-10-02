@@ -8,6 +8,8 @@ import { sectionize, listAsText } from "../grocery.js";
 import { weekLabel, currentWeek, setWeek } from "./plan.js";
 import { money } from "../prices.js";
 import { pix } from "../pixicons.js";
+import { parseAdd, mergeAdd, noteAdded, suggest, frequentItems } from "../quickadd.js";
+import { me } from "../ratings.js";
 
 const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
 const HINT_KEY = "rb.groceryHint";
@@ -35,42 +37,12 @@ function rowHTML({ id, kind, name, amount, sub, checked }) {
 export function groceryView(key) {
   key = key || currentWeek();
   setWeek(key);
-  const meals = store.week(key).meals || [];
   const g = store.groceryState(key);
-  const pantry = store.get().pantry;
-  const sec = sectionize(key);
-
-  const total = sec.buy.length + sec.extras.length;
-  const done = sec.buy.filter(i => i.checked).length + sec.extras.filter(e => e.checked).length;
-  const priced = sec.buy.filter(i => i.cost != null);
-  const estLeft = priced.filter(i => !i.checked).reduce((t, i) => t + i.cost, 0);
-
-  const itemRow = i => rowHTML({ id: i.key, kind: "item", name: i.name, amount: i.amount, sub: i.note, checked: i.checked });
-  const extraRow = e => rowHTML({ id: e.id, kind: "extra", name: e.text, checked: e.checked });
-  // Aisles list only what's left to get; checked items move to "In cart" at the bottom.
-  const byAisle = AISLES.map(([id, label]) => {
-    const items = sec.buy.filter(i => i.aisle === id && !i.checked).sort((a, b) => a.name.localeCompare(b.name));
-    if (!items.length) return "";
-    return `<div class="chead">${pix(id, 16)} ${label}<span class="n">${items.length}</span></div>
-      <div class="card"><ul class="glist">${items.map(itemRow).join("")}</ul></div>`;
-  }).join("");
-  const openExtras = sec.extras.filter(e => !e.checked);
-  const extras = openExtras.length ? `<div class="chead">${pix("home", 16)} Added items<span class="n">${openExtras.length}</span></div>
-    <div class="card"><ul class="glist">${openExtras.map(extraRow).join("")}</ul></div>` : "";
-  const inCart = [...sec.buy.filter(i => i.checked).map(itemRow), ...sec.extras.filter(e => e.checked).map(extraRow)];
-  let cartOpen = false;
-  try { cartOpen = sessionStorage.getItem(CART_KEY) === "1"; } catch {}
-  const cart = inCart.length ? `<details class="gcart" id="gcart" ${cartOpen ? "open" : ""}>
-      <summary><div class="chead">${pix("cart", 16)} In cart (${inCart.length})<span class="n"><span class="tw">▾</span></span></div></summary>
-      <div class="card"><ul class="glist">${inCart.join("")}</ul></div>
-    </details>` : "";
-  const allDone = total > 0 && done === total;
-
   const prev = weekKey(addDays(parseWeekKey(key), -7)), next = weekKey(addDays(parseWeekKey(key), 7));
   const rel = weekRelation(key);
-  let hint = true;
-  try { hint = !localStorage.getItem(HINT_KEY); } catch {}
 
+  // The header and add box are drawn once (so the keyboard stays up while adding); the list below
+  // them is repainted after every change.
   render(shell({
     title: "Groceries",
     bigTitle: false,
@@ -79,14 +51,64 @@ export function groceryView(key) {
       <div class="csub">
         <span class="wknav"><a href="#/grocery/${prev}" aria-label="Previous week">◀</a><span>${weekLabel(key)}${rel ? ` · ${rel}` : ""}</span><a href="#/grocery/${next}" aria-label="Next week">▶</a></span>
       </div>
-      ${total ? progressHTML(done, total, priced.length ? money(estLeft) : "") : ""}
-      <form id="addForm" class="gadd" role="search">
-        <input type="text" id="addIn" placeholder="Add an item — “2 lb chicken thighs”" autocomplete="off" enterkeyhint="done" aria-label="Add an item">
+      <div id="gprog"></div>
+      <form id="addForm" class="gadd" role="search" autocomplete="off">
+        <input type="text" id="addIn" placeholder="Add an item — “2 lb chicken thighs”" autocomplete="off" autocapitalize="sentences" enterkeyhint="go" aria-label="Add an item" aria-controls="gsug">
         <button class="plus" type="submit" aria-label="Add">+</button>
       </form>
+      <ul class="gsug" id="gsug" role="listbox" hidden></ul>
+      <div class="gchips" id="gchips"></div>
+      <div id="gbody"></div>`
+  }), { keepScroll: true });
 
-      ${!meals.length && !sec.extras.length ? `<div class="cempty">${pix("cart", 32)}<b>Nothing to buy yet</b>Plan some meals and the list builds itself, or add items above.<div class="gfoot"><a class="cbtn primary" href="#/plan/${key}">Go to meal plan</a></div></div>` : ""}
+  const input = document.getElementById("addIn");
+  const sugEl = document.getElementById("gsug");
+  let sec = null;
+  const pantry = store.get().pantry;
+  const history = () => (store.get().history ||= {});
+  const findItem = id => sec.buy.find(i => i.key === id);
+  const findExtra = id => g.extras.find(x => x.id === id);
+  const onList = () => new Set([...sec.buy.filter(i => !i.checked).map(i => i.key), ...g.extras.filter(e => !e.checked).map(e => parseAdd(e.text).key)]);
 
+  function paint() {
+    sec = sectionize(key);
+    const meals = store.week(key).meals || [];
+    const extras = g.extras.map(e => ({ e, p: parseAdd(e.text) }));
+    const total = sec.buy.length + extras.length;
+    const done = sec.buy.filter(i => i.checked).length + extras.filter(x => x.e.checked).length;
+    const priced = sec.buy.filter(i => i.cost != null);
+    const estLeft = priced.filter(i => !i.checked).reduce((t, i) => t + i.cost, 0);
+    document.getElementById("gprog").innerHTML = total ? progressHTML(done, total, priced.length ? money(estLeft) : "") : "";
+    document.getElementById("gchips").innerHTML = frequentItems(history(), onList()).map(n => `<button class="chip quiet" type="button" data-quick="${esc(n)}">+ ${esc(n)}</button>`).join("");
+
+    const itemRow = i => rowHTML({ id: i.key, kind: "item", name: i.name, amount: i.amount, sub: i.note, checked: i.checked });
+    const extraRow = ({ e, p }) => rowHTML({ id: e.id, kind: "extra", name: p.name, amount: p.amount, checked: e.checked });
+    // Aisles list only what's left to get; checked items move to "In cart" at the bottom. Things you
+    // added go in their aisle when it's known ("milk" → Dairy), otherwise under Added items.
+    const byAisle = AISLES.map(([id, label]) => {
+      const rows = [
+        ...sec.buy.filter(i => i.aisle === id && !i.checked).map(i => ({ n: i.name, html: itemRow(i) })),
+        ...extras.filter(x => x.p.aisle === id && !x.e.checked).map(x => ({ n: x.p.name, html: extraRow(x) }))
+      ].sort((a, b) => a.n.localeCompare(b.n));
+      if (!rows.length) return "";
+      return `<div class="chead">${pix(id, 16)} ${label}<span class="n">${rows.length}</span></div>
+        <div class="card"><ul class="glist">${rows.map(r => r.html).join("")}</ul></div>`;
+    }).join("");
+    const loose = extras.filter(x => !x.p.aisle && !x.e.checked);
+    const added = loose.length ? `<div class="chead">${pix("home", 16)} Added items<span class="n">${loose.length}</span></div>
+      <div class="card"><ul class="glist">${loose.map(extraRow).join("")}</ul></div>` : "";
+    const inCart = [...sec.buy.filter(i => i.checked).map(itemRow), ...extras.filter(x => x.e.checked).map(extraRow)];
+    let cartOpen = false;
+    try { cartOpen = sessionStorage.getItem(CART_KEY) === "1"; } catch {}
+    const cart = inCart.length ? `<details class="gcart" id="gcart" ${cartOpen ? "open" : ""}>
+        <summary><div class="chead">${pix("cart", 16)} In cart (${inCart.length})<span class="n"><span class="tw">▾</span></span></div></summary>
+        <div class="card"><ul class="glist">${inCart.join("")}</ul></div>
+      </details>` : "";
+    let hint = true;
+    try { hint = !localStorage.getItem(HINT_KEY); } catch {}
+
+    document.getElementById("gbody").innerHTML = `
+      ${!meals.length && !extras.length ? `<div class="cempty">${pix("cart", 32)}<b>Nothing to buy yet</b>Plan some meals and the list builds itself, or add items above.<div class="gfoot"><a class="cbtn primary" href="#/plan/${key}">Go to meal plan</a></div></div>` : ""}
       ${sec.ask.length ? `<div class="chead">Do you have these?</div>
       <div class="card gask">
         <p>Your answer is remembered. Change it anytime in Pantry.</p>
@@ -95,29 +117,22 @@ export function groceryView(key) {
           <button class="cbtn" data-have="${esc(i.key)}">Yes</button><button class="cbtn" data-need="${esc(i.key)}">No</button>
         </div>`).join("")}
       </div>` : ""}
-
-      ${allDone ? `<div class="gdone">${pix("cart", 32)}<b>Everything's in the cart</b>Nice shopping.</div>` : ""}
-      ${extras}
+      ${total > 0 && done === total ? `<div class="gdone">${pix("cart", 32)}<b>Everything's in the cart</b>Nice shopping.</div>` : ""}
+      ${added}
       ${byAisle}
       ${cart}
-
       ${sec.have.length ? `<details class="ghave"><summary class="chead">${pix("canned", 16)} Already in your pantry<span class="n">${sec.have.length} ▾</span></summary>
         <div class="card"><ul class="glist">${sec.have.map(i => `<li class="grow"><div class="grow-main" style="cursor:default">
           <span class="gname">${esc(cap1(i.name))}</span><button class="chip quiet" data-outof="${esc(i.key)}">Ran out</button></div></li>`).join("")}</ul></div>
       </details>` : ""}
-
       ${total && hint ? `<p class="ghint" id="ghint">Tap an item to check it off. Press and hold, or swipe left, for details.</p>` : ""}
       ${total ? `<div class="gfoot">
         <button class="cbtn ghost" id="share">Share list</button>
         ${done ? `<button class="cbtn ghost" id="uncheck">Uncheck all</button>` : ""}
         ${Object.keys(g.hidden).length ? `<button class="cbtn ghost" id="unhide">Restore removed (${Object.keys(g.hidden).length})</button>` : ""}
-      </div>` : ""}`
-  }), { keepScroll: true });
-
-  const root = document.getElementById("app");
-  const redraw = () => groceryView(key);
-  const findItem = id => sec.buy.find(i => i.key === id);
-  const findExtra = id => g.extras.find(x => x.id === id);
+      </div>` : ""}`;
+    bindBody();
+  }
 
   // Set an item's checked state. Returns a function that puts everything back (for Undo).
   const setChecked = (id, kind, on) => {
@@ -143,8 +158,8 @@ export function groceryView(key) {
     const commit = () => {
       const undo = setChecked(id, kind, on);
       store.save();
-      redraw();
-      if (on) toast(`${name} is in the cart`, { label: "Undo", run: () => { undo(); store.save(); redraw(); } });
+      paint();
+      if (on) toast(`${name} is in the cart`, { label: "Undo", run: () => { undo(); store.save(); paint(); } });
     };
     if (reducedMotion()) return commit();
     // The box fills, then the row folds away (about 300 ms in all).
@@ -157,36 +172,92 @@ export function groceryView(key) {
     else g.hidden[id] = true;
     store.save();
     toast(kind === "extra" ? "Removed" : "Removed from this week's list");
-    redraw();
+    paint();
   };
-  const details = (id, kind) => kind === "extra" ? extraSheet(g, findExtra(id), redraw, remove) : itemSheet(g, findItem(id), redraw, remove);
+  const details = (id, kind) => kind === "extra" ? extraSheet(g, findExtra(id), paint, remove) : itemSheet(g, findItem(id), paint, remove);
 
-  root.querySelectorAll(".grow[data-id]").forEach(li => bindRow(li, {
-    tap: () => toggle(li.dataset.id, li.dataset.kind, li),
-    more: () => details(li.dataset.id, li.dataset.kind),
-    remove: () => remove(li.dataset.id, li.dataset.kind)
-  }));
-  document.getElementById("gcart")?.addEventListener("toggle", e => { try { sessionStorage.setItem(CART_KEY, e.target.open ? "1" : "0"); } catch {} });
-  root.querySelectorAll("[data-have]").forEach(b => b.onclick = () => { pantry[b.dataset.have] = true; store.save(); redraw(); });
-  root.querySelectorAll("[data-need]").forEach(b => b.onclick = () => { pantry[b.dataset.need] = false; store.save(); redraw(); });
-  root.querySelectorAll("[data-outof]").forEach(b => b.onclick = () => { pantry[b.dataset.outof] = false; store.save(); toast("Added to the list"); redraw(); });
+  // Add what was typed. Something already on the list merges into its line instead of repeating.
+  function addManual(text) {
+    const p = parseAdd(text);
+    if (!p) return;
+    const fromRecipes = [...sec.buy, ...sec.ask, ...sec.have].find(i => i.key === p.key) || (g.hidden[p.key] ? { key: p.key, hiddenOnly: true } : null);
+    const extra = g.extras.find(e => parseAdd(e.text).key === p.key);
+    if (fromRecipes) {
+      delete g.hidden[p.key];
+      delete g.checked[p.key];
+      if (pantry[p.key] === true || sec.ask.some(i => i.key === p.key)) pantry[p.key] = false; // you need it after all
+      if (p.amount && !fromRecipes.hiddenOnly) {
+        const cur = (g.edits[p.key]?.amount ?? fromRecipes.amount ?? "").replace(/\s*\([^)]*\)/g, "");
+        g.edits[p.key] = { ...(g.edits[p.key] || {}), amount: cur ? `${cur} + ${p.amount}` : p.amount };
+      }
+      toast(`${p.name} is already on the list${p.amount ? ` · added ${p.amount}` : ""}`);
+    } else if (extra) {
+      extra.text = mergeAdd(extra.text, p);
+      extra.checked = false;
+      toast(`${p.name} is already on the list${p.amount ? ` · now ${parseAdd(extra.text).amount}` : ""}`);
+    } else {
+      const by = me().name;
+      g.extras.push({ id: uid(), text: text.trim(), checked: false, at: Date.now(), ...(by ? { by } : {}) });
+      const aisle = AISLES.find(a => a[0] === p.aisle);
+      toast(`Added ${p.name}${aisle ? ` · ${aisle[1]}` : ""}`);
+    }
+    noteAdded(history(), p);
+    store.save();
+    paint();
+  }
+
+  function showSuggestions() {
+    const list = suggest(input.value, history(), onList());
+    sugEl.hidden = !list.length;
+    sugEl.innerHTML = list.map(s => `<li><button type="button" role="option" data-sug="${esc(s.text)}">${esc(s.name)}${s.n ? `<small>added ${s.n}×</small>` : ""}</button></li>`).join("");
+  }
+  input.addEventListener("input", showSuggestions);
+  input.addEventListener("blur", () => setTimeout(() => { sugEl.hidden = true; }, 150));
+  input.addEventListener("focus", showSuggestions);
+  sugEl.addEventListener("pointerdown", e => e.preventDefault()); // keep the keyboard up
+  sugEl.addEventListener("click", e => {
+    const b = e.target.closest("[data-sug]");
+    if (!b) return;
+    addManual(b.dataset.sug);
+    input.value = ""; sugEl.hidden = true; input.focus();
+  });
+  document.getElementById("gchips").addEventListener("pointerdown", e => { if (document.activeElement === input) e.preventDefault(); });
+  document.getElementById("gchips").addEventListener("click", e => {
+    const b = e.target.closest("[data-quick]");
+    if (b) addManual(b.dataset.quick);
+  });
   document.getElementById("addForm").onsubmit = e => {
     e.preventDefault();
-    const v = document.getElementById("addIn").value.trim();
+    const v = input.value.trim();
     if (!v) return;
-    g.extras.push({ id: uid(), text: v, checked: false, at: Date.now() });
-    store.save(); redraw();
-    document.getElementById("addIn").focus();
+    addManual(v);
+    input.value = ""; sugEl.hidden = true;
+    input.focus();
   };
-  document.getElementById("uncheck")?.addEventListener("click", () => { g.checked = {}; g.extras.forEach(e => e.checked = false); store.save(); redraw(); });
-  document.getElementById("unhide")?.addEventListener("click", () => { g.hidden = {}; store.save(); redraw(); });
-  document.getElementById("share")?.addEventListener("click", async () => {
-    const text = `Groceries · ${weekLabel(key)}\n\n` + listAsText(key, sec);
-    try {
-      if (navigator.share) await navigator.share({ title: "Grocery list", text });
-      else { await navigator.clipboard.writeText(text); toast("List copied"); }
-    } catch {}
-  });
+
+  function bindBody() {
+    const root = document.getElementById("gbody");
+    root.querySelectorAll(".grow[data-id]").forEach(li => bindRow(li, {
+      tap: () => toggle(li.dataset.id, li.dataset.kind, li),
+      more: () => details(li.dataset.id, li.dataset.kind),
+      remove: () => remove(li.dataset.id, li.dataset.kind)
+    }));
+    document.getElementById("gcart")?.addEventListener("toggle", e => { try { sessionStorage.setItem(CART_KEY, e.target.open ? "1" : "0"); } catch {} });
+    root.querySelectorAll("[data-have]").forEach(b => b.onclick = () => { pantry[b.dataset.have] = true; store.save(); paint(); });
+    root.querySelectorAll("[data-need]").forEach(b => b.onclick = () => { pantry[b.dataset.need] = false; store.save(); paint(); });
+    root.querySelectorAll("[data-outof]").forEach(b => b.onclick = () => { pantry[b.dataset.outof] = false; store.save(); toast("Added to the list"); paint(); });
+    document.getElementById("uncheck")?.addEventListener("click", () => { g.checked = {}; g.extras.forEach(e => e.checked = false); store.save(); paint(); });
+    document.getElementById("unhide")?.addEventListener("click", () => { g.hidden = {}; store.save(); paint(); });
+    document.getElementById("share")?.addEventListener("click", async () => {
+      const text = `Groceries · ${weekLabel(key)}\n\n` + listAsText(key, sec);
+      try {
+        if (navigator.share) await navigator.share({ title: "Grocery list", text });
+        else { await navigator.clipboard.writeText(text); toast("List copied"); }
+      } catch {}
+    });
+  }
+
+  paint();
 }
 
 // Row gestures: tap = check; press and hold = details; swipe left = reveal Details / Remove.

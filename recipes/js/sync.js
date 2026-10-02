@@ -36,6 +36,7 @@ function records() {
   out.prices = s.prices || {};
   out.foods = s.foods || {};
   out.asked = s.asked || {};
+  out.history = s.history || {};
   const settings = { ...s.settings };
   for (const k of DEVICE_ONLY_SETTINGS) delete settings[k];
   out.settings = settings;
@@ -75,6 +76,7 @@ function apply(k, v) {
     else s[coll][id] = v;
   } else if (k === "pantry") fill(s.pantry ||= {}, v || {});
   else if (k === "foods" || k === "asked") { fill(s[k] ||= {}, v || {}); bump(); }
+  else if (k === "history") fill(s.history ||= {}, v || {});
   else if (k === "prices") { fill(s.prices ||= {}, v || {}); s.pricesUpdated = Date.now(); }
   else if (k === "settings" && v) {
     const keep = Object.fromEntries(DEVICE_ONLY_SETTINGS.map(x => [x, s.settings[x]]));

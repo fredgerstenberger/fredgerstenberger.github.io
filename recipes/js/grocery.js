@@ -5,7 +5,7 @@ import * as store from "./store.js";
 import { FOOD_BY_NAME } from "./fooddb.js";
 import { perGram, packagePrice, eachPrice } from "./prices.js";
 
-function singular(w) {
+export function singular(w) {
   if (/(ss|us|is)$/.test(w) || w.length <= 3) return w;
   if (/ies$/.test(w)) return w.slice(0, -3) + "y";
   if (/(oes|ches|shes|xes)$/.test(w)) return w.slice(0, -2);
