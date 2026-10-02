@@ -15,7 +15,7 @@ import * as house from "../household.js";
 import { openStorePicker } from "./stores.js";
 import * as live from "../live.js";
 import * as sync from "../sync.js";
-import { addToList } from "../grocery-add.js";
+import { addToList, useForRecipe } from "../grocery-add.js";
 
 const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
 const HINT_KEY = "rb.groceryHint";
@@ -130,7 +130,9 @@ export function groceryView(key) {
   // Things you added: the ongoing household list, plus any still sitting on this week's list from
   // before the household list existed (or added by an older app version).
   const manual = () => [...house.items().map(h => ({ ...h, src: "house" })), ...g.extras.map(e => ({ ...e, src: "extra" }))];
-  const onList = () => new Set([...sec.buy.filter(i => !i.checked).map(i => i.key), ...manual().filter(e => !e.checked).map(e => parseAdd(e.text).key)]);
+  // On the list = recipe lines (by food and by the name they show, e.g. "2% milk" after Use for recipe) and
+  // lines you added, so quick chips and suggestions don't offer them again.
+  const onList = () => new Set([...sec.buy.filter(i => !i.checked).flatMap(i => [i.key, parseAdd(i.name)?.key]), ...manual().filter(e => !e.checked).map(e => parseAdd(e.text).key)]);
 
   function paint() {
     if (!document.getElementById("gbody")) return; // left the list before a delayed check finished
@@ -271,12 +273,23 @@ export function groceryView(key) {
   function addManual(text, quiet = false) {
     const r = addToList(key, text, me().name);
     if (!r) return null;
-    const { p, result, amount } = r;
+    const { p, result, amount, related } = r;
     const aisle = AISLES.find(a => a[0] === p.aisle);
-    if (!quiet) toast(result === "added" ? `Added ${p.name}${aisle ? ` · ${aisle[1]}` : ""}`
-      : `${p.name} is already on the list${amount ? (result === "recipe" ? ` · added ${amount}` : ` · now ${amount}`) : ""}`);
     store.save();
     paint();
+    if (quiet) return p;
+    if (related) {
+      // Same food as a recipe line, different variety: two lines unless you say this one is for the recipe.
+      toast(`Added ${p.name} · a recipe needs ${cap1(related.name)}`, { label: "Use for recipe", ms: 7000, run: () => {
+        const undo = useForRecipe(key, r.id, related.key);
+        if (!undo) return;
+        store.save(); paint();
+        toast(`${p.name} is on the list for the recipe`, { label: "Undo", run: () => { undo(); store.save(); paint(); } });
+      } });
+    } else {
+      toast(result === "added" ? `Added ${p.name}${aisle ? ` · ${aisle[1]}` : ""}`
+        : `${p.name} is already on the list${amount ? (result === "recipe" ? ` · added ${amount}` : ` · now ${amount}`) : ""}`);
+    }
     return p;
   }
 
