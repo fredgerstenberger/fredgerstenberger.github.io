@@ -3,22 +3,37 @@
 // food table. Added items are stored as the text you typed and read again here when shown, so older
 // app versions (which only know the text) keep working.
 import { parseIngredient, cleanName, displayAmount, fmtQty, unitLabel, UNITS } from "./ingredients.js";
-import { FOODS } from "./fooddb.js";
+import { FOODS, FOOD_BY_NAME, matchFoodDetail } from "./fooddb.js";
 import { singular } from "./grocery.js";
 
 const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** { name, amount, key, aisle, qty, unit } for something typed into the add box. */
+/**
+ * { name, amount, key, aisle, qty, unit, size, known } for something typed into the add box.
+ * An item is only treated as a food from the table ("known", keyed by that food) when its name is that
+ * food give or take describing words: "2 lb chicken thighs", "3 avocados", "organic 2% milk". A longer
+ * name that merely contains a food is its own item ("ice cream", "garlic bread", "salt and vinegar
+ * chips"), keyed by its own name, so it never merges into or changes another line; a food at the end
+ * of its name still suggests the aisle ("string cheese" → Dairy).
+ */
 export function parseAdd(text) {
   const raw = String(text || "").trim().replace(/\s+/g, " ");
   if (!raw) return null;
-  const ing = parseIngredient(raw);
-  if (!ing || ing.header) return { name: cap1(raw), amount: "", key: raw.toLowerCase(), aisle: null, qty: null, unit: null };
+  // "2% milk", "1% milk": the percentage is part of the name, not an amount.
+  const ing = /^\d+(\.\d+)?\s*%/.test(raw) ? { name: raw, display: raw, qty: null } : parseIngredient(raw);
+  if (!ing || ing.header) return { name: cap1(raw), amount: "", key: raw.toLowerCase(), aisle: null, qty: null, unit: null, known: false };
   const nameText = (ing.display || ing.name || raw).replace(/^[\s,.-]+|[\s,.-]+$/g, "") || raw;
-  const key = ing.food ? ing.food.name : singular(cleanName(ing.name) || nameText.toLowerCase());
+  const own = singular(cleanName(ing.name) || nameText.toLowerCase());
+  const m = matchFoodDetail(ing.name || raw);
+  // Your own food info or a USDA match (not in the table) is keyed by the cleaned name already.
+  const extra = ing.food && !FOOD_BY_NAME[ing.food.name] ? ing.food : null;
+  const known = m?.fit === "exact" && m.food.kind !== "X" && !m.food.variants.has(m.alias);
+  const key = known ? m.food.name : own;
+  const aisle = m && m.fit !== "loose" && m.food.kind !== "X" ? m.food.aisle : extra?.aisle || null;
   const qty = ing.qty;
   const amount = qty != null ? displayAmount(ing) : "";
-  return { name: cap1(nameText), amount, key, aisle: ing.food?.aisle || null, qty, unit: ing.unit, size: ing.size || null };
+  return { name: cap1(nameText), amount, key, aisle, qty, unit: ing.unit, size: ing.size || null, known };
 }
 
 /** Text for an amount plus a name, as it would be typed ("4 eggs", "2 lb chicken thighs"). */
@@ -65,7 +80,8 @@ const STARTERS = ["Milk", "Eggs", "Bread", "Bananas", "Coffee", "Butter"];
 /** Quick-add chips: your most frequent items that aren't on the list yet. */
 export function frequentItems(history, onList = new Set(), limit = 6) {
   const mine = Object.entries(history || {})
-    .filter(([k, h]) => h?.n > 0 && !onList.has(k))
+    // An item resolves the way it would be added now (older history could key "garlic bread" as garlic).
+    .filter(([k, h]) => h?.n > 0 && !onList.has(parseAdd(h.name)?.key ?? k))
     .sort((a, b) => b[1].n - a[1].n || (b[1].last || 0) - (a[1].last || 0))
     .map(([, h]) => cap1(h.name));
   for (const s of STARTERS) if (mine.length < limit && !mine.includes(s) && !onList.has(parseAdd(s).key)) mine.push(s);

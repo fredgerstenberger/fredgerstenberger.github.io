@@ -8,13 +8,14 @@ import { sectionize, listAsText } from "../grocery.js";
 import { weekLabel, currentWeek, setWeek } from "./plan.js";
 import { money } from "../prices.js";
 import { pix } from "../pixicons.js";
-import { parseAdd, mergeAdd, noteAdded, noteBought, suggest, frequentItems } from "../quickadd.js";
+import { parseAdd, noteBought, suggest, frequentItems } from "../quickadd.js";
 import { me } from "../ratings.js";
 import * as stores from "../stores.js";
 import * as house from "../household.js";
 import { openStorePicker } from "./stores.js";
 import * as live from "../live.js";
 import * as sync from "../sync.js";
+import { addToList } from "../grocery-add.js";
 
 const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
 const HINT_KEY = "rb.groceryHint";
@@ -256,31 +257,12 @@ export function groceryView(key) {
 
   // Add what was typed. Something already on the list merges into its line instead of repeating.
   function addManual(text, quiet = false) {
-    const p = parseAdd(text);
-    if (!p) return null;
-    const say = quiet ? () => {} : toast;
-    const fromRecipes = [...sec.buy, ...sec.ask, ...sec.have].find(i => i.key === p.key) || (g.hidden[p.key] ? { key: p.key, hiddenOnly: true } : null);
-    const extra = manual().find(e => parseAdd(e.text).key === p.key);
-    if (fromRecipes) {
-      delete g.hidden[p.key];
-      delete g.checked[p.key];
-      if (pantry[p.key] === true || sec.ask.some(i => i.key === p.key)) pantry[p.key] = false; // you need it after all
-      if (p.amount && !fromRecipes.hiddenOnly) {
-        const cur = (g.edits[p.key]?.amount ?? fromRecipes.amount ?? "").replace(/\s*\([^)]*\)/g, "");
-        g.edits[p.key] = { ...(g.edits[p.key] || {}), amount: cur ? `${cur} + ${p.amount}` : p.amount };
-      }
-      say(`${p.name} is already on the list${p.amount ? ` · added ${p.amount}` : ""}`);
-    } else if (extra) {
-      const merged = mergeAdd(extra.text, p);
-      if (extra.src === "house") { house.update(extra.id, { text: merged }); house.setChecked(extra.id, false); }
-      else { const x = findExtra(extra.id); x.text = merged; x.checked = false; }
-      say(`${p.name} is already on the list${p.amount ? ` · now ${parseAdd(merged).amount}` : ""}`);
-    } else {
-      house.add(text, me().name);
-      const aisle = AISLES.find(a => a[0] === p.aisle);
-      say(`Added ${p.name}${aisle ? ` · ${aisle[1]}` : ""}`);
-    }
-    noteAdded(history(), p);
+    const r = addToList(key, text, me().name);
+    if (!r) return null;
+    const { p, result, amount } = r;
+    const aisle = AISLES.find(a => a[0] === p.aisle);
+    if (!quiet) toast(result === "added" ? `Added ${p.name}${aisle ? ` · ${aisle[1]}` : ""}`
+      : `${p.name} is already on the list${amount ? (result === "recipe" ? ` · added ${amount}` : ` · now ${amount}`) : ""}`);
     store.save();
     paint();
     return p;
