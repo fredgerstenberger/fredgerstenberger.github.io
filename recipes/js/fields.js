@@ -1,5 +1,5 @@
-// Field-by-field merging for records two people edit at the same time: each week's meal plan and
-// grocery list, the pantry, your prices, your ingredient info and settings.
+// Field-by-field merging for records two people edit at the same time: recipes, each week's meal plan
+// and grocery list, the pantry, your prices, your ingredient info and settings.
 //
 // Such a record's synced value carries `_ft`: { field: [time, fingerprint] }, saying when each field
 // last changed and what it changed to (a removed field keeps a "tombstone" entry). Two copies merge
@@ -13,7 +13,13 @@
 export const FT = "_ft";
 const MAPS = ["pantry", "prices", "settings", "foods", "asked"];
 
-export const isFieldRecord = k => k.startsWith("g:") || k.startsWith("p:") || MAPS.includes(k);
+export const isFieldRecord = k => k.startsWith("r:") || k.startsWith("g:") || k.startsWith("p:") || MAPS.includes(k);
+
+// Recipes merge per top-level field (title, rating, notes, tags, ingredients, steps, …; lists like
+// ingredients count as one field, so the last edit of the list wins). Deleting a recipe is still a
+// whole-record delete, which older app versions understand: whichever is later wins, the delete or
+// an edit on another phone; on an exact tie the delete wins (see sync.js mergeIn).
+export const isDeletable = k => k.startsWith("r:");
 
 // Meal plans: each meal's properties are separate fields ("m|<meal id>|servings"), so one person
 // changing servings and the other moving the meal both stick. A meal is only kept while it has
@@ -117,6 +123,13 @@ function fieldTime(fields, times, f, recordTime) {
   if (t && t[1] === h) return { v, h, t: t[0] };
   if (v !== undefined || t) return { v, h, t: recordTime };
   return { v, h, t: -Infinity };
+}
+
+// The most recent edit time of any field in a copy of a record (-Infinity if it has none).
+export function latestEdit(fields, times, recordTime) {
+  let t = -Infinity;
+  for (const f of new Set([...Object.keys(fields), ...Object.keys(times)])) t = Math.max(t, fieldTime(fields, times, f, recordTime).t);
+  return t;
 }
 
 /**

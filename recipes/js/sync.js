@@ -7,7 +7,7 @@
 // next time sync runs.
 import * as store from "./store.js";
 import { bump } from "./data.js";
-import { fp, isFieldRecord, toFields, fromFields, stampFields, mergeFields, FT } from "./fields.js";
+import { fp, isFieldRecord, isDeletable, toFields, fromFields, stampFields, mergeFields, latestEdit, FT } from "./fields.js";
 
 const KEY = "recipebox.sync";
 let meta = loadMeta();
@@ -100,7 +100,11 @@ function stamp(info) {
     }
   }
   for (const k of Object.keys(meta.h)) {
-    if (!(k in recs) && meta.h[k] !== null && !isFieldRecord(k)) { meta.h[k] = null; meta.u[k] = now; dirty.add(k); }
+    if (!(k in recs) && meta.h[k] !== null && (!isFieldRecord(k) || isDeletable(k))) {
+      // A delete is timed after every edit we know of, so it beats them.
+      const last = isFieldRecord(k) ? latestEdit({}, times(k), meta.u[k] ?? 0) : -Infinity;
+      meta.h[k] = null; meta.u[k] = Math.max(now, (meta.u[k] ?? 0) + 1, last + 1); dirty.add(k);
+    }
   }
   meta.dirty = [...dirty];
   saveMeta();
@@ -188,6 +192,22 @@ function mergeIn(r) {
   const k = r.k;
   const cur = records()[k];
   const local = { fields: toFields(k, cur), times: times(k), u: meta.u[k] ?? 0 };
+  const keep = u => { meta.u[k] = u; if (!meta.dirty.includes(k)) meta.dirty.push(k); return 0; };
+  const done = () => { meta.dirty = meta.dirty.filter(x => x !== k); };
+  // Recipes can be deleted: the later of the delete and the other copy's newest edit wins; a tie deletes.
+  if (isDeletable(k)) {
+    const incomingTimes = (r.v && r.v[FT]) || {};
+    if (r.v == null) {
+      if (cur === undefined) { meta.h[k] = null; meta.u[k] = Math.max(meta.u[k] ?? r.u, r.u); done(); return 0; }
+      if (r.u >= latestEdit(local.fields, local.times, local.u)) { apply(k, null); meta.h[k] = null; meta.u[k] = r.u; done(); return 1; }
+      return keep(Math.max(Date.now(), r.u + 1)); // edited here after it was deleted: put it back
+    }
+    if (cur === undefined && meta.h[k] === null) { // we deleted it
+      const tin = latestEdit(toFields(k, r.v), incomingTimes, r.u);
+      if (tin <= (meta.u[k] ?? -Infinity)) return keep(Math.max(Date.now(), r.u + 1, meta.u[k])); // re-send the delete
+      local.fields = {}; local.times = {}; local.u = -Infinity;        // edited elsewhere after our delete: bring it back
+    }
+  }
   const incoming = { fields: toFields(k, r.v), times: (r.v && r.v[FT]) || {}, u: r.u };
   const m = mergeFields(local, incoming);
   meta.ft[k] = m.times;
