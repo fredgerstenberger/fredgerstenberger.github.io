@@ -971,3 +971,16 @@ dialog.win[open] { animation: fadein var(--quick) var(--ease); }
 .gsug li + li button { border-top: 1px solid var(--c-line); }
 .gsug button:active { background: var(--c-bg); }
 .gsug small { font: var(--t-small); color: var(--c-faint); }
+.spick .srow, .spick label.srow { display: flex; align-items: center; gap: var(--s3); min-height: 52px; padding: 0 var(--s4); }
+.spick .srow label { flex: 1; display: flex; align-items: center; gap: var(--s3); min-height: 52px; cursor: pointer; }
+.spick .srow + .srow { border-top: 1px solid var(--c-line); }
+.spick input[type="radio"] { width: 20px; height: 20px; accent-color: var(--c-accent); margin: 0; }
+.spick span { font: var(--t-row); }
+.spick small { display: block; font: var(--t-small); color: var(--c-faint); }
+.olist { list-style: none; margin: 0; padding: 0; background: var(--c-card); border: 1px solid var(--c-line); border-radius: var(--r); overflow: hidden; }
+.orow { display: flex; align-items: center; gap: var(--s2); min-height: 52px; padding: 0 var(--s2) 0 0; background: var(--c-card); position: relative; touch-action: none; user-select: none; -webkit-user-select: none; }
+.orow + .orow { border-top: 1px solid var(--c-line); }
+.orow.dragging { z-index: 2; box-shadow: 0 8px 24px rgba(0, 0, 0, .18); border-radius: var(--r-sm); }
+.ohandle { width: 44px; text-align: center; color: var(--c-faint); font-size: 20px; cursor: grab; }
+.oname { flex: 1; display: flex; align-items: center; gap: var(--s2); font: var(--t-row); cursor: grab; }
+.obtn { width: 36px; height: 36px; border: 0; border-radius: 9px; background: var(--c-chip); color: var(--c-muted); font: 800 16px var(--body); cursor: pointer; }

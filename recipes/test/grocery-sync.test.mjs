@@ -46,3 +46,45 @@ test("item 3: an added item keeps who added it", async () => {
   await settle(A, B);
   assert.equal(A.store.get().grocery[WK].extras[0].by, "Emma");
 });
+
+async function withStores() {
+  const s = await pair();
+  s.SA = await s.A.load("stores"); s.SB = await s.B.load("stores");
+  return s;
+}
+
+test("item 4: stores added on both phones at once are both kept", async () => {
+  const { A, B, SA, SB } = await withStores();
+  SA.add("Trader Joe's"); SB.add("Ralphs");
+  await B.sync.syncNow(); await A.sync.syncNow(); await settle(A, B);
+  for (const S of [SA, SB]) assert.deepEqual(S.list().map(s => s.name).sort(), ["Ralphs", "Trader Joe's"]);
+});
+
+test("item 4: reordering one store while the other phone edits another keeps both; the store you pick stays per phone", async () => {
+  const { A, B, SA, SB } = await withStores();
+  const tj = SA.add("Trader Joe's"), ra = SA.add("Ralphs");
+  await settle(A, B);
+  SA.setOrder(tj, ["dairy", "produce", "meat"]);
+  SB.rename(ra, "Ralphs (Irvine)");
+  SB.pick(ra);
+  await A.sync.syncNow(); await B.sync.syncNow(); await settle(A, B);
+  for (const S of [SA, SB]) {
+    assert.deepEqual(S.orderFor(tj).slice(0, 3), ["dairy", "produce", "meat"]);
+    assert.equal(S.get(ra).name, "Ralphs (Irvine)");
+    assert.ok(S.orderFor(tj).includes("frozen"), "aisles the order doesn't mention come at the end");
+  }
+  assert.equal(SB.current(), ra);
+  assert.equal(SA.current(), "", "picking a store on one phone doesn't change the other");
+});
+
+test("item 4: the same store reordered on both phones ends up the same everywhere", async () => {
+  const { A, B, SA, SB } = await withStores();
+  const tj = SA.add("Trader Joe's");
+  await settle(A, B);
+  SA.setOrder(tj, ["meat", "produce"]);
+  await new Promise(r => setTimeout(r, 5));
+  SB.setOrder(tj, ["frozen", "dairy"]);
+  await A.sync.syncNow(); await B.sync.syncNow(); await settle(A, B);
+  assert.deepEqual(SA.orderFor(tj), SB.orderFor(tj));
+  assert.deepEqual(SA.orderFor(tj).slice(0, 2), ["frozen", "dairy"], "the later reorder wins");
+});

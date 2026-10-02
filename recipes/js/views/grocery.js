@@ -10,6 +10,8 @@ import { money } from "../prices.js";
 import { pix } from "../pixicons.js";
 import { parseAdd, mergeAdd, noteAdded, suggest, frequentItems } from "../quickadd.js";
 import { me } from "../ratings.js";
+import * as stores from "../stores.js";
+import { openStorePicker } from "./stores.js";
 
 const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
 const HINT_KEY = "rb.groceryHint";
@@ -50,6 +52,7 @@ export function groceryView(key) {
       <h1 class="ctitle">Groceries</h1>
       <div class="csub">
         <span class="wknav"><a href="#/grocery/${prev}" aria-label="Previous week">◀</a><span>${weekLabel(key)}${rel ? ` · ${rel}` : ""}</span><a href="#/grocery/${next}" aria-label="Next week">▶</a></span>
+        <button class="chip" id="storeBtn" type="button" style="margin-left:auto"></button>
       </div>
       <div id="gprog"></div>
       <form id="addForm" class="gadd" role="search" autocomplete="off">
@@ -78,6 +81,8 @@ export function groceryView(key) {
     const done = sec.buy.filter(i => i.checked).length + extras.filter(x => x.e.checked).length;
     const priced = sec.buy.filter(i => i.cost != null);
     const estLeft = priced.filter(i => !i.checked).reduce((t, i) => t + i.cost, 0);
+    const st = stores.get(stores.current());
+    document.getElementById("storeBtn").innerHTML = `${pix("cart", 14)} ${esc(st ? st.name : "Any store")} ▾`;
     document.getElementById("gprog").innerHTML = total ? progressHTML(done, total, priced.length ? money(estLeft) : "") : "";
     document.getElementById("gchips").innerHTML = frequentItems(history(), onList()).map(n => `<button class="chip quiet" type="button" data-quick="${esc(n)}">+ ${esc(n)}</button>`).join("");
 
@@ -85,7 +90,13 @@ export function groceryView(key) {
     const extraRow = ({ e, p }) => rowHTML({ id: e.id, kind: "extra", name: p.name, amount: p.amount, checked: e.checked });
     // Aisles list only what's left to get; checked items move to "In cart" at the bottom. Things you
     // added go in their aisle when it's known ("milk" → Dairy), otherwise under Added items.
-    const byAisle = AISLES.map(([id, label]) => {
+    const loose = extras.filter(x => !x.p.aisle && !x.e.checked);
+    const added = loose.length ? `<div class="chead">${pix("home", 16)} Added items<span class="n">${loose.length}</span></div>
+      <div class="card"><ul class="glist">${loose.map(extraRow).join("")}</ul></div>` : "";
+    // Aisles in the order of the store you're shopping at.
+    const byAisle = stores.orderFor().map(id => {
+      if (id === "home") return added;
+      const label = stores.aisleLabel(id);
       const rows = [
         ...sec.buy.filter(i => i.aisle === id && !i.checked).map(i => ({ n: i.name, html: itemRow(i) })),
         ...extras.filter(x => x.p.aisle === id && !x.e.checked).map(x => ({ n: x.p.name, html: extraRow(x) }))
@@ -94,9 +105,6 @@ export function groceryView(key) {
       return `<div class="chead">${pix(id, 16)} ${label}<span class="n">${rows.length}</span></div>
         <div class="card"><ul class="glist">${rows.map(r => r.html).join("")}</ul></div>`;
     }).join("");
-    const loose = extras.filter(x => !x.p.aisle && !x.e.checked);
-    const added = loose.length ? `<div class="chead">${pix("home", 16)} Added items<span class="n">${loose.length}</span></div>
-      <div class="card"><ul class="glist">${loose.map(extraRow).join("")}</ul></div>` : "";
     const inCart = [...sec.buy.filter(i => i.checked).map(itemRow), ...extras.filter(x => x.e.checked).map(extraRow)];
     let cartOpen = false;
     try { cartOpen = sessionStorage.getItem(CART_KEY) === "1"; } catch {}
@@ -118,7 +126,6 @@ export function groceryView(key) {
         </div>`).join("")}
       </div>` : ""}
       ${total > 0 && done === total ? `<div class="gdone">${pix("cart", 32)}<b>Everything's in the cart</b>Nice shopping.</div>` : ""}
-      ${added}
       ${byAisle}
       ${cart}
       ${sec.have.length ? `<details class="ghave"><summary class="chead">${pix("canned", 16)} Already in your pantry<span class="n">${sec.have.length} ▾</span></summary>
@@ -226,6 +233,7 @@ export function groceryView(key) {
     const b = e.target.closest("[data-quick]");
     if (b) addManual(b.dataset.quick);
   });
+  document.getElementById("storeBtn").onclick = () => openStorePicker(paint);
   document.getElementById("addForm").onsubmit = e => {
     e.preventDefault();
     const v = input.value.trim();
