@@ -365,11 +365,31 @@ const isModifier = w => MODIFIERS.has(w) || /^\d+(\.\d+)?%?$/.test(w);
  *   "loose": the food's name is inside a longer one ("garlic bread" → garlic): most likely something else
  * A food at the end of the name wins over a longer one inside it ("garlic bread" is bread, not garlic).
  */
+// Speed: a food's name can only appear in a name that contains its last word (maybe plural), so each
+// name is only tested against the foods whose last word it contains, in the same longest-first order;
+// and the answer for a name is remembered (the same lines repeat across recipes).
+const tokens = t => t.split(/[^a-z0-9%]+/).filter(Boolean);
+const BY_LAST = new Map();
+MATCHERS.forEach((m, i) => { const last = tokens(m.a.toLowerCase()).pop(); if (!last) return; if (!BY_LAST.has(last)) BY_LAST.set(last, []); BY_LAST.get(last).push(i); });
+const memo = new Map();
+function candidates(n) {
+  const idx = new Set();
+  for (const w of tokens(n)) for (const k of [w, w.replace(/e?s$/, "")]) for (const i of BY_LAST.get(k) || []) idx.add(i);
+  return [...idx].sort((a, b) => a - b).map(i => MATCHERS[i]);
+}
+
 export function matchFoodDetail(name) {
   // "chicken stock or water" is chicken stock: only the first choice counts.
   const n = name.toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, " ").split(/\s+or\s+/)[0].trim();
+  if (memo.has(n)) return memo.get(n);
+  const found = scan(n, candidates(n));
+  if (memo.size > 5000) memo.clear();
+  memo.set(n, found);
+  return found;
+}
+function scan(n, list) {
   let loose = null;
-  for (const m of MATCHERS) {
+  for (const m of list) {
     const hit = m.re.exec(n);
     if (!hit) continue;
     const start = hit.index + hit[1].length, end = hit.index + hit[0].length;
@@ -381,6 +401,9 @@ export function matchFoodDetail(name) {
   }
   return loose;
 }
+
+// The same scan over every food, without the index or memory (tests check both agree).
+export const matchFoodDetailFull = name => scan(name.toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, " ").split(/\s+or\s+/)[0].trim(), MATCHERS);
 
 export function matchFood(name) {
   return matchFoodDetail(name)?.food || null;

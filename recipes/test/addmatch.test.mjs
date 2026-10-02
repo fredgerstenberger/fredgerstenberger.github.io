@@ -117,3 +117,15 @@ test("several things added in the same moment (a ?add= link) keep their order", 
   assert.deepEqual(house.items().map(h => h.text), ["a", "b", "c", "d", "e", "f"]);
   assert.equal(new Set(house.items().map(h => h.at)).size, ids.length);
 });
+
+test("matching speed-ups (index by last word, memory) give the same answers as testing every food", async () => {
+  const fdb = await d.load("fooddb");
+  const names = [...fdb.FOODS.flatMap(f => f.aliases), "boneless skinless chicken breasts", "garlic bread", "salt and vinegar chips",
+    "semi-sweet chocolate chips", "za'atar", "jalapeños", "tomatoes", "eggs", "chicken stock or water", "2% milk", "vanilla ice cream",
+    "frozen peas", "baby spinach", "egg roll wrappers", "sparkling water", "kosher salt", "orange chicken", "string cheese", "paper towels"];
+  const show = x => x && `${x.food.name}/${x.fit}`;
+  for (const n of names) {
+    assert.equal(show(fdb.matchFoodDetail(n)), show(fdb.matchFoodDetailFull(n)), n);
+    assert.equal(show(fdb.matchFoodDetail(n)), show(fdb.matchFoodDetailFull(n)), n + " (remembered)");
+  }
+});
