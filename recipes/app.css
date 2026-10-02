@@ -1038,3 +1038,9 @@ body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
 @media (max-width: 360px) { .shopping .grow-main { font-size: 18px; gap: var(--s3); } .shopping .gamt .gq { font-size: 16px; } }
 .gshopbar .cbtn { white-space: nowrap; }
 @media (max-width: 360px) { .gshopbar .cbtn:not(.primary) { padding: 0 var(--s4); } .gshopbar .cbtn { font-size: 16px; } }
+
+/* Aisle editor: only the handle drags; the rest of the row scrolls the sheet */
+.orow { touch-action: pan-y; user-select: auto; -webkit-user-select: auto; }
+.ohandle { touch-action: none; align-self: stretch; display: grid; place-items: center; width: 48px; flex: none; font-size: 22px; user-select: none; -webkit-user-select: none; cursor: grab; }
+.orow.dragging { transition: none; background: var(--c-card); }
+.orow.dragging .ohandle { cursor: grabbing; color: var(--c-accent); }
