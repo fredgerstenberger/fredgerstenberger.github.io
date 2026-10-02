@@ -59,9 +59,11 @@ export const SPRITES = {
     ],
     colors: { k: K, r: "#D0473A", w: "#FFFFFF", g: "#8A94A3", b: "#2448C8" }
   },
+  // A notepad with a red top strip and room under the last line.
   list: {
     map: [
       ".kkkkkkkkkkkkkk.",
+      ".krrrrrrrrrrrrk.",
       ".kwwwwwwwwwwwwk.",
       ".kwkkkwwwwwwwwk.",
       ".kwkbkwggggggwk.",
@@ -74,9 +76,10 @@ export const SPRITES = {
       ".kwkkkwwwwwwwwk.",
       ".kwkwkwggggwwwk.",
       ".kwkkkwwwwwwwwk.",
+      ".kwwwwwwwwwwwwk.",
       ".kkkkkkkkkkkkkk."
     ],
-    colors: { k: K, w: "#FFFFFF", g: "#8A94A3", b: "#2448C8" }
+    colors: { k: K, w: "#FFFFFF", g: "#8A94A3", b: "#2448C8", r: "#D0473A" }
   },
   pantry: {
     map: [
