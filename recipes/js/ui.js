@@ -131,6 +131,6 @@ export function metaLine(r) {
   const n = nutriShort(r);
   if (n) bits.push(`<span>${n}</span>`);
   const c = recipeCost(r);
-  if (c.total > 0) bits.push(`<span class="ccost">~${money(c.perServing)} per serving</span>`);
+  if (c.total > 0) bits.push(`<span class="ccost">${money(c.perServing)} per serving</span>`);
   return bits.join("");
 }

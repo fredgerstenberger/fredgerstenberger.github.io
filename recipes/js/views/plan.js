@@ -114,7 +114,7 @@ export function planView(key) {
       <div class="banner">
         <span class="px">${esc(prepLabel(key))}</span>
         <a class="btn small" href="#/grocery/${key}">Grocery list ▸</a>
-        ${weekCost > 0 ? `<span style="flex-basis:100%">Food cost ~${money(weekCost)} · ~${money(weekCost / servingsTotal)}/serving</span>` : ""}
+        ${weekCost > 0 ? `<span style="flex-basis:100%">Food cost ${money(weekCost)} · ${money(weekCost / servingsTotal)}/serving</span>` : ""}
       </div>
       ${days}
       <h2 class="sect">Sunday prep list <small>${prep.length ? `${prep.length} to cook` : ""}</small></h2>

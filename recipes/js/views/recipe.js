@@ -134,7 +134,7 @@ export function recipeView(id) {
             <span class="stepper"><button id="sMinus" aria-label="Fewer servings">−</button><output id="sOut">${P.servings}</output><button id="sPlus" aria-label="More servings">+</button></span>
             ${P.servings !== base ? `<br><button class="btn small" id="sReset" style="margin-top:8px">Reset to ${base}</button>` : ""}
           </dd></div>
-          ${cost.total > 0 ? `<div><dt>Cost</dt><dd>~${money(cost.perServing)}/serving<br><span class="muted" style="font-size:14px">~${money(cost.perServing * P.servings)} for ${P.servings}</span></dd></div>` : ""}
+          ${cost.total > 0 ? `<div><dt>Cost</dt><dd>${money(cost.perServing)}/serving<br><span class="muted" style="font-size:14px">${money(cost.perServing * P.servings)} for ${P.servings}</span></dd></div>` : ""}
           ${nu.kcal ? `<div><dt>Per serving</dt><dd>${t}${fmtN(nu.kcal)} kcal<br><span class="muted" style="font-size:14px">${t}${fmtN(nu.protein)} g protein</span></dd></div>` : ""}
         </dl>
         <div class="btnrow hide-cook">
@@ -179,8 +179,8 @@ export function recipeView(id) {
 
           <h2 class="sect">Cost <small>estimate</small></h2>
           ${cost.total > 0 ? `<div class="nutri">
-            <div><b>~${money(cost.perServing)}</b><span>per serving</span></div>
-            <div><b>~${money(cost.total)}</b><span>whole recipe</span></div>
+            <div><b>${money(cost.perServing)}</b><span>per serving</span></div>
+            <div><b>${money(cost.total)}</b><span>whole recipe</span></div>
           </div>` : ""}
           <p class="muted" style="font-size:14px;margin:0 0 6px">Cost of the amounts used (${Math.round(cost.coverage * 100)}% of ingredients priced), ${esc(regionName())} prices. <a href="#/prices">Edit prices</a></p>
           <details class="breakdown"><summary>Cost breakdown</summary><table>
