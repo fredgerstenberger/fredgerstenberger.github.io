@@ -124,7 +124,7 @@ butter|unsalted butter,salted butter|dairy|P|717,0.9,0.1,81,0|227||box:454:4 sti
 milk|whole milk,2% milk,skim milk,low-fat milk,dairy milk|dairy|F|61,3.2,4.8,3.3,0|244||half gallon:1890:64 fl oz|L
 plant milk|almond milk,oat milk,soy milk,unsweetened almond milk|dairy|F|17,0.6,0.6,1.3,0.2|240||carton:1890:64 fl oz|L
 heavy cream|heavy whipping cream,whipping cream,double cream,cream|dairy|F|340,2.8,2.7,36,0|238||pint:476:16 fl oz|L
-half and half|half-and-half|dairy|F|131,3,4.3,11.5,0|242||pint:484:16 fl oz|L
+half and half|half-and-half,half & half,half n half|dairy|F|131,3,4.3,11.5,0|242||pint:484:16 fl oz|L
 sour cream||dairy|F|198,2.4,4.6,19,0|230||tub:454:16 oz|
 greek yogurt|plain greek yogurt,nonfat greek yogurt|dairy|F|73,10,3.9,1.9,0|245||tub:907:32 oz|
 yogurt|plain yogurt|dairy|F|61,3.5,4.7,3.3,0|245||tub:907:32 oz|

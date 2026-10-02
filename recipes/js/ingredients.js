@@ -66,6 +66,10 @@ const UNICODE_FRAC = { "½": "1/2", "⅓": "1/3", "⅔": "2/3", "¼": "1/4", "¾
 
 function normalizeText(s) {
   return String(s)
+    // Commas inside numbers: "1,000 g" is a thousands separator (exactly three digits after each comma),
+    // "1,5 kg" is a decimal comma (one or two digits). "chicken, 2 lb" (a space after the comma) is untouched.
+    .replace(/\d{1,3}(?:,\d{3})+(?![\d,])/g, m => m.replace(/,/g, ""))
+    .replace(/(\d),(\d{1,2})(?![\d,])/g, "$1.$2")
     .replace(/[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/g, m => " " + UNICODE_FRAC[m])
     .replace(/(\d)\s*⁄\s*(\d)/g, "$1/$2")
     .replace(/ /g, " ")
@@ -151,7 +155,9 @@ export function parseIngredient(line) {
     const pm = qty !== null && qtyMax === null && s.match(/^(?:\+|and)\s*(\d+\s*\/\s*\d+)\s*/i);
     if (pm && amount(pm[1].replace(/\s+/g, "")) != null) { qty += amount(pm[1].replace(/\s+/g, "")); s = s.slice(pm[0].length); }
   } else {
-    const w = s.match(/^(a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|half|a dozen|dozen)\s+/i);
+    // "half and half" (the cream) is a name, not half of something.
+    const w = /^half\s*(?:and|&|-and-|-n-|n)\s*-?\s*half\b/i.test(s) ? null
+      : s.match(/^(a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|half|a dozen|dozen)\s+/i);
     if (w) {
       const word = w[1].toLowerCase().replace("a dozen", "dozen");
       qty = WORD_NUMS[word];
