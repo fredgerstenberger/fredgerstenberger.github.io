@@ -86,6 +86,8 @@ export function parseNum(s) {
   const n = parseFloat(s);
   return isNaN(n) ? null : n;
 }
+// parseNum, but only real amounts: "1/0" or "0/0" is treated as no amount.
+const amount = s => { const n = parseNum(s); return n != null && isFinite(n) ? n : null; };
 
 function readUnit(rest) {
   const lower = rest.toLowerCase();
@@ -140,9 +142,13 @@ export function parseIngredient(line) {
 
   let m = s.match(QTY_RE);
   if (m) {
-    qty = parseNum(m[1]);
-    qtyMax = m[2] ? parseNum(m[2]) : null;
+    qty = amount(m[1]);
+    qtyMax = m[2] ? amount(m[2]) : null;
     s = s.slice(m[0].length);
+    if (qty === null) { qtyMax = null; s = readUnit(s).rest; } // "1/0 cup flour": no amount, but drop the unit word
+    // "2 + 1/2 cups", "1 and 1/2 cups": a whole number plus a fraction
+    const pm = qty !== null && qtyMax === null && s.match(/^(?:\+|and)\s*(\d+\s*\/\s*\d+)\s*/i);
+    if (pm && amount(pm[1].replace(/\s+/g, "")) != null) { qty += amount(pm[1].replace(/\s+/g, "")); s = s.slice(pm[0].length); }
   } else {
     const w = s.match(/^(a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|half|a dozen|dozen)\s+/i);
     if (w) {
@@ -154,7 +160,7 @@ export function parseIngredient(line) {
 
   if (qty !== null) {
     // "1 dozen eggs", "2 dozen", "1/2 dozen"
-    m = s.match(/^dozens?\b\s*/i);
+    m = s.match(/^(?:an?\s+)?dozens?\b\s*/i); // "half a dozen eggs" too
     if (m) { qty *= 12; if (qtyMax != null) qtyMax *= 12; s = s.slice(m[0].length); }
     // UK/AU style "2 x 400g tins tomatoes" (count × container size) or "2 x 200g chicken breasts" (count × amount).
     m = s.match(/^[x×]\s*(?=[\d.])/i);
@@ -348,7 +354,8 @@ function spoons(tsp) {
   if (rem < 0.01) return `${tb} tbsp`;
   return `${tb} tbsp + ${fmtQty(rem)} tsp`;
 }
-export function friendlyVolume(ml) {
+// exact: keep every teaspoon (for amounts written that way, like "1 cup + 2 tbsp + 1 tsp").
+export function friendlyVolume(ml, exact = false) {
   if (!(ml > 0)) return "0 tsp";
   const tsp = ml / UNITS.tsp.f, cup = ml / UNITS.cup.f;
   if (cup < 0.24) return spoons(tsp);
@@ -362,7 +369,7 @@ export function friendlyVolume(ml) {
     const err = Math.abs(rem - Math.round(rem / 3) * 3);
     if (!best || err < best.err - 0.05 || (Math.abs(err - best.err) <= 0.05 && f[0] > best.f[0])) best = { f, rem, err };
   }
-  let rem = whole >= 1 ? Math.round(best.rem / 3) * 3 : Math.round(best.rem * 2) / 2; // past a cup, under a tbsp is noise
+  let rem = whole >= 1 && !exact ? Math.round(best.rem / 3) * 3 : Math.round(best.rem * 2) / 2; // past a cup, under a tbsp is noise
   const amount = whole + best.f[0];
   const cups = `${whole || ""}${best.f[1]} ${amount > 1 ? "cups" : "cup"}`;
   if (!whole && !best.f[0]) return spoons(tsp);
@@ -415,7 +422,7 @@ export function displayAmount(ing, mult = 1, mode = "original") {
   // Compound amounts ("1 tbsp + 1 tsp") read best re-expressed the same way, in US units.
   const usUnits = ["tsp", "tbsp", "cup", "floz", "oz", "lb"];
   if (mode === "original" && ing.compound && qMax == null && usUnits.includes(ing.unit)) {
-    return u.dim === "mass" ? friendlyMass(q * u.f) : friendlyVolume(q * u.f);
+    return u.dim === "mass" ? friendlyMass(q * u.f) : friendlyVolume(q * u.f, mult === 1);
   }
   if (mode === "us" && u && u.dim !== "count" && qMax == null) {
     return u.dim === "mass" ? friendlyMass(q * u.f) : friendlyVolume(q * u.f);
