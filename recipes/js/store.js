@@ -73,7 +73,12 @@ export function deleteRecipe(id) {
 }
 
 // ---- Plan ----
+// Reading a week never creates it (an empty week would otherwise be saved and synced just by looking).
+const EMPTY_WEEK = Object.freeze({ meals: Object.freeze([]) });
 export function week(key) {
+  return state.plan[key] || EMPTY_WEEK;
+}
+export function editWeek(key) {
   if (!state.plan[key]) state.plan[key] = { meals: [] };
   return state.plan[key];
 }

@@ -291,7 +291,7 @@ export async function importFromUrl(url, workerUrl, onStatus, ai = null) {
 const ING_HDR = /^(ingredients?|you(?:'|’)ll need|what you need|for the [a-z ]+:?)\s*:?\s*$/i;
 const STEP_HDR = /^(directions?|instructions?|method|preparation|steps|how to make( it)?|to make)\s*:?\s*$/i;
 const NOTE_HDR = /^(notes?|tips?|nutrition( facts)?|storage)\s*:?\s*$/i;
-const META = /\b(serves|servings?|yield|makes|prep(?:aration)? time|cook(?:ing)? time|total time|active time)\b/i;
+const META = /\b(serves|servings?|yield|makes|prep(?:aration)? time|cook(?:ing)? time|total time|active time)\b|\b(prep(?:aration)?|cook(?:ing)?|total|active|bake|baking)\s*:?\s*\d+(?:\.\d+)?\s*(?:h|hr|hrs|hours?|m|min|mins|minutes?)\b/i;
 
 function looksLikeIngredient(line) {
   if (line.length > 90) return false;

@@ -39,6 +39,13 @@ function records() {
   const settings = { ...s.settings };
   for (const k of DEVICE_ONLY_SETTINGS) delete settings[k];
   out.settings = settings;
+  // Empty weeks that were never synced (e.g. a grocery list that was only looked at) stay local.
+  for (const k of Object.keys(out)) {
+    if (!k.startsWith("p:") && !k.startsWith("g:")) continue;
+    const v = out[k];
+    const empty = k.startsWith("p:") ? !(v.meals || []).length : !Object.keys(toFields(k, v)).length;
+    if (empty && !(meta && k in meta.u)) delete out[k];
+  }
   // Field-merged records in their normal shape (no stray _ft from an older app version).
   for (const k of Object.keys(out)) if (isFieldRecord(k)) {
     if (k.startsWith("g:")) (out[k].extras || []).forEach((e, i) => { if (e && e.at == null) e.at = i; });
