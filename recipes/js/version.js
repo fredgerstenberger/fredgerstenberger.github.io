@@ -1,7 +1,8 @@
 // App version shown in Settings. Bump together with VERSION in sw.js ("rb-v" + APP_VERSION).
-export const APP_VERSION = 16;
+export const APP_VERSION = 17;
 export const RELEASED = "2026-10-02";
 export const WHATS_NEW = [
+  "Shared ratings: everyone rates recipes themselves and the average is what shows. Set your name in Settings → Sync.",
   "Planning together: meals added, moved or removed on two phones at once all stick, and recipe edits (rating on one phone, notes on the other) both keep.",
   "\"half a dozen eggs\", \"2 + 1/2 cups\" and the grocery list's \"2 dozen (24 eggs)\" now read right.",
   "Recipe links are read by your Worker, which sends back just the recipe (faster, and the Worker can't be used as a proxy).",

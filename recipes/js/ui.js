@@ -1,5 +1,6 @@
 // Shared UI building blocks: window shell, modal, toast, stars, recipe meta line.
 import { esc, fmtMinutes } from "./util.js";
+import { avgRating } from "./ratings.js";
 import { sprite } from "./sprites.js";
 import { nutritionFor } from "./nutrition.js";
 import * as store from "./store.js";
@@ -86,10 +87,16 @@ export function toast(msg) {
 }
 
 // ---- Stars ----
-export function starsHTML(rating = 0) {
-  return `<div class="stars" role="group" aria-label="Rating">${[1, 2, 3, 4, 5].map(n =>
+export function starsHTML(rating = 0, { label = "Rating", small = false } = {}) {
+  return `<div class="stars${small ? " small" : ""}" role="group" aria-label="${label}">${[1, 2, 3, 4, 5].map(n =>
     `<button data-star="${n}" class="${n <= rating ? "on" : "off"}" aria-label="${n} star${n > 1 ? "s" : ""}" aria-pressed="${n <= rating}">${sprite("star")}</button>`
   ).join("")}</div>`;
+}
+// Stars you can't tap (an average), rounded to the nearest whole star.
+export function starsShow(avg = 0) {
+  const n = Math.round(avg);
+  return `<div class="stars show" role="img" aria-label="Average ${Math.round(avg * 10) / 10} of 5 stars">${[1, 2, 3, 4, 5].map(i =>
+    `<span class="${i <= n ? "on" : "off"}">${sprite("star")}</span>`).join("")}</div>`;
 }
 export const miniStars = r => r ? "★".repeat(r) + "☆".repeat(5 - r) : "";
 
@@ -102,7 +109,8 @@ export function nutriShort(r) {
 
 export function metaLine(r) {
   const bits = [];
-  if (r.rating) bits.push(`<span class="mstars" aria-label="${r.rating} stars">${miniStars(r.rating)}</span>`);
+  const avg = Math.round(avgRating(r));
+  if (avg) bits.push(`<span class="mstars" aria-label="${avg} stars">${miniStars(avg)}</span>`);
   if (r.totalMin) bits.push(`<span>${fmtMinutes(r.totalMin)}</span>`);
   const n = nutriShort(r);
   if (n) bits.push(`<span>${n}</span>`);

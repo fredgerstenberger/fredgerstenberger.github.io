@@ -20,6 +20,7 @@ export const isFieldRecord = k => k.startsWith("r:") || k.startsWith("g:") || k.
 // whole-record delete, which older app versions understand: whichever is later wins, the delete or
 // an edit on another phone; on an exact tie the delete wins (see sync.js mergeIn).
 export const isDeletable = k => k.startsWith("r:");
+// Each person's rating is its own field ("ratings|n:emma"), so two people rating at once both count.
 
 // Meal plans: each meal's properties are separate fields ("m|<meal id>|servings"), so one person
 // changing servings and the other moving the meal both stick. A meal is only kept while it has
@@ -73,6 +74,14 @@ export function toFields(k, v) {
   const out = {};
   if (!v || typeof v !== "object") return out;
   if (k.startsWith("p:")) return planFields(v, out);
+  if (k.startsWith("r:")) {
+    for (const [f, x] of Object.entries(v)) {
+      if (f === FT || x == null) continue;
+      if (f === "ratings" && typeof x === "object") { for (const [who, n] of Object.entries(x)) if (n) out["ratings|" + who] = n; }
+      else out[f] = x;
+    }
+    return out;
+  }
   if (k.startsWith("g:")) {
     for (const [i, on] of Object.entries(v.checked || {})) if (on) out["c|" + i] = true;
     for (const [i, on] of Object.entries(v.hidden || {})) if (on) out["h|" + i] = true;
@@ -86,6 +95,14 @@ export function toFields(k, v) {
 
 export function fromFields(k, fields) {
   if (k.startsWith("p:")) return planFromFields(fields);
+  if (k.startsWith("r:")) {
+    const r = {};
+    for (const [f, x] of Object.entries(fields)) {
+      if (f.startsWith("ratings|")) (r.ratings ||= {})[f.slice(8)] = x;
+      else r[f] = x;
+    }
+    return r;
+  }
   if (!k.startsWith("g:")) return { ...fields };
   const g = { checked: {}, extras: [], hidden: {}, edits: {} };
   for (const [f, x] of Object.entries(fields)) {

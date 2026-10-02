@@ -1,5 +1,6 @@
 // Recipe book: search, quick filters, tag filters, sort.
 import * as store from "../store.js";
+import { avgRating } from "../ratings.js";
 import { esc } from "../util.js";
 import { shell, render, metaLine } from "../ui.js";
 import { nutritionFor } from "../nutrition.js";
@@ -33,7 +34,7 @@ export function matches(r, chip, s = store.settings()) {
     case ":protein": { const n = nutritionFor(r); return n.protein >= s.highProtein; }
     case ":quick": return r.totalMin > 0 && r.totalMin <= s.quickMin;
     case ":budget": { const c = recipeCost(r); return c.total > 0 && c.perServing <= s.budget; }
-    case ":fav": return (r.rating || 0) >= 4;
+    case ":fav": return avgRating(r) >= 4;
     default: return (r.tags || []).includes(chip);
   }
 }
@@ -45,7 +46,7 @@ export function searchText(r) {
 function sorted(list) {
   const by = {
     recent: (a, b) => (b.created || 0) - (a.created || 0),
-    rating: (a, b) => (b.rating || 0) - (a.rating || 0) || a.title.localeCompare(b.title),
+    rating: (a, b) => avgRating(b) - avgRating(a) || a.title.localeCompare(b.title),
     az: (a, b) => a.title.localeCompare(b.title),
     kcal: (a, b) => (nutritionFor(a).kcal || 1e9) - (nutritionFor(b).kcal || 1e9),
     protein: (a, b) => (nutritionFor(b).protein || 0) - (nutritionFor(a).protein || 0),

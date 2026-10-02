@@ -1,7 +1,9 @@
 // Single recipe: cooking-friendly view with scaling, unit conversion, timers, nutrition, tags, notes.
 import * as store from "../store.js";
 import { esc, fmtMinutes, debounce, domainOf } from "../util.js";
-import { shell, render, starsHTML, confirmBox, toast, go } from "../ui.js";
+import { shell, render, starsHTML, starsShow, confirmBox, toast, go } from "../ui.js";
+import { ratingOf, rate } from "../ratings.js";
+import * as sync from "../sync.js";
 import { parseIngredient, displayAmount, equivalents } from "../ingredients.js";
 import { nutritionFor, servingsOf } from "../nutrition.js";
 import { findTimes, startTimer } from "../timers.js";
@@ -39,6 +41,20 @@ function regionName() {
   const s = store.settings();
   if (s.priceRegion === "custom") return `${s.priceCustomPct}% of US average`;
   return (REGIONS.find(x => x[0] === s.priceRegion) || REGIONS[0])[1];
+}
+
+// Shared box: the average is what counts; your own rating sits under it and is the one you tap.
+// On your own (no sync, nobody else has rated), it's just your stars.
+function ratingHTML(r) {
+  const R = ratingOf(r);
+  if (!sync.enabled() && !R.others.length) return starsHTML(R.mine || (R.legacy ? R.avg : 0));
+  const avgTxt = R.count ? `${Math.round(R.avg * 10) / 10} · ${R.count} rating${R.count > 1 ? "s" : ""}` : "Not rated yet";
+  const who = R.others.filter(o => o.name).map(o => `${esc(o.name)} ${o.stars}★`).join(" · ");
+  return `<div class="ratingbox">
+    <div class="ravg">${starsShow(R.avg)}<span class="muted">${avgTxt}</span></div>
+    <div class="rmine"><span class="muted">Your rating</span>${starsHTML(R.mine, { label: "Your rating", small: true })}</div>
+    ${who ? `<p class="muted rwho">${who}</p>` : ""}
+  </div>`;
 }
 
 function fmtN(n) { return n == null || isNaN(n) ? "–" : Math.round(n); }
@@ -107,7 +123,7 @@ export function recipeView(id) {
       body: `
         <h2 class="rtitle">${esc(r.title)}</h2>
         <p class="rsource">${r.url ? `from <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.site || domainOf(r.url))} ↗</a>` : "Your recipe"}${r.author ? ` · ${esc(r.author)}` : ""}</p>
-        <div class="hide-cook">${starsHTML(r.rating || 0)}</div>
+        <div class="hide-cook">${ratingHTML(r)}</div>
         <dl class="facts">
           ${r.totalMin ? `<div><dt>Time</dt><dd>${fmtMinutes(r.totalMin)}${times.length ? `<br><span class="muted" style="font-size:14px">${times.join(" · ")}</span>` : ""}</dd></div>` : ""}
           <div><dt>Servings</dt><dd>
@@ -194,9 +210,9 @@ export function recipeView(id) {
   function bind() {
     const root = document.getElementById("app");
     root.querySelectorAll("[data-star]").forEach(b => b.onclick = () => {
-      const n = +b.dataset.star;
-      r.rating = r.rating === n ? n - 1 : n;
-      store.putRecipe(r); draw();
+      const n = +b.dataset.star, mine = ratingOf(r).mine;
+      rate(r, mine === n ? 0 : n); // tap your current rating again to clear it
+      draw();
     });
     const setServ = v => { P.servings = Math.max(1, Math.min(99, v)); draw(); };
     document.getElementById("sMinus").onclick = () => setServ(P.servings - 1);
