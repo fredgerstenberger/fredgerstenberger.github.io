@@ -11,6 +11,7 @@ import { pix } from "../pixicons.js";
 import { parseAdd, mergeAdd, noteAdded, suggest, frequentItems } from "../quickadd.js";
 import { me } from "../ratings.js";
 import * as stores from "../stores.js";
+import * as house from "../household.js";
 import { openStorePicker } from "./stores.js";
 
 const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
@@ -39,6 +40,7 @@ function rowHTML({ id, kind, name, amount, sub, checked }) {
 export function groceryView(key) {
   key = key || currentWeek();
   setWeek(key);
+  house.migrateWeekExtras();
   const g = store.groceryState(key);
   const prev = weekKey(addDays(parseWeekKey(key), -7)), next = weekKey(addDays(parseWeekKey(key), 7));
   const rel = weekRelation(key);
@@ -71,12 +73,15 @@ export function groceryView(key) {
   const history = () => (store.get().history ||= {});
   const findItem = id => sec.buy.find(i => i.key === id);
   const findExtra = id => g.extras.find(x => x.id === id);
-  const onList = () => new Set([...sec.buy.filter(i => !i.checked).map(i => i.key), ...g.extras.filter(e => !e.checked).map(e => parseAdd(e.text).key)]);
+  // Things you added: the ongoing household list, plus any still sitting on this week's list from
+  // before the household list existed (or added by an older app version).
+  const manual = () => [...house.items().map(h => ({ ...h, src: "house" })), ...g.extras.map(e => ({ ...e, src: "extra" }))];
+  const onList = () => new Set([...sec.buy.filter(i => !i.checked).map(i => i.key), ...manual().filter(e => !e.checked).map(e => parseAdd(e.text).key)]);
 
   function paint() {
     sec = sectionize(key);
     const meals = store.week(key).meals || [];
-    const extras = g.extras.map(e => ({ e, p: parseAdd(e.text) }));
+    const extras = manual().map(e => ({ e, p: parseAdd(e.text) }));
     const total = sec.buy.length + extras.length;
     const done = sec.buy.filter(i => i.checked).length + extras.filter(x => x.e.checked).length;
     const priced = sec.buy.filter(i => i.cost != null);
@@ -87,7 +92,7 @@ export function groceryView(key) {
     document.getElementById("gchips").innerHTML = frequentItems(history(), onList()).map(n => `<button class="chip quiet" type="button" data-quick="${esc(n)}">+ ${esc(n)}</button>`).join("");
 
     const itemRow = i => rowHTML({ id: i.key, kind: "item", name: i.name, amount: i.amount, sub: i.note, checked: i.checked });
-    const extraRow = ({ e, p }) => rowHTML({ id: e.id, kind: "extra", name: p.name, amount: p.amount, checked: e.checked });
+    const extraRow = ({ e, p }) => rowHTML({ id: e.id, kind: e.src, name: p.name, amount: p.amount, checked: e.checked });
     // Aisles list only what's left to get; checked items move to "In cart" at the bottom. Things you
     // added go in their aisle when it's known ("milk" → Dairy), otherwise under Added items.
     const loose = extras.filter(x => !x.p.aisle && !x.e.checked);
@@ -143,6 +148,11 @@ export function groceryView(key) {
 
   // Set an item's checked state. Returns a function that puts everything back (for Undo).
   const setChecked = (id, kind, on) => {
+    if (kind === "house") {
+      const was = house.get(id); if (!was) return () => {};
+      house.setChecked(id, on, me().name);
+      return () => { if (house.get(id)) house.update(id, { checked: was.checked, cb: was.cb }); };
+    }
     if (kind === "extra") {
       const e = findExtra(id); if (!e) return () => {};
       const was = e.checked; e.checked = on;
@@ -175,20 +185,26 @@ export function groceryView(key) {
     setTimeout(() => { li.classList.add("leaving"); setTimeout(commit, 180); }, 120);
   };
   const remove = (id, kind) => {
-    if (kind === "extra") g.extras = g.extras.filter(x => x.id !== id);
+    if (kind === "house") house.remove(id);
+    else if (kind === "extra") g.extras = g.extras.filter(x => x.id !== id);
     else g.hidden[id] = true;
     store.save();
-    toast(kind === "extra" ? "Removed" : "Removed from this week's list");
+    toast(kind === "item" ? "Removed from this week's list" : "Removed");
     paint();
   };
-  const details = (id, kind) => kind === "extra" ? extraSheet(g, findExtra(id), paint, remove) : itemSheet(g, findItem(id), paint, remove);
+  const details = (id, kind) => {
+    if (kind === "item") return itemSheet(g, findItem(id), paint, remove);
+    const e = kind === "house" ? house.get(id) : findExtra(id);
+    if (!e) return;
+    extraSheet(e, text => { if (kind === "house") house.update(id, { text }); else findExtra(id).text = text; store.save(); paint(); }, () => remove(id, kind));
+  };
 
   // Add what was typed. Something already on the list merges into its line instead of repeating.
   function addManual(text) {
     const p = parseAdd(text);
     if (!p) return;
     const fromRecipes = [...sec.buy, ...sec.ask, ...sec.have].find(i => i.key === p.key) || (g.hidden[p.key] ? { key: p.key, hiddenOnly: true } : null);
-    const extra = g.extras.find(e => parseAdd(e.text).key === p.key);
+    const extra = manual().find(e => parseAdd(e.text).key === p.key);
     if (fromRecipes) {
       delete g.hidden[p.key];
       delete g.checked[p.key];
@@ -199,12 +215,12 @@ export function groceryView(key) {
       }
       toast(`${p.name} is already on the list${p.amount ? ` · added ${p.amount}` : ""}`);
     } else if (extra) {
-      extra.text = mergeAdd(extra.text, p);
-      extra.checked = false;
-      toast(`${p.name} is already on the list${p.amount ? ` · now ${parseAdd(extra.text).amount}` : ""}`);
+      const merged = mergeAdd(extra.text, p);
+      if (extra.src === "house") { house.update(extra.id, { text: merged }); house.setChecked(extra.id, false); }
+      else { const x = findExtra(extra.id); x.text = merged; x.checked = false; }
+      toast(`${p.name} is already on the list${p.amount ? ` · now ${parseAdd(merged).amount}` : ""}`);
     } else {
-      const by = me().name;
-      g.extras.push({ id: uid(), text: text.trim(), checked: false, at: Date.now(), ...(by ? { by } : {}) });
+      house.add(text, me().name);
       const aisle = AISLES.find(a => a[0] === p.aisle);
       toast(`Added ${p.name}${aisle ? ` · ${aisle[1]}` : ""}`);
     }
@@ -254,10 +270,10 @@ export function groceryView(key) {
     root.querySelectorAll("[data-have]").forEach(b => b.onclick = () => { pantry[b.dataset.have] = true; store.save(); paint(); });
     root.querySelectorAll("[data-need]").forEach(b => b.onclick = () => { pantry[b.dataset.need] = false; store.save(); paint(); });
     root.querySelectorAll("[data-outof]").forEach(b => b.onclick = () => { pantry[b.dataset.outof] = false; store.save(); toast("Added to the list"); paint(); });
-    document.getElementById("uncheck")?.addEventListener("click", () => { g.checked = {}; g.extras.forEach(e => e.checked = false); store.save(); paint(); });
+    document.getElementById("uncheck")?.addEventListener("click", () => { g.checked = {}; g.extras.forEach(e => e.checked = false); house.items().forEach(h => h.checked && house.setChecked(h.id, false)); store.save(); paint(); });
     document.getElementById("unhide")?.addEventListener("click", () => { g.hidden = {}; store.save(); paint(); });
     document.getElementById("share")?.addEventListener("click", async () => {
-      const text = `Groceries · ${weekLabel(key)}\n\n` + listAsText(key, sec);
+      const text = `Groceries · ${weekLabel(key)}\n\n` + listAsText(key, { ...sec, extras: manual() });
       try {
         if (navigator.share) await navigator.share({ title: "Grocery list", text });
         else { await navigator.clipboard.writeText(text); toast("List copied"); }
@@ -330,11 +346,11 @@ function itemSheet(g, it, redraw, remove) {
   el.querySelector("#eRm").onclick = () => { close(); remove(it.key, "item"); };
 }
 
-function extraSheet(g, e, redraw, remove) {
-  if (!e) return;
+function extraSheet(e, save, remove) {
   const { el, close } = modal("Edit item", `
-    <label class="field"><span>Item</span><input type="text" id="exText" value="${esc(e.text)}" autocomplete="off"></label>
+    <label class="field"><span>Item<small>Include an amount if you like: “2 lb chicken thighs”</small></span><input type="text" id="exText" value="${esc(e.text)}" autocomplete="off"></label>
+    ${e.by ? `<p class="muted" style="font-size:14px;margin:0">Added by ${esc(e.by)}</p>` : ""}
     <div class="btnrow"><button class="btn primary" id="exSave">Save</button><button class="btn danger" id="exRm">Remove</button></div>`);
-  el.querySelector("#exSave").onclick = () => { const v = el.querySelector("#exText").value.trim(); if (v) { e.text = v; store.save(); } close(); redraw(); };
-  el.querySelector("#exRm").onclick = () => { close(); remove(e.id, "extra"); };
+  el.querySelector("#exSave").onclick = () => { const v = el.querySelector("#exText").value.trim(); close(); if (v) save(v); };
+  el.querySelector("#exRm").onclick = () => { close(); remove(); };
 }

@@ -11,7 +11,7 @@
 // as edited at the time of that whole record (how everything synced before).
 
 export const FT = "_ft";
-const MAPS = ["pantry", "prices", "settings", "foods", "asked", "history", "stores"];
+const MAPS = ["pantry", "prices", "settings", "foods", "asked", "history", "stores", "household"];
 
 export const isFieldRecord = k => k.startsWith("r:") || k.startsWith("g:") || k.startsWith("p:") || MAPS.includes(k);
 

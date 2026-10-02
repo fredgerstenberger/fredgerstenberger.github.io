@@ -22,7 +22,7 @@ export const DEFAULT_SETTINGS = {
 function freshState() {
   const pantry = {};
   for (const f of FOODS) if (f.kind === "S") pantry[f.name] = true;
-  return { version: 1, recipes: {}, plan: {}, grocery: {}, pantry, prices: {}, pricesUpdated: 0, foods: {}, asked: {}, history: {}, stores: {}, settings: { ...DEFAULT_SETTINGS }, lastBackup: 0 };
+  return { version: 1, recipes: {}, plan: {}, grocery: {}, pantry, prices: {}, pricesUpdated: 0, foods: {}, asked: {}, history: {}, stores: {}, household: {}, settings: { ...DEFAULT_SETTINGS }, lastBackup: 0 };
 }
 
 let state = load();
