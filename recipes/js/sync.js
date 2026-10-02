@@ -219,7 +219,7 @@ function newCode() {
 // (edited at time -1), so the box's settings, pantry and prices win, and only things the box
 // doesn't have yet (e.g. this device's own recipes) are added to it.
 export async function enable(code) {
-  meta = { code: code || newCode(), since: 0, h: {}, u: {}, ft: {}, dirty: [], last: 0, error: "" };
+  meta = { code: code || newCode(), since: 0, h: {}, u: {}, ft: {}, fv: FIELD_VERSION, dirty: [], last: 0, error: "" };
   for (const [k, v] of Object.entries(records())) {
     meta.h[k] = fp(v);
     meta.u[k] = code ? -1 : 0;
@@ -278,13 +278,19 @@ export async function resetCode() {
 
 const onGrocery = () => /^#\/grocery/.test(location.hash || "");
 
-// Devices that synced before field merging existed: give every field its record's last edit time.
+// Records that became field-merged in a newer version (grocery etc. in v14, plans and recipes in v16):
+// give every field its record's last edit time, and note the record's new normal form so nothing
+// is re-sent just because of the upgrade.
+const FIELD_VERSION = 2;
 function migrate() {
-  if (!meta || meta.ft) return;
-  meta.ft = {};
+  if (!meta || (meta.fv || 0) >= FIELD_VERSION) return;
+  meta.ft ||= {};
   for (const [k, v] of Object.entries(records())) {
-    if (isFieldRecord(k) && k in meta.u) stampFields(times(k), toFields(k, v), meta.u[k]);
+    if (!isFieldRecord(k) || !(k in meta.u)) continue;
+    if (!Object.keys(times(k)).length) stampFields(times(k), toFields(k, v), meta.u[k]);
+    if (!meta.dirty.includes(k)) meta.h[k] = fp(v);
   }
+  meta.fv = FIELD_VERSION;
   saveMeta();
 }
 

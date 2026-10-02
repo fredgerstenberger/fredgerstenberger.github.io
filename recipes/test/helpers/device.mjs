@@ -36,8 +36,9 @@ export async function device(opts = {}) {
     clearTimeout: opts.timers ? clearTimeout : noop,
     setInterval: opts.timers ? setInterval : noop,
     clearInterval: opts.timers ? clearInterval : noop,
-    // opts.clock: this phone's clock is off by that many ms
-    Date: opts.clock ? class extends Date { static now() { return super.now() + opts.clock; } } : Date
+    // opts.clock: this phone's clock is off by that many ms; opts.now(): a clock the test controls
+    Date: opts.now ? class extends Date { static now() { return opts.now(); } }
+      : opts.clock ? class extends Date { static now() { return super.now() + opts.clock; } } : Date
   };
   win.addEventListener = win.addEventListener.bind(win);
   win.dispatchEvent = win.dispatchEvent.bind(win);
