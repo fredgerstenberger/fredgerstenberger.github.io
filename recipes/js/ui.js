@@ -16,9 +16,9 @@ export const app = () => document.getElementById("app");
 
 export function go(hash) { location.hash = hash; }
 
-/** A full-page retro window. The close box goes back (or home). */
-export function shell({ title, body, status = "", actions = "", back = "#/" }) {
-  return `<main class="page">
+/** A full page. The back arrow goes back (or home). calm: the Calm Pixel chrome (no window frame). */
+export function shell({ title, body, status = "", actions = "", back = "#/", calm = false }) {
+  return `<main class="page${calm ? " calm" : ""}">
     <section class="win screen">
       <div class="titlebar">
         <span class="tb-left"><a class="backbtn" href="${esc(back)}" aria-label="${back === "#/" ? "Home" : "Back"}">${sprite("back")}</a></span>
@@ -30,6 +30,9 @@ export function shell({ title, body, status = "", actions = "", back = "#/" }) {
     </section>
   </main>`;
 }
+
+// Calm pages show the title in the top bar once the big title has scrolled away.
+addEventListener("scroll", () => document.querySelector(".page.calm")?.classList.toggle("scrolled", scrollY > 56), { passive: true });
 
 export function render(html, { keepScroll = false } = {}) {
   const y = window.scrollY;
