@@ -3,12 +3,12 @@
 import * as store from "../store.js";
 import { esc, uid, addDays, parseWeekKey, weekKey, weekRelation } from "../util.js";
 import { shell, render, toast, modal } from "../ui.js";
-import { AISLES } from "../fooddb.js";
+import { AISLES, FOOD_BY_NAME } from "../fooddb.js";
 import { sectionize, listAsText } from "../grocery.js";
 import { weekLabel, currentWeek, setWeek } from "./plan.js";
 import { money } from "../prices.js";
 import { pix } from "../pixicons.js";
-import { parseAdd, mergeAdd, noteAdded, suggest, frequentItems } from "../quickadd.js";
+import { parseAdd, mergeAdd, noteAdded, noteBought, suggest, frequentItems } from "../quickadd.js";
 import { me } from "../ratings.js";
 import * as stores from "../stores.js";
 import * as house from "../household.js";
@@ -18,6 +18,30 @@ const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
 const HINT_KEY = "rb.groceryHint";
 const CART_KEY = "rb.cartOpen";
 const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Shopping mode (this phone only): bigger rows, just what's left by aisle, and the screen kept awake.
+// The Screen Wake Lock API works in Safari 16.4+ and in home-screen apps from iOS 18.4; where it
+// isn't available the screen just sleeps as usual.
+const SHOP_KEY = "rb.shopping";
+const shopping = () => { try { return sessionStorage.getItem(SHOP_KEY) === "1"; } catch { return false; } };
+const setShopping = on => { try { on ? sessionStorage.setItem(SHOP_KEY, "1") : sessionStorage.removeItem(SHOP_KEY); } catch {} };
+const onGrocery = () => (location.hash || "").startsWith("#/grocery");
+let wake = null;
+async function keepAwake(on) {
+  if (!on) { const w = wake; wake = null; try { await w?.release(); } catch {} showWake(); return; }
+  if (wake || !navigator.wakeLock || document.visibilityState !== "visible") return showWake();
+  try {
+    wake = await navigator.wakeLock.request("screen");
+    wake.addEventListener("release", () => { wake = null; showWake(); });
+  } catch { wake = null; }
+  showWake();
+}
+const showWake = () => { const el = document.getElementById("gwake"); if (el) el.hidden = !(wake && shopping()); };
+if (typeof document !== "undefined") {
+  // iOS drops the wake lock whenever the app goes to the background; take it again on return.
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && shopping() && onGrocery()) keepAwake(true); });
+  addEventListener("hashchange", () => { if (!onGrocery()) keepAwake(false); });
+}
 
 function progressHTML(done, total, left) {
   const bar = total <= 24
@@ -57,6 +81,7 @@ export function groceryView(key) {
         <button class="chip" id="storeBtn" type="button" style="margin-left:auto"></button>
       </div>
       <div id="gprog"></div>
+      <p class="gwake" id="gwake" hidden>${pix("check", 14)} Screen stays on while you shop</p>
       <form id="addForm" class="gadd" role="search" autocomplete="off">
         <input type="text" id="addIn" placeholder="Add an item — “2 lb chicken thighs”" autocomplete="off" autocapitalize="sentences" enterkeyhint="go" aria-label="Add an item" aria-controls="gsug">
         <button class="plus" type="submit" aria-label="Add">+</button>
@@ -79,6 +104,7 @@ export function groceryView(key) {
   const onList = () => new Set([...sec.buy.filter(i => !i.checked).map(i => i.key), ...manual().filter(e => !e.checked).map(e => parseAdd(e.text).key)]);
 
   function paint() {
+    if (!document.getElementById("gbody")) return; // left the list before a delayed check finished
     sec = sectionize(key);
     const meals = store.week(key).meals || [];
     const extras = manual().map(e => ({ e, p: parseAdd(e.text) }));
@@ -87,6 +113,7 @@ export function groceryView(key) {
     const priced = sec.buy.filter(i => i.cost != null);
     const estLeft = priced.filter(i => !i.checked).reduce((t, i) => t + i.cost, 0);
     const st = stores.get(stores.current());
+    const shop = shopping();
     document.getElementById("storeBtn").innerHTML = `${pix("cart", 14)} ${esc(st ? st.name : "Any store")} ▾`;
     document.getElementById("gprog").innerHTML = total ? progressHTML(done, total, priced.length ? money(estLeft) : "") : "";
     document.getElementById("gchips").innerHTML = frequentItems(history(), onList()).map(n => `<button class="chip quiet" type="button" data-quick="${esc(n)}">+ ${esc(n)}</button>`).join("");
@@ -122,14 +149,14 @@ export function groceryView(key) {
 
     document.getElementById("gbody").innerHTML = `
       ${!meals.length && !extras.length ? `<div class="cempty">${pix("cart", 32)}<b>Nothing to buy yet</b>Plan some meals and the list builds itself, or add items above.<div class="gfoot"><a class="cbtn primary" href="#/plan/${key}">Go to meal plan</a></div></div>` : ""}
-      ${sec.ask.length ? `<div class="chead">Do you have these?</div>
+      ${sec.ask.length ? `<div class="gaskwrap"><div class="chead">Do you have these?</div>
       <div class="card gask">
         <p>Your answer is remembered. Change it anytime in Pantry.</p>
         ${sec.ask.map(i => `<div class="askrow">
           <span class="nm">${esc(cap1(i.name))}<small>for ${esc(i.sources.join(", "))}</small></span>
           <button class="cbtn" data-have="${esc(i.key)}">Yes</button><button class="cbtn" data-need="${esc(i.key)}">No</button>
         </div>`).join("")}
-      </div>` : ""}
+      </div></div>` : ""}
       ${total > 0 && done === total ? `<div class="gdone">${pix("cart", 32)}<b>Everything's in the cart</b>Nice shopping.</div>` : ""}
       ${byAisle}
       ${cart}
@@ -142,7 +169,11 @@ export function groceryView(key) {
         <button class="cbtn ghost" id="share">Share list</button>
         ${done ? `<button class="cbtn ghost" id="uncheck">Uncheck all</button>` : ""}
         ${Object.keys(g.hidden).length ? `<button class="cbtn ghost" id="unhide">Restore removed (${Object.keys(g.hidden).length})</button>` : ""}
-      </div>` : ""}`;
+      </div>` : ""}
+      ${shop ? `<div class="gshopbar"><button class="cbtn" id="shopExit">Exit</button><button class="cbtn primary" id="shopDone">${pix("check", 18)} Done shopping</button></div>`
+        : total > done ? `<div class="gshopbar"><button class="cbtn primary" id="shopStart">${pix("cart", 18)} Start shopping</button></div>` : ""}`;
+    document.querySelector(".page")?.classList.toggle("shopping", shop);
+    document.querySelector(".page")?.classList.toggle("hasbar", shop || total > done);
     bindBody();
   }
 
@@ -259,8 +290,46 @@ export function groceryView(key) {
     input.focus();
   };
 
+  // Done shopping: things you added and checked leave the list (recipe items stay checked for the
+  // week), purchases are noted in history, and pantry foods can be marked as stocked.
+  function doneShopping() {
+    const got = manual().filter(e => e.checked).map(e => ({ e, p: parseAdd(e.text) }));
+    const gotItems = sec.buy.filter(i => i.checked);
+    const stock = got.filter(({ p }) => p && "PS".includes(FOOD_BY_NAME[p.key]?.kind || "F") && pantry[p.key] !== true);
+    const finish = markStocked => {
+      const now = Date.now();
+      for (const i of gotItems) noteBought(history(), { key: i.key, name: i.name, aisle: i.aisle }, now);
+      for (const { p } of got) if (p) noteBought(history(), p, now);
+      const pWas = {};
+      if (markStocked) for (const { p } of stock) { pWas[p.key] = pantry[p.key]; pantry[p.key] = true; }
+      const goneHouse = house.clearChecked();
+      const goneExtras = g.extras.filter(e => e.checked);
+      g.extras = g.extras.filter(e => !e.checked);
+      setShopping(false); keepAwake(false);
+      store.save(); paint();
+      const n = goneHouse.length + goneExtras.length;
+      toast(n ? `Done shopping · cleared ${n} item${n > 1 ? "s" : ""}` : "Done shopping", n || markStocked && stock.length ? { label: "Undo", run: () => {
+        house.restore(goneHouse);
+        g.extras = [...g.extras, ...goneExtras].sort((a, b) => (a.at || 0) - (b.at || 0));
+        for (const [k, v] of Object.entries(pWas)) { if (v === undefined) delete pantry[k]; else pantry[k] = v; }
+        store.save(); paint();
+      } } : null);
+    };
+    if (!got.length && !stock.length) return finish(false);
+    const names = list => list.map(({ p }) => p.name.toLowerCase()).join(", ");
+    const { el, close } = modal("Done shopping?", `
+      <p style="margin-top:0">${got.length} thing${got.length > 1 ? "s" : ""} you added ${got.length > 1 ? "leave" : "leaves"} the list: ${esc(names(got))}.${gotItems.length ? " Items from your recipes stay checked for this week." : ""}</p>
+      ${stock.length ? `<label class="gopt"><input type="checkbox" id="dsStock" checked><span>Mark as in your pantry<small>${esc(names(stock))}</small></span></label>` : ""}
+      <div class="btnrow"><button class="btn primary" id="dsOk">Done shopping</button><button class="btn" id="dsNo">Keep shopping</button></div>`);
+    el.querySelector("#dsOk").onclick = () => { const m = !!el.querySelector("#dsStock")?.checked; close(); finish(m); };
+    el.querySelector("#dsNo").onclick = () => close();
+  }
+
   function bindBody() {
     const root = document.getElementById("gbody");
+    document.getElementById("shopStart")?.addEventListener("click", () => { setShopping(true); keepAwake(true); paint(); window.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" }); });
+    document.getElementById("shopExit")?.addEventListener("click", () => { setShopping(false); keepAwake(false); paint(); });
+    document.getElementById("shopDone")?.addEventListener("click", doneShopping);
     root.querySelectorAll(".grow[data-id]").forEach(li => bindRow(li, {
       tap: () => toggle(li.dataset.id, li.dataset.kind, li),
       more: () => details(li.dataset.id, li.dataset.kind),
@@ -282,6 +351,7 @@ export function groceryView(key) {
   }
 
   paint();
+  if (shopping()) keepAwake(true);
 }
 
 // Row gestures: tap = check; press and hold = details; swipe left = reveal Details / Remove.

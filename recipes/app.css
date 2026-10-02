@@ -984,3 +984,31 @@ dialog.win[open] { animation: fadein var(--quick) var(--ease); }
 .ohandle { width: 44px; text-align: center; color: var(--c-faint); font-size: 20px; cursor: grab; }
 .oname { flex: 1; display: flex; align-items: center; gap: var(--s2); font: var(--t-row); cursor: grab; }
 .obtn { width: 36px; height: 36px; border: 0; border-radius: 9px; background: var(--c-chip); color: var(--c-muted); font: 800 16px var(--body); cursor: pointer; }
+
+/* Shopping mode: a bar at the bottom, then bigger rows with only what's left, by aisle */
+.page.calm.hasbar .screen > .wbody { padding-bottom: calc(88px + var(--safe-b)); }
+.gshopbar { position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; display: flex; gap: var(--s2);
+  padding: var(--s5) max(var(--s4), env(safe-area-inset-right)) calc(var(--s3) + var(--safe-b)) max(var(--s4), env(safe-area-inset-left));
+  background: linear-gradient(to top, var(--c-bg) 62%, color-mix(in srgb, var(--c-bg) 0%, transparent)); pointer-events: none; }
+.gshopbar .cbtn { pointer-events: auto; min-height: 52px; font: 800 17px var(--body); border-radius: var(--r); }
+.gshopbar .cbtn.primary { flex: 1; }
+.gshopbar .cbtn:not(.primary) { background: var(--c-card); border: 1px solid var(--c-line); color: var(--c-ink); padding: 0 var(--s5); }
+.gshopbar .pix { width: 18px; height: 18px; }
+body.has-timers .gshopbar { bottom: calc(68px + var(--safe-b)); padding-bottom: var(--s3); }
+body:has(.gshopbar) .toast { bottom: calc(92px + var(--safe-b)); }
+body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
+.gwake { display: flex; align-items: center; gap: var(--s2); margin: calc(var(--s2) * -1) 0 var(--s3); color: var(--c-check); font: 700 14px var(--body); }
+.gwake[hidden] { display: none; }
+.shopping #addForm, .shopping .gsug, .shopping .gchips, .shopping .gaskwrap, .shopping .ghave,
+.shopping .ghint, .shopping .gfoot, .shopping .cempty { display: none; }
+.shopping .ctitle { font-size: 26px; }
+.shopping .grow-main { min-height: 64px; font-size: 20px; gap: var(--s4); }
+.shopping .gname small { font-size: 15px; }
+.shopping .gamt { font-size: 18px; }
+.shopping .gbox { width: 30px; height: 30px; border-radius: 8px; }
+.shopping .gbox .pix { width: 20px; height: 20px; }
+.shopping .chead { font-size: 15px; margin-top: var(--s5); }
+.gopt { display: flex; align-items: flex-start; gap: var(--s3); padding: var(--s3) var(--s4); margin: 0 0 var(--s3); border: 1px solid var(--c-line); border-radius: var(--r-sm); background: var(--c-bg); cursor: pointer; }
+.gopt input { width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--c-check); flex: none; }
+.gopt span { font: var(--t-row); }
+.gopt small { display: block; font: var(--t-small); color: var(--c-muted); margin-top: 2px; }

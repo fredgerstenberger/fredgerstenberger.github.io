@@ -50,6 +50,16 @@ export function noteAdded(history, p, now = Date.now()) {
   history[p.key] = { name: h.name || p.name, n: (h.n || 0) + 1, last: now, ...(p.aisle ? { aisle: p.aisle } : {}) };
 }
 
+/**
+ * Remember that something was bought (Done shopping): b = times bought, bought = when. History is a
+ * hint, so if two phones update the same item at the same moment and one count is lost, that's fine.
+ */
+export function noteBought(history, { key, name, aisle }, now = Date.now()) {
+  if (!key) return;
+  const h = history[key] || { name, n: 0 };
+  history[key] = { ...h, name: h.name || name, b: (h.b || 0) + 1, bought: now, ...(aisle && !h.aisle ? { aisle } : {}) };
+}
+
 const STARTERS = ["Milk", "Eggs", "Bread", "Bananas", "Coffee", "Butter"];
 
 /** Quick-add chips: your most frequent items that aren't on the list yet. */

@@ -53,3 +53,15 @@ test("quick-add chips: most frequent first, starters fill in, nothing already on
   assert.ok(!chips.includes("Eggs"));
   assert.equal(chips.length, 6);
 });
+
+test("item 6: Done shopping notes purchases without touching how often you added things", () => {
+  const h = {};
+  Q.noteAdded(h, Q.parseAdd("milk"), 100);
+  Q.noteBought(h, { key: "milk", name: "Milk", aisle: "dairy" }, 200);
+  Q.noteBought(h, { key: "olive oil", name: "olive oil", aisle: "condiments" }, 300);
+  assert.deepEqual(h.milk, { name: "Milk", n: 1, last: 100, aisle: "dairy", b: 1, bought: 200 });
+  assert.deepEqual(h["olive oil"], { name: "olive oil", n: 0, b: 1, bought: 300, aisle: "condiments" });
+  // Bought-only items (from recipes) never become quick-add chips.
+  assert.equal(Q.frequentItems(h).includes("Olive oil"), false);
+  assert.equal(Q.frequentItems(h)[0], "Milk");
+});

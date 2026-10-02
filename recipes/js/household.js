@@ -6,7 +6,7 @@ import * as store from "./store.js";
 import { uid, weekKey } from "./util.js";
 
 const all = () => (store.get().household ||= {});
-export const items = () => Object.entries(all()).map(([id, h]) => ({ id, ...h })).sort((a, b) => (a.at || 0) - (b.at || 0));
+export const items = () => Object.entries(all()).map(([id, h]) => ({ id, ...h })).sort((a, b) => (a.at || 0) - (b.at || 0) || (a.id < b.id ? -1 : 1));
 export const get = id => (all()[id] ? { id, ...all()[id] } : null);
 
 export function add(text, by = "", id = uid(), at = Date.now()) {
@@ -22,11 +22,13 @@ export function setChecked(id, on, by = "") {
   all()[id] = next;
 }
 export function remove(id) { delete all()[id]; }
+// Bought items leave the list. Returns what was removed, so it can be put back (Undo).
 export function clearChecked() {
-  let n = 0;
-  for (const [id, h] of Object.entries(all())) if (h.checked) { delete all()[id]; n++; }
-  return n;
+  const gone = items().filter(h => h.checked);
+  for (const h of gone) delete all()[h.id];
+  return gone;
 }
+export function restore(list) { for (const { id, ...h } of list) all()[id] = h; }
 
 // Items added to a week's list before the household list existed: unchecked ones from this week on
 // move here (keeping their id, so two phones migrating at once end up with the same single item).

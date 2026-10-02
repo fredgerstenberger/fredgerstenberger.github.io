@@ -110,7 +110,7 @@ test("item 5: checking one item while the other phone adds another keeps both; D
     assert.equal(H.get(id).cb, "Emma");
     assert.equal(H.items().length, 2);
   }
-  assert.equal(HA.clearChecked(), 1); A.store.save(); await settle(A, B);
+  assert.equal(HA.clearChecked().length, 1); A.store.save(); await settle(A, B);
   for (const H of [HA, HB]) assert.deepEqual(H.items().map(h => h.text), ["Foil"]);
 });
 
@@ -126,5 +126,24 @@ test("item 5: both phones moving the same old week item to the household list en
   for (const [H, p] of [[HA, A], [HB, B]]) {
     assert.deepEqual(H.items().map(h => h.text), ["Cat litter"], p.name);
     assert.deepEqual(p.store.get().grocery[WK].extras, [], p.name);
+  }
+});
+
+test("item 6: Done shopping on one phone while the other adds something; Undo brings bought items back on both", async () => {
+  const { A, B } = await pair();
+  const HA = await A.load("household"), HB = await B.load("household");
+  const eggs = HA.add("Eggs", "Fred", "e1", 1), foil = HA.add("Foil", "Fred", "f1", 2); A.store.save(); await settle(A, B);
+  HA.setChecked(eggs, true, "Fred"); A.store.save(); await settle(A, B);
+  // Fred taps Done shopping just as Emma adds coffee.
+  const gone = HA.clearChecked(); A.store.save();
+  HB.add("Coffee", "Emma"); B.store.save();
+  await A.sync.syncNow(); await B.sync.syncNow(); await settle(A, B);
+  for (const H of [HA, HB]) assert.deepEqual(H.items().map(h => h.text), ["Foil", "Coffee"]);
+  assert.equal(HA.get(foil).checked, false);
+  // Undo: the cleared item comes back, still checked, with the same id.
+  HA.restore(gone); A.store.save(); await settle(A, B);
+  for (const H of [HA, HB]) {
+    assert.deepEqual(H.items().map(h => h.text), ["Eggs", "Foil", "Coffee"]);
+    assert.equal(H.get(eggs).checked, true);
   }
 });
