@@ -60,6 +60,7 @@ for (const [key, u] of Object.entries(UNITS)) {
 const MULTIWORD_UNITS = Object.keys(UNIT_LOOKUP).filter(k => k.includes(" ")).sort((a, b) => b.length - a.length);
 
 const SIZE_WORDS = /^(small|medium|large|extra[- ]large|x-large|xl|jumbo|big|heaping|heaped|level|scant|generous|rounded)\b\s*/i;
+const FOOD_SIZE = /^(small|medium|large|extra[- ]large|x-large|xl|jumbo|big)$/i; // describe the food, not the spoonful
 
 const UNICODE_FRAC = { "½": "1/2", "⅓": "1/3", "⅔": "2/3", "¼": "1/4", "¾": "3/4", "⅕": "1/5", "⅖": "2/5", "⅗": "3/5", "⅘": "4/5", "⅙": "1/6", "⅚": "5/6", "⅛": "1/8", "⅜": "3/8", "⅝": "5/8", "⅞": "7/8" };
 
@@ -125,9 +126,17 @@ export function parseIngredient(line) {
   if (raw.startsWith("#")) return { raw, header: raw.replace(/^#+\s*/, "") };
 
   let s = normalizeText(raw).replace(/^[-•*▢□☐]\s*/, "");
+  // Size words ("large onion") are dropped for matching and grocery names but kept for display.
+  const sizeWords = [];
+  const stripSize = str => {
+    const sm = str.match(SIZE_WORDS);
+    if (!sm) return str;
+    if (FOOD_SIZE.test(sm[1])) sizeWords.push(sm[1].toLowerCase());
+    return str.slice(sm[0].length);
+  };
   // "Juice of 1 lemon" → "1 lemon, juiced" (buy whole lemons)
   s = s.replace(/^(juice|zest|juice and zest|zest and juice) of (\S+) (lemons?|limes?|oranges?)\b,?\s*/i, (_, what, n, fruit) => `${n} ${fruit}, ${what.toLowerCase().replace("juice", "juiced").replace("zest", "zested")} `);
-  let qty = null, qtyMax = null, unit = null, size = null;
+  let qty = null, qtyMax = null, unit = null, size = null, compound = false;
 
   let m = s.match(QTY_RE);
   if (m) {
@@ -140,6 +149,23 @@ export function parseIngredient(line) {
       const word = w[1].toLowerCase().replace("a dozen", "dozen");
       qty = WORD_NUMS[word];
       s = s.slice(w[0].length);
+    }
+  }
+
+  if (qty !== null) {
+    // "1 dozen eggs", "2 dozen", "1/2 dozen"
+    m = s.match(/^dozens?\b\s*/i);
+    if (m) { qty *= 12; if (qtyMax != null) qtyMax *= 12; s = s.slice(m[0].length); }
+    // UK/AU style "2 x 400g tins tomatoes" (count × container size) or "2 x 200g chicken breasts" (count × amount).
+    m = s.match(/^[x×]\s*(?=[\d.])/i);
+    if (m) {
+      s = s.slice(m[0].length);
+      const nm = s.match(new RegExp(String.raw`^(${NUM})\s*-?\s*`));
+      const su = nm ? readUnit(s.slice(nm[0].length)) : {};
+      if (su.unit && UNITS[su.unit].dim !== "count") {
+        const cont = readUnit(su.rest.replace(SIZE_WORDS, ""));
+        if (!(cont.unit && UNITS[cont.unit].pkg)) { qty *= parseNum(nm[1]); qtyMax = null; s = s.slice(nm[0].length); }
+      }
     }
   }
 
@@ -164,7 +190,7 @@ export function parseIngredient(line) {
       }
     }
   }
-  s = s.replace(/^-\s*/, "").replace(SIZE_WORDS, "");
+  s = stripSize(s.replace(/^-\s*/, ""));
   if (qty !== null || size) {
     const u = readUnit(s);
     unit = u.unit; s = u.rest;
@@ -185,14 +211,25 @@ export function parseIngredient(line) {
         if (!unit) { const u3 = readUnit(s); unit = u3.unit; s = u3.rest; }
       }
     }
+    // Compound amounts: "1 tbsp + 1 tsp", "1/3 cup plus 2 tbsp", "1 pound 2 ounces" → one amount in the first unit.
+    while (qty !== null && qtyMax === null && unit && UNITS[unit].dim !== "count") {
+      const cm = s.match(new RegExp(String.raw`^(?:\+|plus\b|and\b)?\s*(${NUM})\s*`, "i"));
+      const u2 = cm ? readUnit(s.slice(cm[0].length)) : {};
+      if (!u2.unit || UNITS[u2.unit].dim !== UNITS[unit].dim) break;
+      qty += parseNum(cm[1]) * UNITS[u2.unit].f / UNITS[unit].f;
+      s = u2.rest;
+      compound = true;
+    }
   }
-  s = s.replace(/^of\s+/i, "").replace(SIZE_WORDS, "");
+  s = stripSize(s.replace(/^of\s+/i, ""));
 
   let name = s, note = "";
   const ci = s.indexOf(",");
   if (ci > 0) { name = s.slice(0, ci).trim(); note = s.slice(ci + 1).trim(); }
 
   let food = matchFood(name) || matchFood(s);
+  // "2 cans tomatoes" means canned tomatoes, not fresh.
+  if (unit === "can" && food?.aisle !== "canned") food = matchFood("canned " + name) || food;
   if (!food) {
     // Not in the built-in table: use a USDA lookup if we have one, otherwise ask for it in the background.
     // Your own info wins; it fills in on top of the USDA match when there is one.
@@ -201,7 +238,9 @@ export function parseIngredient(line) {
     food = mine && usda ? { ...usda, ...mine, nu: mine.nu || usda.nu, usda: mine.nu ? null : usda.usda } : mine || usda;
     if (!usda) noteUnknown(key);
   }
-  return { raw, qty, qtyMax, unit, size, name: name.trim(), note, food };
+  name = name.trim();
+  const display = sizeWords.length ? `${sizeWords.join(" ")} ${name}` : name;
+  return { raw, qty, qtyMax, unit, size, name, display, note, food, compound };
 }
 
 // ---- Conversions ----
@@ -244,6 +283,7 @@ const FRACS = [[0, ""], [1 / 8, "⅛"], [1 / 4, "¼"], [1 / 3, "⅓"], [3 / 8, "
 
 export function fmtQty(n) {
   if (n == null || isNaN(n)) return "";
+  if (n > 0 && n < 1 / 16) return "<⅛"; // never show a real amount as 0
   if (n >= 20) return String(Math.round(n));
   if (n >= 10) return String(Math.round(n * 2) / 2).replace(".5", "½");
   const whole = Math.floor(n);
@@ -253,7 +293,7 @@ export function fmtQty(n) {
     const e = Math.abs(frac - f[0]);
     if (e < bestErr) { best = f; bestErr = e; }
   }
-  if (bestErr > 0.04 && n < 1) return String(Math.round(n * 100) / 100);
+  if (bestErr > 0.04 && n < 1) return n < 1 / 8 ? "<⅛" : String(Math.round(n * 100) / 100);
   const w = best[0] === 1 ? whole + 1 : whole;
   const glyph = best[0] === 1 ? "" : best[1];
   if (!w && glyph) return glyph;
@@ -292,8 +332,50 @@ export function usVolume(ml) {
   }
   const cup = ml / UNITS.cup.f;
   if (cup >= 16) return { qty: ml / UNITS.gallon.f, unit: "gallon" };
-  if (cup >= 4) return { qty: ml / UNITS.quart.f, unit: "quart" };
+  if (cup >= 8) return { qty: ml / UNITS.quart.f, unit: "quart" }; // 4½ cups reads better than 1⅛ quarts
   return { qty: cup, unit: "cup" };
+}
+
+// How a cook would measure a volume with US spoons and cups:
+// "pinch", "¾ tsp", "1 tbsp + 1 tsp", "1½ tbsp", "½ cup + 1 tbsp", "⅓ cup + 2 tbsp", "4½ cups".
+const CUP_FRACS = [[0, ""], [1 / 4, "¼"], [1 / 3, "⅓"], [1 / 2, "½"], [2 / 3, "⅔"], [3 / 4, "¾"]];
+function spoons(tsp) {
+  if (tsp < 0.09) return "pinch";
+  if (tsp < 2.9) return `${fmtQty(Math.round(tsp * 8) / 8)} tsp`;
+  tsp = Math.round(tsp * 2) / 2;
+  const tb = Math.floor((tsp + 0.01) / 3), rem = tsp - tb * 3;
+  if (Math.abs(rem - 1.5) < 0.01) return `${tb}½ tbsp`;
+  if (rem < 0.01) return `${tb} tbsp`;
+  return `${tb} tbsp + ${fmtQty(rem)} tsp`;
+}
+export function friendlyVolume(ml) {
+  if (!(ml > 0)) return "0 tsp";
+  const tsp = ml / UNITS.tsp.f, cup = ml / UNITS.cup.f;
+  if (cup < 0.24) return spoons(tsp);
+  if (cup >= 16) { const gal = Math.round(ml / UNITS.gallon.f * 4) / 4; return `${fmtQty(gal)} ${gal > 1 ? "gallons" : "gallon"}`; }
+  const whole = Math.floor(cup + 0.02), frac = Math.max(0, cup - whole);
+  // The cup fraction that leaves a remainder of whole tablespoons (fewest leftovers; bigger fraction on a tie).
+  let best = null;
+  for (const f of CUP_FRACS) {
+    if (f[0] > frac + 0.02) continue;
+    const rem = Math.max(0, (frac - f[0]) * 48);
+    const err = Math.abs(rem - Math.round(rem / 3) * 3);
+    if (!best || err < best.err - 0.05 || (Math.abs(err - best.err) <= 0.05 && f[0] > best.f[0])) best = { f, rem, err };
+  }
+  let rem = whole >= 1 ? Math.round(best.rem / 3) * 3 : Math.round(best.rem * 2) / 2; // past a cup, under a tbsp is noise
+  const amount = whole + best.f[0];
+  const cups = `${whole || ""}${best.f[1]} ${amount > 1 ? "cups" : "cup"}`;
+  if (!whole && !best.f[0]) return spoons(tsp);
+  return rem >= 0.5 ? `${cups} + ${spoons(rem)}` : cups;
+}
+// "9 oz", "1½ lb", "1 lb 2 oz"
+export function friendlyMass(g) {
+  const oz = g / UNITS.oz.f;
+  if (oz < 16) return `${fmtQty(oz < 1 ? oz : Math.round(oz * 4) / 4)} oz`;
+  const lb = oz / 16, q = Math.round(lb * 4) / 4;
+  if (Math.abs(lb - q) < 0.03) return `${fmtQty(q)} lb`;
+  const whole = Math.floor(lb), rest = Math.round((lb - whole) * 16);
+  return rest >= 16 ? `${whole + 1} lb` : `${whole} lb ${rest} oz`;
 }
 
 export function usMass(g) {
@@ -329,6 +411,15 @@ export function displayAmount(ing, mult = 1, mode = "original") {
   const qMax = ing.qtyMax != null ? ing.qtyMax * mult : null;
   const u = ing.unit ? UNITS[ing.unit] : null;
   const sizeTxt = ing.size ? ` (${fmtQty(ing.size.qty)} ${unitLabel(ing.size.unit, ing.size.qty)})` : "";
+
+  // Compound amounts ("1 tbsp + 1 tsp") read best re-expressed the same way, in US units.
+  const usUnits = ["tsp", "tbsp", "cup", "floz", "oz", "lb"];
+  if (mode === "original" && ing.compound && qMax == null && usUnits.includes(ing.unit)) {
+    return u.dim === "mass" ? friendlyMass(q * u.f) : friendlyVolume(q * u.f);
+  }
+  if (mode === "us" && u && u.dim !== "count" && qMax == null) {
+    return u.dim === "mass" ? friendlyMass(q * u.f) : friendlyVolume(q * u.f);
+  }
 
   if (!u || u.dim === "count" || mode === "original") {
     const qtyTxt = qMax != null ? `${fmtQty(q)}–${fmtQty(qMax)}` : fmtQty(q);
@@ -374,7 +465,8 @@ export function equivalents(qty, unit, food) {
     const tsp = ml / UNITS.tsp.f, tbsp = ml / UNITS.tbsp.f, cup = ml / UNITS.cup.f;
     if (tsp <= 48) out.push(`${fmtQty(tsp)} tsp`);
     if (tbsp >= 0.5 && tbsp <= 64) out.push(`${fmtQty(tbsp)} tbsp`);
-    if (cup >= 0.125) out.push(`${fmtQty(cup)} ${cup > 1 ? "cups" : "cup"}`);
+    if (cup >= 0.24) out.push(friendlyVolume(ml));
+    else if (cup >= 0.125) out.push(`${fmtQty(cup)} cup`);
     if (ml >= 20) out.push(`${fmtQty(ml / UNITS.floz.f)} fl oz`);
     out.push(fmtAmount(metricVol(ml)));
   }

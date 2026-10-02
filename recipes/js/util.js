@@ -42,6 +42,25 @@ export function planningWeekKey(now = new Date()) {
   return weekKey(d);
 }
 
+// "This week" / "Next week" / "Last week" for a week key, relative to today.
+export function weekRelation(key, now = new Date()) {
+  const diff = Math.round((parseWeekKey(key) - mondayOf(now)) / (7 * DAY));
+  return { 0: "This week", 1: "Next week", "-1": "Last week" }[diff] || "";
+}
+
+// The shop & prep day (the Sunday before the week), said honestly relative to today.
+export function prepLabel(key, now = new Date()) {
+  const prep = addDays(parseWeekKey(key), -1), today = startOfDay(now);
+  const date = fmtDate(prep, { weekday: "short", month: "short", day: "numeric" });
+  if (prep.getTime() === today.getTime()) return "Shop & prep: today";
+  return prep < today ? `Shop & prep was ${date}` : `Shop & prep: ${date}`;
+}
+
+// Days of a week that are already over (you can't plan new meals there).
+export function isPastDay(key, dayIndex, now = new Date()) {
+  return addDays(parseWeekKey(key), dayIndex) < startOfDay(now);
+}
+
 export const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 export const DAY_NAMES = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
 export const MEALS = ["breakfast", "lunch", "dinner"];

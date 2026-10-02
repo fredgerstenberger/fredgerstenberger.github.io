@@ -1,0 +1,9 @@
+{
+  "name": "recipe-box",
+  "private": true,
+  "type": "module",
+  "description": "Recipe Box web app. No build step; this file only marks the JS as ES modules and runs the tests.",
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  }
+}

@@ -110,7 +110,7 @@ export function groceryView(key) {
     e.preventDefault();
     const v = document.getElementById("addIn").value.trim();
     if (!v) return;
-    g.extras.push({ id: uid(), text: v, checked: false });
+    g.extras.push({ id: uid(), text: v, checked: false, at: Date.now() });
     store.save(); redraw();
     document.getElementById("addIn").focus();
   };

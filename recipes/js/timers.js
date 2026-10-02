@@ -1,4 +1,7 @@
 // Kitchen timers: tap a time in a step to start one. Survive reloads; beep (8-bit style) when done.
+// iOS pauses web apps in the background, so a timer can't ring while the screen is locked. While a
+// timer runs we keep the screen awake (where the browser allows it), and a timer that finished
+// while you were away says so ("done 3 min ago") when you come back, and rings then.
 import { esc, uid } from "./util.js";
 import { sprite } from "./sprites.js";
 
@@ -42,6 +45,23 @@ function chiptune() {
 
 const left = t => t.pausedLeft != null ? t.pausedLeft : Math.max(0, t.endsAt - Date.now());
 
+// Keep the screen on while any timer is counting down.
+let wake = null;
+async function holdScreen() {
+  const running = timers.some(t => !t.done && t.pausedLeft == null);
+  try {
+    if (running && !wake && document.visibilityState === "visible" && navigator.wakeLock) {
+      wake = await navigator.wakeLock.request("screen");
+      wake.addEventListener?.("release", () => { wake = null; });
+    } else if (!running && wake) { await wake.release(); wake = null; }
+  } catch { wake = null; }
+}
+
+function doneText(t) {
+  const ago = Math.floor((Date.now() - (t.doneAt || Date.now())) / 60000);
+  return ago < 1 ? "DONE" : ago < 60 ? `done ${ago} min ago` : "done";
+}
+
 function fmt(ms) {
   const s = Math.ceil(ms / 1000);
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
@@ -71,36 +91,44 @@ function render() {
     return `<div class="timer ${t.done ? "done" : ""} ${t.pausedLeft != null ? "paused" : ""}" data-id="${t.id}">
       ${sprite("clock", "ticon")}
       <span class="tlabel">${esc(t.label)}</span>
-      <span class="tclock" aria-live="off">${t.done ? "DONE" : fmt(ms)}</span>
+      <span class="tclock" aria-live="off">${t.done ? doneText(t) : fmt(ms)}</span>
       ${t.done ? "" : `<button class="tbtn" data-act="pause" aria-label="${t.pausedLeft != null ? "Resume" : "Pause"} timer">${t.pausedLeft != null ? "▶" : "❚❚"}</button>`}
       <button class="tbtn" data-act="stop" aria-label="${t.done ? "Dismiss" : "Cancel"} timer">✕</button>
     </div>`;
   }).join("");
   if (!tick) tick = setInterval(update, 500);
+  holdScreen();
 }
 
 function update() {
   let changed = false, ringing = false;
   for (const t of timers) {
-    if (!t.done && t.pausedLeft == null && left(t) <= 0) { t.done = true; t.doneAt = Date.now(); changed = true; }
+    // doneAt is when it actually ran out (maybe while the phone was locked); seenAt starts the ringing.
+    if (!t.done && t.pausedLeft == null && left(t) <= 0) { t.done = true; t.doneAt = t.endsAt; t.seenAt = Date.now(); changed = true; }
     if (t.done) ringing = true;
   }
   if (changed) persist();
   // Ring every 2.5 s while any timer is done and not dismissed (for up to 2 minutes).
   if (ringing) {
     const now = Date.now();
-    const active = timers.some(t => t.done && now - t.doneAt < 120000);
+    const active = timers.some(t => t.done && now - (t.seenAt || t.doneAt) < 120000);
     if (active && (!update.last || now - update.last > 2500)) { chiptune(); update.last = now; }
   }
   if (changed) return render();
   dock.querySelectorAll(".timer").forEach(el => {
     const t = timers.find(x => x.id === el.dataset.id);
-    if (t && !t.done) el.querySelector(".tclock").textContent = fmt(left(t));
+    if (t) el.querySelector(".tclock").textContent = t.done ? doneText(t) : fmt(left(t));
   });
 }
 
 export function initTimers(el) {
   dock = el;
+  // Back from the background: catch up at once, and take the screen lock again (iOS drops it).
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    wake = null;
+    if (timers.length) { update(); holdScreen(); }
+  });
   dock.addEventListener("click", e => {
     const b = e.target.closest("button[data-act]");
     if (!b) return;
@@ -133,9 +161,10 @@ export function findTimes(escapedText) {
     const u = unit.toLowerCase();
     const mult = u.startsWith("h") ? 60 : u.startsWith("s") ? 1 / 60 : 1;
     const n = a.includes("/") ? a.split("/").reduce((x, y) => +x / +y) : parseFloat(a);
-    const min = n * mult;
-    if (!min || min > 24 * 60) return m;
-    if (!timers.some(t => t.min === min)) timers.push({ min, text: shortTime(min) });
+    // "20 to 25 minutes" offers both: start the short one and check, or go straight for the long one.
+    const mins = [n * mult, b ? parseFloat(b) * mult : null].filter(x => x && x <= 24 * 60);
+    if (!mins.length) return m;
+    for (const min of mins) if (!timers.some(t => t.min === min)) timers.push({ min, text: shortTime(min) });
     return `<b>${m}</b>`;
   });
   return { html, timers };

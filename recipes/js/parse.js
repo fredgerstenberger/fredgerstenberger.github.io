@@ -9,11 +9,11 @@ const PUBLIC_PROXIES = [
   u => `https://api.cors.lol/?url=${encodeURIComponent(u)}`
 ];
 
-async function fetchWithTimeout(url, ms) {
+async function fetchWithTimeout(url, ms, headers = {}) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
   try {
-    const res = await fetch(url, { signal: ctrl.signal, headers: { Accept: "text/html,*/*" } });
+    const res = await fetch(url, { signal: ctrl.signal, headers: { Accept: "text/html,*/*", ...headers } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.text();
   } finally {
@@ -21,11 +21,12 @@ async function fetchWithTimeout(url, ms) {
   }
 }
 
-export async function fetchPage(url, workerUrl, onStatus = () => {}) {
+// key: your Worker's APP_KEY (sent only to your Worker, never to the public proxies).
+export async function fetchPage(url, workerUrl, onStatus = () => {}, key = "") {
   const attempts = [];
   if (workerUrl) {
     const base = workerUrl.replace(/\/+$/, "");
-    attempts.push({ name: "your proxy", make: u => `${base}/?url=${encodeURIComponent(u)}` });
+    attempts.push({ name: "your proxy", make: u => `${base}/?url=${encodeURIComponent(u)}`, headers: key ? { "X-App-Key": key } : {} });
   }
   PUBLIC_PROXIES.forEach((make, i) => attempts.push({ name: `public proxy ${i + 1}`, make }));
 
@@ -33,7 +34,7 @@ export async function fetchPage(url, workerUrl, onStatus = () => {}) {
   for (const a of attempts) {
     onStatus(`Fetching via ${a.name}…`);
     try {
-      const html = await fetchWithTimeout(a.make(url), 15000);
+      const html = await fetchWithTimeout(a.make(url), 15000, a.headers);
       if (html && html.length > 500 && /<html|<script|<body/i.test(html)) return html;
       errors.push(`${a.name}: empty response`);
     } catch (e) {
@@ -271,7 +272,7 @@ async function readWithAI(html, url, ai, onStatus) {
 }
 
 export async function importFromUrl(url, workerUrl, onStatus, ai = null) {
-  const html = await fetchPage(url, workerUrl, onStatus);
+  const html = await fetchPage(url, workerUrl, onStatus, ai?.key || "");
   onStatus && onStatus("Reading recipe…");
   let r = extractRecipe(html, url);
   if ((!r || !r.ingredients.length) && ai?.worker) {
@@ -290,7 +291,7 @@ export async function importFromUrl(url, workerUrl, onStatus, ai = null) {
 const ING_HDR = /^(ingredients?|you(?:'|’)ll need|what you need|for the [a-z ]+:?)\s*:?\s*$/i;
 const STEP_HDR = /^(directions?|instructions?|method|preparation|steps|how to make( it)?|to make)\s*:?\s*$/i;
 const NOTE_HDR = /^(notes?|tips?|nutrition( facts)?|storage)\s*:?\s*$/i;
-const META = /\b(serves|servings?|yield|makes|prep(?:aration)? time|cook(?:ing)? time|total time|active time)\b/i;
+const META = /\b(serves|servings?|yield|makes|prep(?:aration)? time|cook(?:ing)? time|total time|active time)\b|\b(prep(?:aration)?|cook(?:ing)?|total|active|bake|baking)\s*:?\s*\d+(?:\.\d+)?\s*(?:h|hr|hrs|hours?|m|min|mins|minutes?)\b/i;
 
 function looksLikeIngredient(line) {
   if (line.length > 90) return false;

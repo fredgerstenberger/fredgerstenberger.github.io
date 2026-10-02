@@ -15,7 +15,7 @@ Live at **https://fredgerstenberger.github.io/recipes/** (after this folder is o
 - **Prices:** estimated cost per serving for each recipe (a Budget filter and cost sort), weekly food cost in the meal plan, and an estimated total on the grocery list. Official U.S. average prices from the Bureau of Labor Statistics (about 30 staples, refreshed monthly through the Worker), with built-in estimates for the rest, are adjusted for your region (e.g. Irvine ≈ +15%), and you can enter your own store's prices.
 - **Pantry, converter, light/dark mode, offline support** (add it to your iPhone home screen).
 
-Data is stored on the device (localStorage). **Sync** (Settings → Sync) keeps it the same across your devices and a partner's, through your Cloudflare Worker: each recipe, week plan, grocery list, pantry, prices and settings syncs separately and the newest edit wins. Invite another device with **Create invite**. Each invite is a random code that works once and expires after 24 hours. **Reset sync code** removes access for every other device. **Settings → Export backup** is still available.
+Data is stored on the device (localStorage). **Sync** (Settings → Sync) keeps it the same across your devices and a partner's, through your Cloudflare Worker: each recipe and week plan syncs separately and the newest edit wins; grocery lists, pantry, prices and settings merge item by item, so two people shopping from the same list at once keep each other's checks (the list refreshes every few seconds while it's open). Invite another device with **Create invite**. Each invite is a random code that works once and expires after 24 hours. **Reset sync code** removes access for every other device. **Settings → Export backup** is still available.
 
 ## Files
 - `index.html`, `app.css`: page shell and styles (same 8-bit look as the portfolio)
@@ -29,6 +29,18 @@ Data is stored on the device (localStorage). **Sync** (Settings → Sync) keeps 
 - `js/scan.js`: photo shrinking and the scan request
 - `js/data.js`: official prices (BLS) and USDA nutrition lookups via the Worker
 - `js/sync.js`: device sync (change tracking, push/pull, invites)
+- `js/fields.js`: field-by-field merging for grocery lists, pantry, prices and settings
 - `worker/`: Cloudflare Worker for reliable link imports and AI photo scanning (see its README for setup)
 
 No build step. To run locally: `python3 -m http.server 8000`, then open http://localhost:8000/recipes/.
+
+## Tests
+
+No build step and no dependencies. With Node 22 or later, from `recipes/`:
+
+```
+npm test        # same as: node --test test/*.test.mjs
+```
+
+The tests run the app's modules directly in Node (no browser). `test/helpers/device.mjs` gives each simulated phone its own copy of the modules, its own `localStorage` and its own clock, and `test/helpers/worker.mjs` runs the real Worker code in memory, so the sync tests are two phones syncing through the actual `RecipeSync` logic.
+

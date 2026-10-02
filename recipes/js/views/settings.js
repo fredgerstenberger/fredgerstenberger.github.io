@@ -94,6 +94,32 @@ async function checkForUpdate(btn) {
   btn.textContent = "Check for updates";
 }
 
+// Restoring a backup: merge (safe, keeps anything newer) or replace (exactly the backup).
+function askRestore(data) {
+  const when = Date.parse(data.exported);
+  const date = when ? new Date(when).toLocaleString([], { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "an unknown date";
+  const count = Object.keys(data.recipes || {}).length;
+  const synced = sync.enabled();
+  return new Promise(resolve => {
+    let handled = false;
+    const { el, close } = modal("Restore backup?", `
+      <p style="margin-top:0">Backup from <b>${esc(date)}</b> · ${count} recipe${count === 1 ? "" : "s"}.</p>
+      <div class="btnrow"><button class="btn primary" id="rMerge">Merge</button></div>
+      <p class="muted" style="font-size:14px;margin:4px 0 12px">Adds what's missing. Where a recipe is in both, the newer version is kept. Nothing newer is lost${synced ? ", on this phone or on your other synced devices" : ""}.</p>
+      <div class="btnrow"><button class="btn danger" id="rReplace">Replace everything</button></div>
+      <p class="muted" style="font-size:14px;margin:4px 0 12px">Makes this phone match the backup exactly.${synced ? " <b>Sync is on, so it also replaces everything on your other devices</b>, including changes made after the backup." : ""}</p>
+      <div class="btnrow"><button class="btn" id="rCancel">Cancel</button></div>`, { onClose: () => { if (!handled) resolve(null); } });
+    el.querySelector("#rMerge").onclick = () => { handled = true; close(); resolve("merge"); };
+    el.querySelector("#rCancel").onclick = close;
+    el.querySelector("#rReplace").onclick = async () => {
+      handled = true;
+      close();
+      if (synced && !(await confirmBox(`Replace the recipes, plans, lists and settings on every synced device with this backup from ${date}? Anything changed since then is lost everywhere.`, "Replace everywhere", true))) { resolve(null); return; }
+      resolve("replace");
+    };
+  });
+}
+
 export function settingsView() {
   const s = store.settings();
   const st = store.get();
@@ -230,15 +256,17 @@ export function settingsView() {
     const out = document.getElementById("testOut");
     out.hidden = false;
     out.innerHTML = "Testing…";
-    let linkOk = false, st = null;
+    let linkOk = false, linkStatus = 0, st = null;
     try {
-      const res = await fetch(`${base}/?url=${encodeURIComponent("https://example.com/")}`);
+      const key = store.settings().scanKey;
+      const res = await fetch(`${base}/?url=${encodeURIComponent("https://example.com/")}`, { headers: key ? { "X-App-Key": key } : {} });
+      linkStatus = res.status;
       linkOk = res.ok && /Example Domain/i.test(await res.text());
     } catch {}
     try { const r = await fetch(`${base}/status`); if (r.ok) st = await r.json(); } catch {}
     const line = (ok, text) => `<div>${ok ? "✓" : "✗"} ${text}</div>`;
     out.innerHTML =
-      line(linkOk, linkOk ? "Recipe links: working" : "Recipe links: couldn't reach the Worker. Check the address and that it's deployed.") +
+      line(linkOk, linkOk ? "Recipe links: working" : linkStatus === 401 ? "Recipe links: the Worker needs an app key; enter it below" : "Recipe links: couldn't reach the Worker. Check the address and that it's deployed.") +
       (st == null ? line(false, "Photo scanning: this Worker has the old code. Paste the latest worker.js and deploy.")
         : st.ai ? line(true, `Photo scanning: ready${st.keyRequired ? (store.settings().scanKey ? " (app key set)" : " — but the Worker needs an app key; enter it below") : ""}`)
         : line(false, "Photo scanning: add a Workers AI binding named AI to the Worker, then deploy."));
@@ -318,12 +346,15 @@ export function settingsView() {
   document.getElementById("importFile").onchange = async e => {
     const f = e.target.files[0];
     if (!f) return;
+    e.target.value = "";
     try {
       const text = await f.text();
-      const replace = await confirmBox("Replace everything on this device with the backup? Choose Cancel to merge the backup's recipes into your current book instead.", "Replace all", true);
-      const n = store.importJSON(text, replace ? "replace" : "merge");
+      const data = store.readBackup(text);
+      const mode = await askRestore(data);
+      if (!mode) return;
+      const n = store.importJSON(text, mode);
       applyTheme();
-      toast(`Imported ${n} recipes`);
+      toast(mode === "replace" ? "Restored the backup" : `Merged · ${n} recipe${n === 1 ? "" : "s"} added or updated`);
       settingsView();
     } catch (err) { toast(err.message || "Import failed"); }
   };
