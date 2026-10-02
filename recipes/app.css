@@ -1045,3 +1045,15 @@ body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
 .orow.dragging { transition: none; background: var(--c-card); }
 .orow.dragging .ohandle { cursor: grabbing; color: var(--c-accent); }
 .toast.act button { white-space: nowrap; flex: none; }
+
+/* Recipe rating: your stars are the big row you tap; the household average is a small line under it */
+.ratingbox { margin: 0 0 var(--s4); }
+.ratingbox .rmine { display: flex; align-items: center; flex-wrap: wrap; gap: 2px var(--s2); }
+.ratingbox .rlabel { flex-basis: 100%; font: var(--t-head); letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); }
+.ratingbox .stars { margin: 0 0 0 -6px; }
+.ratingbox .stars button { padding: 6px; min-width: 44px; min-height: 44px; display: grid; place-items: center; }
+.ratingbox .stars svg { width: 30px; }
+.ratingbox .rhint { font: 600 14px var(--body); color: var(--c-faint); }
+.ratingbox .ravg { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; font: 600 14px var(--body); color: var(--c-muted); }
+.ratingbox .ravg svg { width: 14px; height: auto; }
+.ratingbox .ravg b { color: var(--c-ink); }

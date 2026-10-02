@@ -1,7 +1,7 @@
 // Single recipe: cooking-friendly view with scaling, unit conversion, timers, nutrition, tags, notes.
 import * as store from "../store.js";
 import { esc, fmtMinutes, debounce, domainOf } from "../util.js";
-import { shell, render, starsHTML, starsShow, confirmBox, toast, go } from "../ui.js";
+import { shell, render, starsHTML, confirmBox, toast, go } from "../ui.js";
 import { ratingOf, rate } from "../ratings.js";
 import * as sync from "../sync.js";
 import { parseIngredient, displayAmount, equivalents } from "../ingredients.js";
@@ -43,17 +43,20 @@ function regionName() {
   return (REGIONS.find(x => x[0] === s.priceRegion) || REGIONS[0])[1];
 }
 
-// Shared box: the average is what counts; your own rating sits under it and is the one you tap.
-// On your own (no sync, nobody else has rated), it's just your stars.
+// Your rating is the big row you tap; the household's average is a small line under it. (Before, the
+// average was big and on top, so it looked like the place to tap.) On your own (no sync, nobody else has
+// rated), it's just your stars.
 function ratingHTML(r) {
   const R = ratingOf(r);
-  if (!sync.enabled() && !R.others.length) return starsHTML(R.mine || (R.legacy ? R.avg : 0));
-  const avgTxt = R.count ? `${Math.round(R.avg * 10) / 10} · ${R.count} rating${R.count > 1 ? "s" : ""}` : "Not rated yet";
-  const who = R.others.filter(o => o.name).map(o => `${esc(o.name)} ${o.stars}★`).join(" · ");
+  const mine = !sync.enabled() && !R.others.length ? R.mine || (R.legacy ? R.avg : 0) : R.mine;
+  const hint = mine ? "" : `<span class="rhint">Tap a star to rate</span>`;
+  const shared = sync.enabled() || R.others.length;
+  const avg = shared && R.count
+    ? `<p class="ravg">${sprite("star")}<b>${Math.round(R.avg * 10) / 10}</b> average · ${R.count} rating${R.count > 1 ? "s" : ""}${R.others.filter(o => o.name).map(o => ` · ${esc(o.name)} ${o.stars}★`).join("")}</p>`
+    : "";
   return `<div class="ratingbox">
-    <div class="ravg">${starsShow(R.avg)}<span class="muted">${avgTxt}</span></div>
-    <div class="rmine"><span class="muted">Your rating</span>${starsHTML(R.mine, { label: "Your rating", small: true })}</div>
-    ${who ? `<p class="muted rwho">${who}</p>` : ""}
+    <div class="rmine"><span class="rlabel">Your rating</span>${starsHTML(mine, { label: "Your rating" })}${hint}</div>
+    ${avg}
   </div>`;
 }
 
