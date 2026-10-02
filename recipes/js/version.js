@@ -1,7 +1,13 @@
 // App version shown in Settings. Bump together with VERSION in sw.js ("rb-v" + APP_VERSION).
-export const APP_VERSION = 18;
+export const APP_VERSION = 19;
 export const RELEASED = "2026-10-02";
 export const WHATS_NEW = [
+  "Adding \"ice cream\", \"garlic bread\" or \"salt and vinegar chips\" now adds them (they no longer count as cream, garlic or vinegar), in the right aisle. New Snacks and Drinks aisles.",
+  "The same thing added on two phones at once ends up as one line.",
+  "Store aisles: drag by the ≡ handle and scroll anywhere else; the list follows as you go.",
+  "Grocery rows: names get the room, package sizes sit on a small second line.",
+  "Opens instantly even with a weak signal; updates download in the background (\"Recipe Box updated · Reload\").",
+  "The recipe book opens much faster with a big library.",
   "A calmer, roomier look everywhere, with the pixel icons kept as accents. Works in light and dark.",
   "Grocery list: tap a row to check it off; it folds into In cart, with Undo. Press and hold, or swipe left, for details.",
   "Fast add: type \"2 lb chicken thighs\" and it lands in the right aisle. Suggestions and chips come from what you usually buy, and repeats merge.",
