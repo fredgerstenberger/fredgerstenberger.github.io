@@ -12,16 +12,22 @@ function web(routes) {
     const r = routes[url];
     if (!r) return new Response("not found", { status: 404 });
     if (r.redirect) return new Response(null, { status: 302, headers: { Location: r.redirect } });
-    return new Response(r.body || "<html>" + "x".repeat(600) + "</html>", { status: 200, headers: { "Content-Type": "text/html" } });
+    return new Response(r.body || RECIPE_PAGE, { status: 200, headers: { "Content-Type": "text/html" } });
   };
   return { seen, restore: () => { globalThis.fetch = orig; } };
 }
 
-const proxied = u => "/?url=" + encodeURIComponent(u);
+const RECIPE_PAGE = `<html><head><title>Best Soup | Site</title>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebPage","name":"x"},{"@type":"Recipe","name":"Best Soup &amp; Bread","recipeYield":"4 servings","totalTime":"PT45M",
+"recipeIngredient":["2 cups broth","1 large onion, diced","1&frac12; tsp salt"],"recipeInstructions":[{"@type":"HowToStep","text":"Chop the onion."},{"@type":"HowToStep","text":"Simmer 20 minutes."}]}]}</script>
+</head><body><h1>Best Soup</h1><p>SECRET-PAGE-CONTENT</p></body></html>`;
+const PLAIN_PAGE = `<html><head><title>Grandma's Chili</title></head><body><nav>menu</nav><article><h1>Grandma's Chili</h1>
+<p>Ingredients: 1 lb beef, 1 can beans, 2 tbsp chili powder. Brown the beef, add everything, simmer an hour.</p><p>SECRET-PAGE-CONTENT</p></article></body></html>`;
+const proxied = u => "/recipe?url=" + encodeURIComponent(u);
 let ip = 0;
 const get = (w, path, headers = {}) => w.W.default.fetch(new Request(w.base + path, { headers: { "CF-Connecting-IP": `198.51.100.${++ip % 250}`, ...headers } }), w.env);
 
-test("proxy: requests without the app's Origin are refused", async () => {
+test("link reading: requests without the app's Origin are refused", async () => {
   const w = makeWorker();
   const net = web({ "https://example.com/": {} });
   try {
@@ -31,7 +37,7 @@ test("proxy: requests without the app's Origin are refused", async () => {
   } finally { net.restore(); }
 });
 
-test("proxy: with APP_KEY set, the key is required", async () => {
+test("link reading: with APP_KEY set, the key is required", async () => {
   const w = makeWorker({ APP_KEY: "s3cret" });
   const net = web({ "https://example.com/": {} });
   try {
@@ -41,7 +47,7 @@ test("proxy: with APP_KEY set, the key is required", async () => {
   } finally { net.restore(); }
 });
 
-test("proxy: private and local addresses are refused, including through redirects", async () => {
+test("link reading: private and local addresses are refused, including through redirects", async () => {
   const w = makeWorker();
   const net = web({
     "https://example.com/r1": { redirect: "http://169.254.169.254/latest/meta-data" },
@@ -63,7 +69,7 @@ test("proxy: private and local addresses are refused, including through redirect
   } finally { net.restore(); }
 });
 
-test("proxy: light per-address rate limit", async () => {
+test("link reading: light per-address rate limit", async () => {
   const w = makeWorker();
   const net = web({ "https://example.com/": {} });
   try {
@@ -93,4 +99,62 @@ test("RecipeSync: newest write of a record wins; older and equal-time writes are
   assert.deepEqual(r.records, [], "rejected writes are not echoed");
   r = await post({ since: 0, changes: [{ k: "r:1", u: 11, v: { t: "b" } }] });
   assert.equal(r.records.find(x => x.k === "r:1").v.t, "b");
+});
+
+test("link reading returns only the recipe, never the page", async () => {
+  const w = makeWorker();
+  const net = web({ "https://cook.example/soup": {} });
+  try {
+    const res = await get(w, proxied("https://cook.example/soup"), { Origin: ORIGIN });
+    assert.equal(res.status, 200);
+    const body = await res.text();
+    assert.ok(!body.includes("SECRET-PAGE-CONTENT") && !body.includes("<html"), "no page content in the answer");
+    const { recipe: r, via } = JSON.parse(body);
+    assert.equal(via, "data");
+    assert.equal(r.title, "Best Soup & Bread");
+    assert.deepEqual(r.ingredients, ["2 cups broth", "1 large onion, diced", "1½ tsp salt"]);
+    assert.deepEqual(r.steps, ["Chop the onion.", "Simmer 20 minutes."]);
+    assert.equal(r.yield, 4);
+    assert.equal(r.totalMin, 45);
+    assert.equal(r.site, "cook.example");
+  } finally { net.restore(); }
+});
+
+test("link reading: results are cached and shared, so a page is downloaded once", async () => {
+  const w = makeWorker();
+  const net = web({ "https://cook.example/soup": {} });
+  try {
+    for (let i = 0; i < 3; i++) assert.equal((await get(w, proxied("https://cook.example/soup#jump"), { Origin: ORIGIN })).status, 200);
+    assert.equal(net.seen.filter(u => u.includes("cook.example/soup")).length, 1);
+  } finally { net.restore(); }
+});
+
+test("link reading: a page with no recipe data says so, or AI reads it when asked", async () => {
+  const net = web({ "https://cook.example/chili": { body: PLAIN_PAGE } });
+  try {
+    const w = makeWorker();
+    const res = await get(w, proxied("https://cook.example/chili"), { Origin: ORIGIN });
+    assert.equal(res.status, 422);
+    assert.equal((await res.json()).code, "no_recipe");
+    let sent = "";
+    const AI = { run: async (model, input) => { sent = input.messages[0].content.split("--- PAGE TEXT ---")[1] || ""; return { response: JSON.stringify({ title: "Grandma's Chili", servings: 6, ingredients: ["1 lb beef", "1 can beans", "2 tbsp chili powder"], steps: ["Brown the beef.", "Simmer an hour."] }) }; } };
+    const w2 = makeWorker({ AI });
+    const res2 = await get(w2, proxied("https://cook.example/chili") + "&ai=1", { Origin: ORIGIN });
+    assert.equal(res2.status, 200);
+    const out = await res2.json();
+    assert.equal(out.via, "ai");
+    assert.deepEqual(out.recipe.ingredients, ["1 lb beef", "1 can beans", "2 tbsp chili powder"]);
+    assert.ok(sent.includes("Brown the beef") && !sent.includes("menu"), "the model got the article text, not the menus");
+  } finally { net.restore(); }
+});
+
+test("the old page proxy (GET /?url=) is retired", async () => {
+  const w = makeWorker();
+  const net = web({ "https://cook.example/soup": {} });
+  try {
+    const res = await get(w, "/?url=" + encodeURIComponent("https://cook.example/soup"), { Origin: ORIGIN });
+    assert.equal(res.status, 410);
+    assert.ok(!(await res.text()).includes("SECRET-PAGE-CONTENT"));
+    assert.equal(net.seen.length, 0, "nothing was downloaded");
+  } finally { net.restore(); }
 });

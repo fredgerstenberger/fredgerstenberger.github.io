@@ -2,7 +2,7 @@
 
 Recipe Box runs entirely on your phone, so it needs a small helper in the cloud for three things:
 
-1. **Importing recipe links.** Browsers won't let one website read another website's pages, so the Worker downloads the page for the app.
+1. **Importing recipe links.** Browsers won't let one website read another website's pages, so the Worker reads the recipe page and sends the app just the recipe (never the page itself, so it can't be used as a general proxy). Results are cached for a week, so a popular recipe is only downloaded once.
 2. **Scanning cookbook photos.** The Worker sends the photo to an open-weight vision model (Qwen, Mistral, Gemma or Llama) that Cloudflare runs for you on **Workers AI**, and returns the recipe.
 
 3. **Syncing between devices.** Each recipe box is stored in its own small built-in database (a SQLite-backed Durable Object, on the free plan), set up automatically by `wrangler.jsonc` when you deploy from GitHub. The secret sync code is never stored; boxes are looked up by its hash. Invites are random 10-letter codes that work **once** and expire after 24 hours, so the secret itself never goes in a link.
