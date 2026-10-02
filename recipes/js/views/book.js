@@ -117,7 +117,6 @@ export function bookView() {
       <li class="card"><a href="#/r/${r.id}">
         <span class="ctitle">${esc(r.title)}</span>
         <div class="cmeta">${metaLine(r)}</div>
-        ${(r.tags || []).length ? `<div class="ctags">${r.tags.slice(0, 6).map(t => `<span class="tag">${esc(t)}</span>`).join(" ")}</div>` : ""}
       </a></li>`).join("");
   }
 

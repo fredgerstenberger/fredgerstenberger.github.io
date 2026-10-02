@@ -54,13 +54,13 @@ export function planView(key) {
 
   const days = DAYS.map((d, di) => {
     const date = addDays(mon, di);
-    let kcal = 0, protein = 0, est = false;
+    let kcal = 0, protein = 0;
     const rows = MEALS.map(m => {
       const slot = `${d}-${m}`;
       const here = meals.filter(x => x.slots.includes(slot));
       for (const x of here) {
         const n = nutritionFor(store.recipe(x.rid));
-        kcal += n.kcal || 0; protein += n.protein || 0; if (n.source === "estimate") est = true;
+        kcal += n.kcal || 0; protein += n.protein || 0;
       }
       const isSource = moving?.type === "slot" && moving.slot === slot;
       const target = moving?.type === "slot" && !isSource;
@@ -78,13 +78,12 @@ export function planView(key) {
         </div>
       </div>`;
     }).join("");
-    const t = est ? "~" : "";
     const daySource = moving?.type === "day" && moving.day === d;
     const dayTarget = moving?.type === "day" && !daySource;
     const hasMeals = meals.some(x => x.slots.some(sl => sl.startsWith(d + "-")));
     return `<section class="day ${date.getTime() === todayStr ? "today-day" : ""} ${daySource ? "source" : ""}">
       <div class="dayhead"><span class="px">${SHORT[d]} ${date.getDate()}</span>
-        <span class="dayright">${kcal ? `<small>${t}${Math.round(kcal)} kcal · ${t}${Math.round(protein)} g P</small>` : ""}
+        <span class="dayright">${kcal ? `<small>${Math.round(kcal)} kcal · ${Math.round(protein)} g P</small>` : ""}
         ${dayTarget ? `<button class="btn small primary" data-dayswap="${d}">⇄ Swap with ${SHORT[moving.day]}</button>`
           : !moving && hasMeals ? `<button class="daybtn" data-moveday="${d}" aria-label="Swap ${SHORT[d]} with another day">⇅ Day</button>` : ""}</span>
       </div>
@@ -114,7 +113,7 @@ export function planView(key) {
       <div class="banner">
         <span class="px">${esc(prepLabel(key))}</span>
         <a class="btn small" href="#/grocery/${key}">Grocery list ▸</a>
-        ${weekCost > 0 ? `<span style="flex-basis:100%">Food cost ~${money(weekCost)} · ~${money(weekCost / servingsTotal)}/serving</span>` : ""}
+        ${weekCost > 0 ? `<span style="flex-basis:100%">Food cost ${money(weekCost)} · ${money(weekCost / servingsTotal)}/serving</span>` : ""}
       </div>
       ${days}
       <h2 class="sect">Sunday prep list <small>${prep.length ? `${prep.length} to cook` : ""}</small></h2>

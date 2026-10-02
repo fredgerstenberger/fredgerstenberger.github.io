@@ -67,6 +67,10 @@ Add each one in the Worker's **Settings → Variables and Secrets → Add**, cho
 | Gemma 3 12B | Smallest and fastest; may slip on hard layouts. |
 | Llama 3.2 11B Vision | Meta requires a one-time license agreement before first use, and it reads one photo at a time. Skip unless the others struggle. |
 
+## Nutrition labels
+
+The same AI binding reads Nutrition Facts labels (`POST /label`): in a recipe, tap an ingredient under **Nutrition by ingredient → Scan label**. It returns only the label's fields (serving size, calories, protein, carbs, fat, fiber), checks that the calories add up, and keeps nothing. Without the Worker you can still paste the label's text.
+
 ## Cost and limits
 
 Workers AI includes a free daily allowance, and occasional recipe scans should normally fit inside it. Check Cloudflare's current Workers AI pricing page for the exact numbers. If you run past the free allowance, scans stop working until the next day (unless you've added a paid plan). Link imports don't use AI and aren't affected.

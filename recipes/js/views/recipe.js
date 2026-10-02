@@ -1,7 +1,7 @@
 // Single recipe: cooking-friendly view with scaling, unit conversion, timers, nutrition, tags, notes.
 import * as store from "../store.js";
 import { esc, fmtMinutes, debounce, domainOf } from "../util.js";
-import { shell, render, starsHTML, starsShow, confirmBox, toast, go } from "../ui.js";
+import { shell, render, starsHTML, confirmBox, toast, go } from "../ui.js";
 import { ratingOf, rate } from "../ratings.js";
 import * as sync from "../sync.js";
 import { parseIngredient, displayAmount, equivalents } from "../ingredients.js";
@@ -11,6 +11,7 @@ import { sprite } from "../sprites.js";
 import { openAddToPlan } from "./plan.js";
 import { recipeCost, money, REGIONS } from "../prices.js";
 import { infoItems, openInfo, askAfterSave } from "../fillin.js";
+import { openFoodSheet } from "../labelsheet.js";
 
 const progress = {}; // id → { ings:Set, steps:Set, servings, cook }
 let redrawCurrent = null;
@@ -43,18 +44,38 @@ function regionName() {
   return (REGIONS.find(x => x[0] === s.priceRegion) || REGIONS[0])[1];
 }
 
-// Shared box: the average is what counts; your own rating sits under it and is the one you tap.
-// On your own (no sync, nobody else has rated), it's just your stars.
+// Your rating is the big row you tap; the household's average is a small line under it. (Before, the
+// average was big and on top, so it looked like the place to tap.) On your own (no sync, nobody else has
+// rated), it's just your stars.
 function ratingHTML(r) {
   const R = ratingOf(r);
-  if (!sync.enabled() && !R.others.length) return starsHTML(R.mine || (R.legacy ? R.avg : 0));
-  const avgTxt = R.count ? `${Math.round(R.avg * 10) / 10} · ${R.count} rating${R.count > 1 ? "s" : ""}` : "Not rated yet";
-  const who = R.others.filter(o => o.name).map(o => `${esc(o.name)} ${o.stars}★`).join(" · ");
+  const mine = !sync.enabled() && !R.others.length ? R.mine || (R.legacy ? R.avg : 0) : R.mine;
+  const hint = mine ? "" : `<span class="rhint">Tap a star to rate</span>`;
+  const shared = sync.enabled() || R.others.length;
+  const avg = shared && R.count
+    ? `<p class="ravg">${sprite("star")}<b>${Math.round(R.avg * 10) / 10}</b> average · ${R.count} rating${R.count > 1 ? "s" : ""}${R.others.filter(o => o.name).map(o => ` · ${esc(o.name)} ${o.stars}★`).join("")}</p>`
+    : "";
   return `<div class="ratingbox">
-    <div class="ravg">${starsShow(R.avg)}<span class="muted">${avgTxt}</span></div>
-    <div class="rmine"><span class="muted">Your rating</span>${starsHTML(R.mine, { label: "Your rating", small: true })}</div>
-    ${who ? `<p class="muted rwho">${who}</p>` : ""}
+    <div class="rmine"><span class="rlabel">Your rating</span>${starsHTML(mine, { label: "Your rating" })}${hint}</div>
+    ${avg}
   </div>`;
+}
+
+// Each ingredient's part of the nutrition, biggest first, with where its numbers come from. Tapping one
+// opens its nutrition: scan or paste the product's label to make it exact.
+const SRC = { label: "Label", yours: "Yours", usda: "USDA", standin: "≈ {base} values", table: "", none: "Not counted" };
+function nuRowsHTML(rows) {
+  const seen = new Set();
+  return rows.filter(r => r.key).slice().sort((a, b) => (b.kcal ?? -1) - (a.kcal ?? -1)).map(row => {
+    const tag = (SRC[row.source] ?? "").replace("{base}", row.food || "");
+    const dup = seen.has(row.key + row.line); seen.add(row.key + row.line);
+    if (dup) return "";
+    return `<li><button class="nurow ${row.source === "none" ? "miss" : ""}" data-food="${esc(row.key)}">
+      <span class="nuname">${esc(row.line)}${tag ? `<small class="nutag ${row.source}">${esc(tag)}</small>` : ""}</span>
+      <span class="nuval">${row.kcal != null ? `${Math.round(row.kcal)} kcal<br>${Math.round(row.protein)} g P` : "?"}</span>
+      <span class="nugo" aria-hidden="true">›</span>
+    </button></li>`;
+  }).join("");
 }
 
 function fmtN(n) { return n == null || isNaN(n) ? "–" : Math.round(n); }
@@ -74,7 +95,6 @@ export function recipeView(id) {
     const nu = nutritionFor(r);
     const cost = recipeCost(r);
     const est = nu.source === "estimate";
-    const t = est ? "~" : "";
 
     let stepNo = 0;
     const firstOpen = (() => { let i = 0; for (const st of r.steps || []) { if (!st.startsWith("#")) { if (!P.steps.has(i)) return i; i++; } } return -1; })();
@@ -131,8 +151,8 @@ export function recipeView(id) {
             <span class="stepper"><button id="sMinus" aria-label="Fewer servings">−</button><output id="sOut">${P.servings}</output><button id="sPlus" aria-label="More servings">+</button></span>
             ${P.servings !== base ? `<br><button class="btn small" id="sReset" style="margin-top:8px">Reset to ${base}</button>` : ""}
           </dd></div>
-          ${cost.total > 0 ? `<div><dt>Cost</dt><dd>~${money(cost.perServing)}/serving<br><span class="muted" style="font-size:14px">~${money(cost.perServing * P.servings)} for ${P.servings}</span></dd></div>` : ""}
-          ${nu.kcal ? `<div><dt>Per serving</dt><dd>${t}${fmtN(nu.kcal)} kcal<br><span class="muted" style="font-size:14px">${t}${fmtN(nu.protein)} g protein</span></dd></div>` : ""}
+          ${cost.total > 0 ? `<div><dt>Cost</dt><dd>${money(cost.perServing)}/serving<br><span class="muted" style="font-size:14px">${money(cost.perServing * P.servings)} for ${P.servings}</span></dd></div>` : ""}
+          ${nu.kcal ? `<div><dt>Per serving</dt><dd>${fmtN(nu.kcal)} kcal<br><span class="muted" style="font-size:14px">${fmtN(nu.protein)} g protein</span></dd></div>` : ""}
         </dl>
         <div class="btnrow hide-cook">
           <button class="btn primary" id="planBtn">+ Meal plan</button>
@@ -158,26 +178,24 @@ export function recipeView(id) {
           <h2 class="sect">Nutrition <small>per serving</small></h2>
           ${nu.kcal ? `
           <div class="nutri">
-            <div><b>${t}${fmtN(nu.kcal)}</b><span>calories</span></div>
-            <div><b>${t}${fmtN(nu.protein)}g</b><span>protein</span></div>
-            <div><b>${t}${fmtN(nu.carbs)}g</b><span>carbs</span></div>
-            <div><b>${t}${fmtN(nu.fat)}g</b><span>fat</span></div>
-            <div><b>${t}${fmtN(nu.fiber)}g</b><span>fiber</span></div>
+            <div><b>${fmtN(nu.kcal)}</b><span>calories</span></div>
+            <div><b>${fmtN(nu.protein)}g</b><span>protein</span></div>
+            <div><b>${fmtN(nu.carbs)}g</b><span>carbs</span></div>
+            <div><b>${fmtN(nu.fat)}g</b><span>fat</span></div>
+            <div><b>${fmtN(nu.fiber)}g</b><span>fiber</span></div>
             ${nu.sodium != null ? `<div><b>${fmtN(nu.sodium)}</b><span>mg sodium</span></div>` : ""}
           </div>` : ""}
           <p class="muted" style="font-size:14px;margin:0 0 6px">${est
             ? `Estimated from ingredients (${Math.round(nu.coverage * 100)}% recognized)${nu.assumedServings ? ", assuming 4 servings — set servings in Edit" : ` for ${nu.servings} servings`}.`
             : `From ${esc(r.site || "the recipe")}${nu.serving ? ` · serving: ${esc(nu.serving)}` : ""}.`}</p>
-          ${nu.rows && nu.rows.length ? `<details class="breakdown"><summary>Ingredient breakdown</summary><table>
-            ${nu.rows.map(row => row.food
-              ? `<tr><td>${esc(row.line)}<br><span class="muted">→ ${esc(row.usda ? `USDA: ${row.usda}` : row.mine ? `${row.food} (your info)` : row.food)}${row.grams ? `, ${Math.round(row.grams)} g` : ""}</span></td><td class="n">${Math.round(row.kcal)} kcal<br>${Math.round(row.protein)} g P</td></tr>`
-              : `<tr class="miss"><td>${esc(row.line)}<br><span>not recognized — not counted</span></td><td class="n">?</td></tr>`).join("")}
-          </table></details>` : ""}
+          ${nu.rows && nu.rows.length ? `<details class="breakdown nubd" ${P.nubd ? "open" : ""}><summary>Nutrition by ingredient <span class="nuhint">· tap one to add its label</span></summary>
+            <ul class="nurows">${nuRowsHTML(nu.rows)}</ul>
+          </details>` : ""}
 
           <h2 class="sect">Cost <small>estimate</small></h2>
           ${cost.total > 0 ? `<div class="nutri">
-            <div><b>~${money(cost.perServing)}</b><span>per serving</span></div>
-            <div><b>~${money(cost.total)}</b><span>whole recipe</span></div>
+            <div><b>${money(cost.perServing)}</b><span>per serving</span></div>
+            <div><b>${money(cost.total)}</b><span>whole recipe</span></div>
           </div>` : ""}
           <p class="muted" style="font-size:14px;margin:0 0 6px">Cost of the amounts used (${Math.round(cost.coverage * 100)}% of ingredients priced), ${esc(regionName())} prices. <a href="#/prices">Edit prices</a></p>
           <details class="breakdown"><summary>Cost breakdown</summary><table>
@@ -202,7 +220,7 @@ export function recipeView(id) {
             <div class="saved" id="saved"></div>
           </div>
         </div>`,
-      status: `<span>${r.created ? `Added ${new Date(r.created).toLocaleDateString()}` : ""}</span><span>${est ? "~ = estimate" : ""}</span>`
+      status: `<span>${r.created ? `Added ${new Date(r.created).toLocaleDateString()}` : ""}</span>`
     }), { keepScroll });
     document.body.classList.toggle("cook", P.cook);
     bind();
@@ -228,6 +246,8 @@ export function recipeView(id) {
     document.getElementById("clearIngs")?.addEventListener("click", () => { P.ings.clear(); draw(); });
     document.getElementById("editIngs").onclick = () => { P.editIngs = !P.editIngs; P.ings.clear(); draw(); if (!P.editIngs) askAfterSave(r.id); };
     document.getElementById("ingInfo")?.addEventListener("click", () => openInfo(r, infoItems(r, true)));
+    root.querySelector(".nubd")?.addEventListener("toggle", e => { P.nubd = e.target.open; });
+    root.querySelectorAll("[data-food]").forEach(b => b.onclick = () => openFoodSheet(r, b.dataset.food));
     if (P.editIngs) {
       const saveIngs = () => { store.putRecipe(r); };
       root.querySelectorAll("[data-ingtext]").forEach(inp => inp.addEventListener("change", () => {

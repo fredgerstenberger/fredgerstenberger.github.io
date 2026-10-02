@@ -34,7 +34,7 @@ export function shell({ title, body, status = "", actions = "", back = "#/", cal
 }
 
 // Calm pages show the title in the top bar once the big title has scrolled away.
-addEventListener("scroll", () => document.querySelector(".page.calm")?.classList.toggle("scrolled", scrollY > 56), { passive: true });
+if (typeof addEventListener === "function") addEventListener("scroll", () => document.querySelector(".page.calm")?.classList.toggle("scrolled", scrollY > 56), { passive: true });
 
 export function render(html, { keepScroll = false } = {}) {
   const y = window.scrollY;
@@ -119,8 +119,7 @@ export const miniStars = r => r ? "★".repeat(r) + "☆".repeat(5 - r) : "";
 export function nutriShort(r) {
   const n = nutritionFor(r);
   if (!n || !n.kcal) return "";
-  const t = n.source === "estimate" ? "~" : "";
-  return `${t}${Math.round(n.kcal)} kcal · ${t}${Math.round(n.protein)} g protein`;
+  return `${Math.round(n.kcal)} kcal · ${Math.round(n.protein)} g protein`;
 }
 
 export function metaLine(r) {
@@ -131,6 +130,6 @@ export function metaLine(r) {
   const n = nutriShort(r);
   if (n) bits.push(`<span>${n}</span>`);
   const c = recipeCost(r);
-  if (c.total > 0) bits.push(`<span class="ccost">~${money(c.perServing)} per serving</span>`);
+  if (c.total > 0) bits.push(`<span class="ccost">${money(c.perServing)} per serving</span>`);
   return bits.join("");
 }

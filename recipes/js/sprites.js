@@ -59,9 +59,11 @@ export const SPRITES = {
     ],
     colors: { k: K, r: "#D0473A", w: "#FFFFFF", g: "#8A94A3", b: "#2448C8" }
   },
+  // A notepad with a red top strip and room under the last line.
   list: {
     map: [
       ".kkkkkkkkkkkkkk.",
+      ".krrrrrrrrrrrrk.",
       ".kwwwwwwwwwwwwk.",
       ".kwkkkwwwwwwwwk.",
       ".kwkbkwggggggwk.",
@@ -74,9 +76,10 @@ export const SPRITES = {
       ".kwkkkwwwwwwwwk.",
       ".kwkwkwggggwwwk.",
       ".kwkkkwwwwwwwwk.",
+      ".kwwwwwwwwwwwwk.",
       ".kkkkkkkkkkkkkk."
     ],
-    colors: { k: K, w: "#FFFFFF", g: "#8A94A3", b: "#2448C8" }
+    colors: { k: K, w: "#FFFFFF", g: "#8A94A3", b: "#2448C8", r: "#D0473A" }
   },
   pantry: {
     map: [
@@ -116,26 +119,25 @@ export const SPRITES = {
     ],
     colors: { k: K, w: "#FFFFFF", b: "#6FA8DC" }
   },
+  // Two toggle switches, one on and one off.
   settings: {
     map: [
-      "......kkkk......",
-      ".kkkk.kssk.kkkk.",
-      ".kssk.kssk.kssk.",
-      ".kssskssssksssk.",
-      ".kksssssssssskk.",
-      "...kssskksssk...",
-      "kkksssk..kssskkk",
-      "kssssk....kssssk",
-      "kssssk....kssssk",
-      "kkksssk..kssskkk",
-      "...kssskksssk...",
-      ".kksssssssssskk.",
-      ".kssskssssksssk.",
-      ".kssk.kssk.kssk.",
-      ".kkkk.kssk.kkkk.",
-      "......kkkk......"
+      "..kkkkkkkkkkkk..",
+      ".kgggggggkwwwwk.",
+      "kgggggggkwwwwwwk",
+      "kgggggggkwwwwwwk",
+      ".kgggggggkwwwwk.",
+      "..kkkkkkkkkkkk..",
+      "................",
+      "................",
+      "..kkkkkkkkkkkk..",
+      ".kwwwwksssssssk.",
+      "kwwwwwwksssssssk",
+      "kwwwwwwksssssssk",
+      ".kwwwwksssssssk.",
+      "..kkkkkkkkkkkk.."
     ],
-    colors: { k: K, s: "#C9CED6" }
+    colors: { k: K, g: "#3FAE5A", w: "#FFFFFF", s: "#C9CED6" }
   },
   price: {
     map: [

@@ -87,3 +87,31 @@ export async function scanPhotos(files, { worker, model, key }, onStatus = () =>
   r.model = data.model;
   return r;
 }
+
+// A Nutrition Facts label (photo or screenshot) → its fields, checked, via your Worker's /label.
+// The photo is shrunk on the phone, sent once, and not kept anywhere.
+export async function scanLabel(file, { worker, model, key }) {
+  if (!worker) throw new Error("Label scanning uses your Cloudflare Worker (Settings → Recipe import). You can paste the label's text instead.");
+  const image = await shrinkPhoto(file, 1400, 0.85);
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 90000);
+  let res;
+  try {
+    res = await fetch(`${worker.replace(/\/+$/, "")}/label`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(key ? { "X-App-Key": key } : {}) },
+      body: JSON.stringify({ images: [image], model }),
+      signal: ctrl.signal
+    });
+  } catch (e) {
+    throw new Error(e.name === "AbortError" ? "Reading the label took too long. Try again, or paste its text." : "Couldn't reach your Worker. You can paste the label's text instead.");
+  } finally {
+    clearTimeout(t);
+  }
+  let data = {};
+  try { data = await res.json(); } catch {}
+  if (res.status === 404 || res.status === 405) throw new Error("Your Worker doesn't read labels yet. Deploy the latest worker.js (see the setup guide), or paste the label's text.");
+  if (!res.ok) throw new Error(data.error || `Couldn't read the label (HTTP ${res.status}).`);
+  if (!data.label) throw new Error(data.error || "Couldn't read that label. Try a closer, straighter photo, or paste its text.");
+  return { label: data.label, check: data.check || null, model: data.model };
+}

@@ -17,23 +17,10 @@ const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
  * chips"), keyed by its own name, so it never merges into or changes another line; a food at the end
  * of its name still suggests the aisle ("string cheese" → Dairy).
  */
-// Words that make a different product of the same food: oat vs almond milk, whole vs 2% vs skim, salted
-// vs unsalted butter, red vs green peppers. Two items that differ in these stay two lines, even though they
-// share the food's nutrition and price.
-const VARIETY = new Set(("whole skim nonfat non-fat fat-free low-fat lowfat reduced-fat full-fat part-skim lactose-free " +
-  "oat almond soy coconut cashew rice pea hemp macadamia goat " +
-  "vanilla chocolate strawberry unsweetened sweetened salted unsalted light lite dark low-sodium reduced-sodium no-salt " +
-  "red green yellow orange white black brown purple golden " +
-  "greek decaf caffeine-free diet zero wheat multigrain gluten-free").split(" "));
-const words = t => String(t || "").toLowerCase().split(/[^a-z0-9%\-]+/).filter(Boolean);
-// What a food is when nothing else is said: green peas are peas, white sugar is sugar.
-const DEFAULT_VARIETY = { onion: "yellow", peas: "green", sugar: "white", rice: "white", "cooked rice": "white", mushrooms: "white",
-  cornmeal: "yellow", "kidney beans": "red", almonds: "whole" };
-/** The variety words in a name that aren't part of the food's own name or its default ("2% milk" → ["2%"]). */
-export function varietyOf(name, food) {
-  const own = new Set([...words(food?.name), DEFAULT_VARIETY[food?.name]].filter(Boolean).map(singular));
-  return [...new Set(words(name).map(singular).filter(w => !own.has(w) && (VARIETY.has(w) || /^\d+(\.\d+)?%$/.test(w))))].sort();
-}
+// Which words make a different product (oat vs almond milk, 2% vs skim, a brand) lives in variants.js,
+// shared with nutrition.
+export { varietyOf } from "./variants.js";
+import { varietyOf } from "./variants.js";
 
 export function parseAdd(text) {
   const raw = String(text || "").trim().replace(/\s+/g, " ");

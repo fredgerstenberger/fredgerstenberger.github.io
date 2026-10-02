@@ -1,7 +1,13 @@
 // App version shown in Settings. Bump together with VERSION in sw.js ("rb-v" + APP_VERSION).
-export const APP_VERSION = 20;
+export const APP_VERSION = 22;
 export const RELEASED = "2026-10-02";
 export const WHATS_NEW = [
+  "Specific products (protein pasta, chickpea pasta, a brand) are their own ingredient instead of silently using regular pasta's numbers.",
+  "Optional: in a recipe's Nutrition section, tap an ingredient to scan or paste its Nutrition Facts label. Every recipe with it gets exact numbers, on every synced phone.",
+  "Recipes: your rating is the big row of stars you tap; the household average is a small line under it.",
+  "New Settings icon (two switches), and the grocery list icon has room under its last line.",
+  "Recipe book: cards no longer list keywords; search and the filter chips still use them.",
+  "Prices and nutrition drop the ~ in front of every number.",
   "Oat, almond and soy milk (or whole, 2% and skim) stay separate lines on the grocery list. Adding \"2% milk\" when a recipe needs milk offers Use for recipe.",
   "\"half and half\" is read as the cream, and amounts like \"1,000 g\" or \"1,5 kg\" work.",
   "Reloading for an update no longer loses text you're typing in another tab.",

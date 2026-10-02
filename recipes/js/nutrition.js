@@ -1,11 +1,22 @@
 // Nutrition: use the site's numbers when published, otherwise estimate from ingredients.
-import { parseIngredient, toGrams } from "./ingredients.js";
+import { parseIngredient, toGrams, cleanName } from "./ingredients.js";
 import { dataVersion } from "./data.js";
 
 const cache = new Map();
 
 export function servingsOf(recipe) {
   return recipe.yield && recipe.yield > 0 ? recipe.yield : 4;
+}
+
+// Where an ingredient's numbers come from: a label you added, your own numbers, USDA, the built-in table,
+// or the table's numbers standing in for a specific product ("protein pasta" using pasta).
+export function sourceOf(f) {
+  if (!f || !f.nu) return "none";
+  if (f.label) return "label";
+  if (f.yours || f.custom) return "yours";
+  if (f.usda) return "usda";
+  if (f.standIn) return "standin";
+  return "table";
 }
 
 export function estimate(recipe) {
@@ -21,7 +32,9 @@ export function estimate(recipe) {
     if (ing.food?.nu && g != null) {
       covered++;
       const k = g / 100;
-      const row = { line, food: ing.food.name, grams: g, usda: ing.food.usda?.description || "", mine: !!ing.food.custom && !!ing.food.nu };
+      const f = ing.food;
+      const row = { line, food: f.name, key: f.infoKey || f.name, grams: g, usda: f.usda?.description || "", mine: (!!f.custom && !!f.nu) || !!f.yours,
+        standIn: !!f.standIn, label: f.label || null, source: sourceOf(f) };
       for (const key of Object.keys(totals)) {
         const v = ing.food.nu[key] * k;
         totals[key] += v;
@@ -32,9 +45,11 @@ export function estimate(recipe) {
       covered++; // "salt to taste" – negligible, still understood
       rows.push({ line, food: ing.food.name, grams: 0, kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
     } else {
-      rows.push({ line, food: null, grams: null });
+      rows.push({ line, food: null, grams: null, key: ing.food?.infoKey || cleanName(ing.name), source: "none" });
     }
   }
+  // Each ingredient's share of the recipe's calories or protein (whichever is bigger), for ranking.
+  for (const row of rows) row.share = Math.max(totals.kcal ? (row.kcal || 0) / totals.kcal : 0, totals.protein ? (row.protein || 0) / totals.protein : 0);
   const s = servingsOf(recipe);
   const per = {};
   for (const [k, v] of Object.entries(totals)) per[k] = v / s;

@@ -9,7 +9,9 @@ Live at **https://fredgerstenberger.github.io/recipes/** (after this folder is o
 - **Import from cookbook photos.** **Scan photo** sends the page to an open-weight vision model (Qwen / Mistral / Gemma / Llama) on Cloudflare Workers AI through your Worker and returns the recipe. Or copy text from a photo with iPhone Live Text (or from an email or note) and paste it. Either way it's split into title, servings, times, ingredients and steps.
 - **Recipe book** with search, star ratings, notes and keywords. Keywords are suggested automatically (chicken, pasta, dinner, …). Quick filters: breakfast, lunch, dinner, low cal, high protein, quick, 4+ stars.
 - **Cooking view:** servings scaling, Original/US/Metric units, tap an amount for conversions (tsp ↔ tbsp ↔ cups ↔ grams), tap-to-start timers inside steps, and a cook mode that keeps the screen on.
-- **Nutrition:** uses the site's numbers when published. Otherwise it estimates from ingredients using a built-in table of about 250 foods (marked with `~`). Foods outside the table are looked up in USDA FoodData Central through the Worker.
+- **Nutrition:** uses the site's numbers when published. Otherwise it estimates from ingredients using a built-in table of about 250 foods. Foods outside the table are looked up in USDA FoodData Central through the Worker.
+  - **Specific products** ("protein pasta", "chickpea pasta", "Barilla Protein+ penne", "skim milk") are their own ingredient: the table food (pasta, milk) is used for the aisle and price, and its nutrition stands in until you add the product's.
+  - **Add a label (optional):** in a recipe's Nutrition section, open **Nutrition by ingredient** (biggest contributors first, each tagged with where its numbers come from) and tap an ingredient. **Scan label** reads a photo or screenshot of the Nutrition Facts panel through your Worker; **Paste label text** reads iPhone Live Text on the phone (works offline). Check the numbers, save, and every recipe with that product uses them, on every synced phone. Photos aren't kept anywhere. No food logging: just better per-recipe numbers.
 - **Meal plan:** Mon–Sun, with Sunday as shop + prep day. Cook a batch once and tick extra slots for leftovers; groceries count each batch once.
 - **Grocery list:** merges duplicates across recipes, rounds up to whole packages (boxes, cans, cartons, bunches; a spoonful of a pantry food is one jar or bag, and a small amount of something unknown shows just its name), groups by aisle, and asks once about pantry items like spices and sauces, then remembers your answer.
   - **Tap a row to check it off.** It folds into **In cart** at the bottom, with Undo. Press and hold (or swipe left) for details, edit and remove. A progress bar and the estimated total left sit at the top.
@@ -70,6 +72,8 @@ No build step and no dependencies. With Node 22 or later, from `recipes/`:
 ```
 npm test        # same as: node --test test/*.test.mjs
 ```
+
+Live tests of your deployed Worker's label reading (they use a little Workers AI allowance, so they're separate): `WORKER_URL=https://… APP_KEY=… npm run test:live`, or on GitHub: **Actions → Worker live tests → Run workflow** with repository secrets `WORKER_URL` and `APP_KEY`.
 
 The tests run the app's modules directly in Node (no browser). `test/helpers/device.mjs` gives each simulated phone its own copy of the modules, its own `localStorage` and its own clock, and `test/helpers/worker.mjs` runs the real Worker code in memory, so the sync tests are two phones syncing through the actual `RecipeSync` logic.
 

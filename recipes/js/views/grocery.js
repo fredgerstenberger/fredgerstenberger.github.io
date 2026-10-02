@@ -65,7 +65,7 @@ function progressHTML(done, total, left) {
   const bar = total <= 24
     ? `<span class="gbar" aria-hidden="true">${Array.from({ length: total }, (_, i) => `<i class="${i < done ? "on" : ""}"></i>`).join("")}</span>`
     : `<span class="gbar solid" aria-hidden="true"><i style="width:${Math.round(done / total * 100)}%"></i></span>`;
-  return `<div class="gprog" role="status">${bar}<b>${done} of ${total}</b>${left ? `<span>· ~${left} left</span>` : ""}</div>`;
+  return `<div class="gprog" role="status">${bar}<b>${done} of ${total}</b>${left ? `<span>· ${left} left</span>` : ""}</div>`;
 }
 
 // "1 pint (16 fl oz)" → "1 pint" with "16 fl oz" as a small second line, so the name gets the room and a
@@ -447,7 +447,7 @@ function itemSheet(g, it, redraw, remove) {
   if (!it) return;
   const ed = g.edits[it.key];
   const { el, close } = modal(cap1(it.name), `
-    <p class="muted" style="margin-top:0">${it.amount ? `<b>${esc(it.amount)}</b> · ` : ""}${it.cost != null ? `~${money(it.cost)} · ` : ""}for ${esc(it.sources.join(", "))}</p>
+    <p class="muted" style="margin-top:0">${it.amount ? `<b>${esc(it.amount)}</b> · ` : ""}${it.cost != null ? `${money(it.cost)} · ` : ""}for ${esc(it.sources.join(", "))}</p>
     <label class="field"><span>Item</span><input type="text" id="eName" value="${esc(it.name)}" autocomplete="off"></label>
     <label class="field"><span>Amount</span><input type="text" id="eAmt" value="${esc(it.amount || "")}" placeholder="e.g. 2 lb, 1 box" autocomplete="off"></label>
     <label class="field"><span>Note<small>Brand, store, size…</small></span><input type="text" id="eNote" value="${esc(it.note || "")}" placeholder="e.g. organic" autocomplete="off"></label>

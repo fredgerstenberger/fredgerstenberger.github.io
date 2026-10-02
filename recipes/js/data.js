@@ -95,7 +95,7 @@ let timer = null;
 export function customFood(key) {
   const c = store.get().foods?.[key];
   if (!c) return null;
-  const f = { name: key, aliases: [key], aisle: "other", kind: "F", pkg: null, liquid: false, custom: true, nu: c.nu || null };
+  const f = { name: key, aliases: [key], aisle: "other", kind: "F", pkg: null, liquid: false, custom: true, nu: c.nu || null, label: c.label || null };
   if (c.gCup) f.gCup = c.gCup;
   if (c.gEach) f.gEach = c.gEach;
   return f;
