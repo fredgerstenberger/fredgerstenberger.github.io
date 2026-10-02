@@ -4,12 +4,15 @@
 // Syncs as a field-merged record, one field per item: { text, checked, at, by, cb (checked by) }.
 import * as store from "./store.js";
 import { uid, weekKey } from "./util.js";
+import { parseAdd, mergeAdd } from "./quickadd.js";
 
 const all = () => (store.get().household ||= {});
 export const items = () => Object.entries(all()).map(([id, h]) => ({ id, ...h })).sort((a, b) => (a.at || 0) - (b.at || 0) || (a.id < b.id ? -1 : 1));
 export const get = id => (all()[id] ? { id, ...all()[id] } : null);
 
-export function add(text, by = "", id = uid(), at = Date.now()) {
+// Each new item is later than the newest one, so several added at once (a ?add= link) keep their order.
+const nextAt = () => Math.max(Date.now(), ...Object.values(all()).map(h => (h.at || 0) + 1));
+export function add(text, by = "", id = uid(), at = nextAt()) {
   all()[id] = { text: String(text).trim(), checked: false, at, ...(by ? { by } : {}) };
   return id;
 }
@@ -22,6 +25,42 @@ export function setChecked(id, on, by = "") {
   all()[id] = next;
 }
 export function remove(id) { delete all()[id]; }
+// Changing what an item says puts it back on the list: an edit means you still want it. (So if the other
+// phone tapped Done shopping meanwhile, the later of the two wins: an earlier edit is cleared with the
+// bought items, a later one brings the item back where you can see it, never hidden in the cart.)
+export function edit(id, text) {
+  const h = all()[id];
+  if (!h) return;
+  const { cb, ...rest } = h;
+  all()[id] = { ...rest, text: String(text).trim(), checked: false };
+}
+
+/**
+ * Two phones adding the same thing before they sync ("milk" and "1 gallon milk") leave two lines.
+ * Merge lines that are the same item into the earliest one (by time added, then id), combining amounts
+ * in that order; it stays checked only if every copy was. Every phone computes the same result, so
+ * their changes agree. Returns how many lines were merged away.
+ */
+export function mergeDuplicates() {
+  const groups = new Map();
+  for (const h of items()) {
+    const k = parseAdd(h.text)?.key;
+    if (!k) continue;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(h);
+  }
+  let merged = 0;
+  for (const list of groups.values()) {
+    if (list.length < 2) continue;
+    const [keep, ...rest] = list; // items() is sorted by time added, then id
+    const text = rest.reduce((t, h) => mergeAdd(t, parseAdd(h.text)), keep.text);
+    const checked = list.every(h => h.checked);
+    const { id, cb, ...base } = keep;
+    all()[id] = { ...base, text, checked, ...(checked && cb ? { cb } : {}) };
+    for (const h of rest) { delete all()[h.id]; merged++; }
+  }
+  return merged;
+}
 // Bought items leave the list. Returns what was removed, so it can be put back (Undo).
 export function clearChecked() {
   const gone = items().filter(h => h.checked);

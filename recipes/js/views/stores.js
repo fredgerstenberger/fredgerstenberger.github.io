@@ -20,7 +20,10 @@ export function openStorePicker(onChange) {
       <input type="text" id="storeName" placeholder="Add a store, e.g. Trader Joe's" maxlength="40" autocomplete="off">
       <button class="btn" type="submit">Add</button>
     </form>`);
-  el.querySelectorAll('input[name="st"]').forEach(r => r.onchange = () => { stores.pick(r.value); close(); onChange(); });
+  el.querySelectorAll('input[name="st"]').forEach(r => r.onchange = () => {
+    stores.pick(r.value); close(); onChange();
+    toast(r.value ? `Aisles in ${stores.get(r.value)?.name || "store"} order` : "Standard aisle order");
+  });
   el.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => openAisleOrder(b.dataset.edit, onChange));
   el.querySelector("#newStore").onsubmit = e => {
     e.preventDefault();
@@ -44,7 +47,7 @@ export function openAisleOrder(id, onChange, isNew = false) {
       <button class="obtn" data-down aria-label="Move ${esc(stores.aisleLabel(a))} down">↓</button>
     </li>`;
   const { el, close } = modal(isNew ? `Aisles at ${s.name}` : s.name, `
-    <p class="muted" style="margin-top:0;font-size:14px">Drag aisles into the order you walk the store${isNew ? ". You can change this anytime" : ""}.</p>
+    <p class="muted" style="margin-top:0;font-size:14px">Drag the ≡ handles into the order you walk the store${isNew ? ". You can change this anytime" : ""}. Your list follows as you go.</p>
     <ul class="card olist" id="olist">${order.map(rowHTML).join("")}</ul>
     <label class="field" style="margin-top:16px"><span>Name</span><input type="text" id="sName" value="${esc(s.name)}" maxlength="40"></label>
     <div class="btnrow"><button class="btn primary" id="oDone">Done</button><button class="btn danger" id="oDel">Delete store</button></div>`, { onClose: onChange });
@@ -53,30 +56,55 @@ export function openAisleOrder(id, onChange, isNew = false) {
   ul.addEventListener("click", e => {
     const li = e.target.closest(".orow");
     if (!li) return;
-    if (e.target.closest("[data-up]") && li.previousElementSibling) { ul.insertBefore(li, li.previousElementSibling); save(); li.querySelector("[data-up]").focus(); }
-    if (e.target.closest("[data-down]") && li.nextElementSibling) { ul.insertBefore(li.nextElementSibling, li); save(); li.querySelector("[data-down]").focus(); }
+    if (e.target.closest("[data-up]") && li.previousElementSibling) { ul.insertBefore(li, li.previousElementSibling); save(); onChange(); li.querySelector("[data-up]").focus(); }
+    if (e.target.closest("[data-down]") && li.nextElementSibling) { ul.insertBefore(li.nextElementSibling, li); save(); onChange(); li.querySelector("[data-down]").focus(); }
   });
-  // Drag by the handle (or the name): the row follows the finger and the others make room.
+  // Drag by the ≡ handle only, so the rest of each row scrolls the sheet like anything else. Positions are
+  // measured on screen (so a scrolled sheet doesn't throw them off), and the sheet scrolls by itself when
+  // the finger nears its top or bottom edge.
+  const scroller = el.closest(".wbody") || el;
   let drag = null;
+  const place = () => {
+    const { li, y } = drag;
+    li.style.transform = "";
+    const natural = li.getBoundingClientRect().top;
+    li.style.transform = `translateY(${y - drag.grab - natural}px)`;
+    const mid = y - drag.grab + li.offsetHeight / 2;
+    const prev = li.previousElementSibling, next = li.nextElementSibling;
+    const half = n => { const r = n.getBoundingClientRect(); return r.top + r.height / 2; };
+    if (prev && mid < half(prev)) { ul.insertBefore(li, prev); place(); }
+    else if (next && mid > half(next)) { ul.insertBefore(next, li); place(); }
+  };
+  const autoScroll = () => {
+    if (!drag) return;
+    const r = scroller.getBoundingClientRect(), edge = 56;
+    const v = drag.y < r.top + edge ? -8 : drag.y > r.bottom - edge ? 8 : 0;
+    if (v) { scroller.scrollTop += v; place(); }
+    drag.raf = requestAnimationFrame(autoScroll);
+  };
   ul.addEventListener("pointerdown", e => {
-    const li = e.target.closest(".orow");
-    if (!li || e.target.closest(".obtn")) return;
+    const handle = e.target.closest(".ohandle");
+    if (!handle || e.button) return;
     e.preventDefault();
-    drag = { li, y0: e.clientY, top: li.offsetTop };
+    const li = handle.closest(".orow");
+    drag = { li, y: e.clientY, grab: e.clientY - li.getBoundingClientRect().top, id: e.pointerId };
     li.classList.add("dragging");
-    li.setPointerCapture?.(e.pointerId);
+    handle.setPointerCapture?.(e.pointerId);
+    drag.raf = requestAnimationFrame(autoScroll);
   });
   ul.addEventListener("pointermove", e => {
-    if (!drag) return;
-    const { li } = drag;
-    const dy = e.clientY - drag.y0;
-    li.style.transform = `translateY(${dy}px)`;
-    const mid = drag.top + dy + li.offsetHeight / 2;
-    const prev = li.previousElementSibling, next = li.nextElementSibling;
-    if (prev && mid < prev.offsetTop + prev.offsetHeight / 2) { ul.insertBefore(li, prev); drag.y0 -= prev.offsetHeight; drag.top = li.offsetTop; li.style.transform = `translateY(${e.clientY - drag.y0}px)`; }
-    else if (next && mid > next.offsetTop + next.offsetHeight / 2) { ul.insertBefore(next, li); drag.y0 += next.offsetHeight; drag.top = li.offsetTop; li.style.transform = `translateY(${e.clientY - drag.y0}px)`; }
+    if (!drag || e.pointerId !== drag.id) return;
+    drag.y = e.clientY;
+    place();
   });
-  const end = () => { if (!drag) return; drag.li.classList.remove("dragging"); drag.li.style.transform = ""; drag = null; save(); };
+  const end = () => {
+    if (!drag) return;
+    cancelAnimationFrame(drag.raf);
+    drag.li.classList.remove("dragging"); drag.li.style.transform = "";
+    drag = null;
+    save();
+    onChange(); // the list behind the sheet follows right away
+  };
   ul.addEventListener("pointerup", end);
   ul.addEventListener("pointercancel", end);
   el.querySelector("#sName").addEventListener("change", e => stores.rename(id, e.target.value));

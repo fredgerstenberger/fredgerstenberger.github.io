@@ -140,7 +140,8 @@ export function parseIngredient(line) {
   s = s.replace(/^(juice|zest|juice and zest|zest and juice) of (\S+) (lemons?|limes?|oranges?)\b,?\s*/i, (_, what, n, fruit) => `${n} ${fruit}, ${what.toLowerCase().replace("juice", "juiced").replace("zest", "zested")} `);
   let qty = null, qtyMax = null, unit = null, size = null, compound = false;
 
-  let m = s.match(QTY_RE);
+  // "2% milk": a percentage is part of the name, not an amount.
+  let m = /^\d+(\.\d+)?\s*%/.test(s) ? null : s.match(QTY_RE);
   if (m) {
     qty = amount(m[1]);
     qtyMax = m[2] ? amount(m[2]) : null;

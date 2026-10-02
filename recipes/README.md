@@ -15,12 +15,12 @@ Live at **https://fredgerstenberger.github.io/recipes/** (after this folder is o
   - **Tap a row to check it off.** It folds into **In cart** at the bottom, with Undo. Press and hold (or swipe left) for details, edit and remove. A progress bar and the estimated total left sit at the top.
   - **Fast add:** type "2 lb chicken thighs" and it goes to the right aisle with its amount. Suggestions come from what you've added before (most often first) and the food table; chips offer your usual items. Adding something already on the list adds to that line instead of repeating it.
   - **One household list for things you add** (paper towels, cat litter), shown with whichever week you're looking at, so it never disappears when the week changes.
-  - **Stores:** without one, the list goes produce, dairy, meat, then the packaged aisles, with frozen last. Add your stores and drag the aisles into the order you walk them. Stores sync; which one you're shopping at is per phone.
+  - **Stores:** without one, the list goes produce, dairy, meat, then the packaged aisles (including Snacks and Drinks), with frozen last. Add your stores and drag the ≡ handles into the order you walk them; the list follows as you go. Stores sync; which one you're shopping at is per phone.
   - **Shopping mode:** bigger rows with only what's left, by aisle, and the screen kept awake (Safari 16.4+, home-screen app on iOS 18.4+). **Done shopping** clears what you added and bought, notes purchases, and can mark pantry foods as stocked.
   - **Live with a partner:** while the list is open it checks for changes every 4 seconds and says what happened ("Emma checked eggs"). Their initial shows on things they added or checked.
   - **Add from a link or Siri:** `…/recipes/?add=milk, eggs` adds items (see below).
 - **Prices:** estimated cost per serving for each recipe (a Budget filter and cost sort), weekly food cost in the meal plan, and an estimated total on the grocery list. Official U.S. average prices from the Bureau of Labor Statistics (about 30 staples, refreshed monthly through the Worker), with built-in estimates for the rest, are adjusted for your region (e.g. Irvine ≈ +15%), and you can enter your own store's prices.
-- **Pantry, converter, light/dark mode, offline support** (add it to your iPhone home screen).
+- **Pantry, converter, light/dark mode, offline support** (add it to your iPhone home screen). The app opens from its own saved copy, instantly even with a weak signal; a new version downloads in the background and the app offers **Reload** (or uses it the next time it opens).
 
 Data is stored on the device (localStorage). **Sync** (Settings → Sync) keeps it the same across your devices and a partner's, through your Cloudflare Worker: recipes, week plans, grocery lists, pantry, prices and settings merge field by field (each meal, each grocery item, each recipe field), so two people planning or shopping at once keep each other's changes (a grocery list refreshes every few seconds while it's open). Deleting a recipe wins over edits made before it; an edit made after a delete brings the recipe back. Each person rates recipes themselves and the average is shown everywhere (set your name in Settings → Sync so your devices count as one person). Invite another device with **Create invite**. Each invite is a random code that works once and expires after 24 hours. **Reset sync code** removes access for every other device. **Settings → Export backup** is still available.
 
@@ -60,6 +60,8 @@ Opening `https://fredgerstenberger.github.io/recipes/?add=milk, 2 lb chicken thi
 - `worker/`: Cloudflare Worker for reliable link imports and AI photo scanning (see its README for setup)
 
 No build step. To run locally: `python3 -m http.server 8000`, then open http://localhost:8000/recipes/.
+
+**Releasing:** bump `APP_VERSION` in `js/version.js` and `VERSION` in `sw.js` together whenever app files change; phones only pick up a release when `VERSION` changes. A new module goes in `js/`, in `index.html`'s `modulepreload` list and in `sw.js` `FILES` (`test/files.test.mjs` checks all three, and the two versions). The service worker stays off on localhost so edits show up right away; to try it locally, run `localStorage.setItem("rb.sw", "1")` in the console and reload.
 
 ## Tests
 

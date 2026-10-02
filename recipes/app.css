@@ -1018,3 +1018,29 @@ body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
 .toast .gby { margin: 0; flex: none; }
 .gname .gby { margin-left: 8px; vertical-align: 1px; }
 .got .gname .gby { opacity: .8; }
+
+/* The add box is one field: the input inside draws no border, fill or focus ring of its own (the box shows focus) */
+.gadd input[type="text"], .gadd input[type="text"]:focus { flex: 1; min-width: 0; height: auto; min-height: 0; margin: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; outline: none;
+  -webkit-appearance: none; appearance: none; font: 600 17px var(--body); color: var(--c-ink); padding: var(--s3) 0; }
+.gadd input[type="text"]:focus-visible { outline: none; }
+.gadd:focus-within { border-color: var(--c-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 18%, transparent); }
+
+/* Amounts: "1 pint" with the package size as a small second line; the name gets priority for width */
+.gamt { max-width: 40%; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.gamt .gq { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; line-height: 1.2; }
+.gamt .gq small { font: 600 12px/1.2 var(--body); color: var(--c-faint); }
+.gamt .gplus { font-size: 12px; line-height: 1; color: var(--c-faint); }
+.got .gamt .gq small { color: inherit; }
+.gname { hyphens: none; overflow-wrap: break-word; }
+.shopping .gamt { max-width: 38%; }
+.shopping .gamt .gq { font-size: 17px; }
+.shopping .gamt .gq small { font-size: 13px; }
+@media (max-width: 360px) { .shopping .grow-main { font-size: 18px; gap: var(--s3); } .shopping .gamt .gq { font-size: 16px; } }
+.gshopbar .cbtn { white-space: nowrap; }
+@media (max-width: 360px) { .gshopbar .cbtn:not(.primary) { padding: 0 var(--s4); } .gshopbar .cbtn { font-size: 16px; } }
+
+/* Aisle editor: only the handle drags; the rest of the row scrolls the sheet */
+.orow { touch-action: pan-y; user-select: auto; -webkit-user-select: auto; }
+.ohandle { touch-action: none; align-self: stretch; display: grid; place-items: center; width: 48px; flex: none; font-size: 22px; user-select: none; -webkit-user-select: none; cursor: grab; }
+.orow.dragging { transition: none; background: var(--c-card); }
+.orow.dragging .ohandle { cursor: grabbing; color: var(--c-accent); }

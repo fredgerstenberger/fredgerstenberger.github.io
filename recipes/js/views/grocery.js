@@ -8,13 +8,14 @@ import { sectionize, listAsText } from "../grocery.js";
 import { weekLabel, currentWeek, setWeek } from "./plan.js";
 import { money } from "../prices.js";
 import { pix } from "../pixicons.js";
-import { parseAdd, mergeAdd, noteAdded, noteBought, suggest, frequentItems } from "../quickadd.js";
+import { parseAdd, noteBought, suggest, frequentItems } from "../quickadd.js";
 import { me } from "../ratings.js";
 import * as stores from "../stores.js";
 import * as house from "../household.js";
 import { openStorePicker } from "./stores.js";
 import * as live from "../live.js";
 import * as sync from "../sync.js";
+import { addToList } from "../grocery-add.js";
 
 const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
 const HINT_KEY = "rb.groceryHint";
@@ -46,6 +47,7 @@ let seen = null, livePaint = null;
 if (typeof document !== "undefined") {
   addEventListener("rb:synced", () => {
     if (!seen || !onGrocery() || !document.getElementById("gbody")) return;
+    if (house.mergeDuplicates()) store.save(); // the same thing added on both phones at once
     const chs = live.changes(seen.snap, live.snapshot(store.get(), seen.week));
     livePaint?.(); // also while typing in the add box, when the app holds off redrawing the screen
     const msg = live.describe(chs);
@@ -66,12 +68,22 @@ function progressHTML(done, total, left) {
   return `<div class="gprog" role="status">${bar}<b>${done} of ${total}</b>${left ? `<span>· ~${left} left</span>` : ""}</div>`;
 }
 
+// "1 pint (16 fl oz)" → "1 pint" with "16 fl oz" as a small second line, so the name gets the room and a
+// size never breaks in the middle ("16 fl / oz").
+const nb = t => esc(t).replace(/ /g, "\u00a0");
+function amountHTML(amount) {
+  return amount.split(" + ").map(part => {
+    const m = part.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+    return m && m[1] ? `<span class="gq">${nb(m[1])}<small>${nb(m[2])}</small></span>` : `<span class="gq">${nb(part)}</span>`;
+  }).join(`<span class="gplus">+</span>`);
+}
+
 function rowHTML({ id, kind, name, amount, sub, checked, who }) {
   return `<li class="grow ${checked ? "got" : ""}" data-id="${esc(id)}" data-kind="${kind}">
     <button class="grow-main" aria-pressed="${checked}">
       <span class="gbox">${checked ? pix("check", 16) : ""}</span>
       <span class="gname">${esc(cap1(name))}${who ? `<span class="gby" title="${esc(who)}">${esc(live.initial(who))}</span>` : ""}${sub ? `<small>${esc(sub)}</small>` : ""}</span>
-      ${amount ? `<span class="gamt">${esc(amount)}</span>` : ""}
+      ${amount ? `<span class="gamt">${amountHTML(amount)}</span>` : ""}
     </button>
     <div class="grow-actions" aria-hidden="true"><button class="more" tabindex="-1">Details</button><button class="rm" tabindex="-1">Remove</button></div>
   </li>`;
@@ -81,6 +93,7 @@ export function groceryView(key) {
   key = key || currentWeek();
   setWeek(key);
   house.migrateWeekExtras();
+  if (house.mergeDuplicates()) store.save();
   const g = store.groceryState(key);
   const prev = weekKey(addDays(parseWeekKey(key), -7)), next = weekKey(addDays(parseWeekKey(key), 7));
   const rel = weekRelation(key);
@@ -251,36 +264,17 @@ export function groceryView(key) {
     if (kind === "item") return itemSheet(g, findItem(id), paint, remove);
     const e = kind === "house" ? house.get(id) : findExtra(id);
     if (!e) return;
-    extraSheet(e, text => { if (kind === "house") house.update(id, { text }); else findExtra(id).text = text; store.save(); paint(); }, () => remove(id, kind));
+    extraSheet(e, text => { if (kind === "house") house.edit(id, text); else Object.assign(findExtra(id), { text, checked: false }); store.save(); paint(); }, () => remove(id, kind));
   };
 
   // Add what was typed. Something already on the list merges into its line instead of repeating.
   function addManual(text, quiet = false) {
-    const p = parseAdd(text);
-    if (!p) return null;
-    const say = quiet ? () => {} : toast;
-    const fromRecipes = [...sec.buy, ...sec.ask, ...sec.have].find(i => i.key === p.key) || (g.hidden[p.key] ? { key: p.key, hiddenOnly: true } : null);
-    const extra = manual().find(e => parseAdd(e.text).key === p.key);
-    if (fromRecipes) {
-      delete g.hidden[p.key];
-      delete g.checked[p.key];
-      if (pantry[p.key] === true || sec.ask.some(i => i.key === p.key)) pantry[p.key] = false; // you need it after all
-      if (p.amount && !fromRecipes.hiddenOnly) {
-        const cur = (g.edits[p.key]?.amount ?? fromRecipes.amount ?? "").replace(/\s*\([^)]*\)/g, "");
-        g.edits[p.key] = { ...(g.edits[p.key] || {}), amount: cur ? `${cur} + ${p.amount}` : p.amount };
-      }
-      say(`${p.name} is already on the list${p.amount ? ` · added ${p.amount}` : ""}`);
-    } else if (extra) {
-      const merged = mergeAdd(extra.text, p);
-      if (extra.src === "house") { house.update(extra.id, { text: merged }); house.setChecked(extra.id, false); }
-      else { const x = findExtra(extra.id); x.text = merged; x.checked = false; }
-      say(`${p.name} is already on the list${p.amount ? ` · now ${parseAdd(merged).amount}` : ""}`);
-    } else {
-      house.add(text, me().name);
-      const aisle = AISLES.find(a => a[0] === p.aisle);
-      say(`Added ${p.name}${aisle ? ` · ${aisle[1]}` : ""}`);
-    }
-    noteAdded(history(), p);
+    const r = addToList(key, text, me().name);
+    if (!r) return null;
+    const { p, result, amount } = r;
+    const aisle = AISLES.find(a => a[0] === p.aisle);
+    if (!quiet) toast(result === "added" ? `Added ${p.name}${aisle ? ` · ${aisle[1]}` : ""}`
+      : `${p.name} is already on the list${amount ? (result === "recipe" ? ` · added ${amount}` : ` · now ${amount}`) : ""}`);
     store.save();
     paint();
     return p;

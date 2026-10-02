@@ -45,6 +45,15 @@ mushrooms|mushroom,cremini mushrooms,button mushrooms,white mushrooms,baby bella
 corn|corn kernels,sweet corn,ears of corn,ear of corn,corn on the cob,frozen corn|produce|F|86,3.3,19,1.4,2|145|100||
 peas|green peas,frozen peas|frozen|F|81,5.4,14,0.4,5.7|145||bag:340:12 oz|
 frozen vegetables|mixed vegetables,frozen mixed vegetables,stir fry vegetables|frozen|F|65,3,13,0.5,4|135||bag:340:12 oz|
+ice cream|vanilla ice cream,chocolate ice cream,~gelato,~frozen yogurt,ice-cream|frozen|F|207,3.5,24,11,0.7|132||carton:1420:1.5 qt|
+frozen pizza|frozen pizzas|frozen|F|266,11,33,10,2.3|||box:450:16 oz|
+frozen meals|frozen meal,frozen dinner,frozen dinners,tv dinner,tv dinners,frozen entree,frozen entrees|frozen|F|130,6,15,5,2|||box:300:10 oz|
+chicken nuggets|nuggets,chicken nugget,frozen chicken nuggets|frozen|F|296,15,16,19,1|||bag:822:29 oz|
+orange chicken|frozen orange chicken|frozen|F|240,11,22,12,0.5|||bag:907:32 oz|
+egg rolls|egg roll,frozen egg rolls|frozen|F|222,6,26,10,2|||box:300:6 rolls|
+egg roll wrappers|wonton wrappers,dumpling wrappers,spring roll wrappers,gyoza wrappers|produce|F|291,9.8,58,1.5,1.8|||package:340:12 oz|
+french fries|fries,frozen fries,~tater tots,frozen french fries|frozen|F|150,2.5,24,5,2.5|||bag:907:32 oz|
+garlic bread|garlic toast,~texas toast,frozen garlic bread|frozen|F|350,8,40,17,2|||loaf:454:16 oz|
 avocado|avocados|produce|F|160,2,8.5,14.7,6.7|150|150||
 lemon|lemons|produce|F|29,1.1,9.3,0.3,2.8||85||
 lemon juice|fresh lemon juice,juice of lemon|produce|F|22,0.4,6.9,0.2,0.3|244||lemon:45|L
@@ -53,8 +62,14 @@ lime|limes|produce|F|30,0.7,10.5,0.2,2.8||67||
 lime juice|fresh lime juice,juice of lime|produce|F|25,0.4,8.4,0.1,0.4|246||lime:30|L
 lime zest|zest of lime|produce|F|47,1.5,16,0.3,10.6|96||lime:4|
 orange|oranges|produce|F|47,0.9,12,0.1,2.4|180|130||
-orange juice|fresh orange juice|produce|F|45,0.7,10.4,0.2,0.2|248||carton:1500:52 fl oz|L
+orange juice|fresh orange juice|drinks|F|45,0.7,10.4,0.2,0.2|248||carton:1500:52 fl oz|L
+apple juice|apple cider drink|drinks|F|46,0.1,11,0.1,0.2|248||bottle:1890:64 fl oz|L
+juice|fruit juice,~cranberry juice,~grape juice,~pineapple juice,juice boxes|drinks|F|50,0.2,12,0.1,0.2|248||bottle:1890:64 fl oz|L
+seltzer|sparkling water,~club soda,soda water,seltzer water,~mineral water,~la croix|drinks|F|0,0,0,0,0|236||pack:2840:8 cans|L
+coconut water|coconut waters|drinks|F|19,0.7,3.7,0.2,1.1|240||carton:1000:33.8 fl oz|L
+soda|soft drink,soft drinks,~cola,~coke,~sprite,~ginger ale,~root beer|drinks|F|41,0,10.6,0,0|248||pack:4260:12 cans|L
 apple|apples,granny smith apple,honeycrisp apple|produce|F|52,0.3,14,0.2,2.4|125|180||
+applesauce|apple sauce,unsweetened applesauce|canned|F|68,0.2,17,0.2,1.2|255||jar:680:24 oz|
 banana|bananas|produce|F|89,1.1,23,0.3,2.6|150|118||
 strawberries|strawberry|produce|F|32,0.7,7.7,0.3,2|152|12|container:454:1 lb|
 blueberries|blueberry|produce|F|57,0.7,14.5,0.3,2.4|148||container:170:6 oz|
@@ -119,12 +134,15 @@ cheddar|cheddar cheese,sharp cheddar,sharp cheddar cheese,shredded cheddar,shred
 mozzarella|mozzarella cheese,shredded mozzarella,shredded mozzarella cheese,fresh mozzarella,burrata|dairy|F|280,28,3.1,17,0|113|28|bag:227:8 oz|
 parmesan|parmesan cheese,parmigiano reggiano,parmigiano-reggiano,grated parmesan,grated parmesan cheese,pecorino,pecorino romano|dairy|P|431,38,4.1,29,0|100||wedge:142:5 oz|
 feta|feta cheese,crumbled feta|dairy|F|264,14,4,21,0|150||package:170:6 oz|
-monterey jack|monterey jack cheese,pepper jack,pepper jack cheese,colby jack,mexican cheese blend,mexican blend cheese,shredded cheese,cheese|dairy|F|373,24,0.7,30,0|113|28|bag:227:8 oz|
+monterey jack|monterey jack cheese,~colby jack,~mexican cheese blend,~mexican blend cheese,shredded cheese,cheese|dairy|F|373,24,0.7,30,0|113|28|bag:227:8 oz|
+pepper jack|pepper jack cheese,pepperjack|dairy|F|373,24,0.7,30,0|113|28|block:227:8 oz|
+string cheese|cheese sticks,cheese stick,string cheeses|dairy|F|300,24,3,21,0||28|pack:340:12 sticks|
 goat cheese|chevre|dairy|F|364,22,0,30,0|||log:113:4 oz|
 ricotta|ricotta cheese|dairy|F|174,11,3,13,0|246||tub:425:15 oz|
 swiss cheese|gruyere,gruyère,provolone,gruyere cheese,provolone cheese|dairy|F|380,27,1.5,30,0|108|20|package:227:8 oz|
 cottage cheese||dairy|F|98,11,3.4,4.3,0|226||tub:454:16 oz|
-bread|sandwich bread,white bread,whole wheat bread,sourdough,sourdough bread,bread slices,slices bread,crusty bread,baguette,ciabatta|bakery|F|265,9,49,3.2,2.7||30|loaf:567|
+bread|sandwich bread,white bread,whole wheat bread,~sourdough,~sourdough bread,bread slices,slices bread,crusty bread,~baguette,~ciabatta|bakery|F|265,9,49,3.2,2.7||30|loaf:567|
+banana bread|banana loaf|bakery|F|326,4.3,55,10.5,1.1|||loaf:450:16 oz|
 burger buns|hamburger buns,buns,brioche buns,hot dog buns,slider buns|bakery|F|279,9.5,49,4.3,2||55|pack:440:8 buns|
 tortillas|flour tortillas,tortilla,flour tortilla,wraps|bakery|F|312,8.3,52,8,3.5||45|pack:450:10 tortillas|
 corn tortillas|corn tortilla,taco shells|bakery|F|218,5.7,45,2.9,6.3||26|pack:780:30 tortillas|
@@ -147,7 +165,13 @@ oats|rolled oats,old-fashioned oats,old fashioned oats,old-fashioned rolled oats
 granola|granola clusters,muesli|dry|P|471,10,64,20,7|122||bag:340:12 oz|
 lentils|red lentils,green lentils,brown lentils,dried lentils,french lentils|dry|P|352,24.6,63,1.1,10.7|192||bag:454:1 lb|
 cornmeal|polenta,yellow cornmeal,grits|dry|P|370,7,79,1.8,7|157||bag:680:24 oz|
-tortilla chips|chips,potato chips|dry|F|489,7,63,23,4.4|||bag:312:11 oz|
+tortilla chips|chips|snacks|F|489,7,63,23,4.4|||bag:312:11 oz|
+potato chips|~kettle chips,~salt and vinegar chips,potato crisps,crisps|snacks|F|536,7,53,35,4.4|||bag:226:8 oz|
+crackers|cracker,~saltines,~saltine crackers,~graham crackers,~ritz crackers,~wheat thins|snacks|F|484,9,67,20,2.5|||box:255:9 oz|
+pretzels|pretzel,pretzel twists,pretzel rods|snacks|F|380,10,80,3,3|||bag:454:16 oz|
+popcorn|microwave popcorn,popcorn kernels|snacks|F|387,13,78,4.5,15|8||box:255:6 bags|
+granola bars|granola bar,~protein bars,~protein bar,cereal bars,cereal bar|snacks|F|471,10,64,20,5|||box:240:8 bars|
+cereal|breakfast cereal,~corn flakes,~cornflakes,~cheerios,~bran flakes,~raisin bran,~rice krispies,~frosted flakes|dry|F|357,7,84,0.4,3|28||box:340:12 oz|
 flour|all-purpose flour,all purpose flour,plain flour,ap flour,bread flour,unbleached all-purpose flour,self-rising flour|baking|P|364,10,76,1,2.7|125||bag:2268:5 lb|
 whole wheat flour|whole-wheat flour,whole wheat pastry flour|baking|P|340,13,72,2.5,10.7|120||bag:2268:5 lb|
 almond flour|almond meal|baking|P|571,21,21,50,10|96||bag:454:16 oz|
@@ -274,11 +298,13 @@ export const AISLES = [
   ["seafood", "Seafood"],
   ["dairy", "Dairy & eggs"],
   ["bakery", "Bakery"],
-  ["dry", "Pasta, rice & grains"],
+  ["dry", "Pasta, grains & cereal"],
   ["canned", "Canned & jarred"],
   ["baking", "Baking"],
   ["condiments", "Oils, sauces & condiments"],
   ["spices", "Spices"],
+  ["snacks", "Snacks"],
+  ["drinks", "Drinks"],
   ["frozen", "Frozen"],
   ["other", "Other"]
 ];
@@ -291,9 +317,13 @@ export const FOODS = RAW.trim().split("\n").map(line => {
     const [label, grams, desc] = pkg.split(":");
     p = { label, g: Number(grams), desc: desc || "" };
   }
+  // "~alias": a variety, not the food itself ("~corn flakes" under cereal). It counts as the food in
+  // recipes (nutrition, aisle, price), but typed into the grocery add box it stays its own item.
+  const al = aliases ? aliases.split(",") : [];
   return {
     name,
-    aliases: [name, ...(aliases ? aliases.split(",") : [])],
+    aliases: [name, ...al.map(a => a.replace(/^~/, ""))],
+    variants: new Set(al.filter(a => a.startsWith("~")).map(a => a.slice(1))),
     aisle, kind,
     nu: { kcal, protein, carbs, fat, fiber },
     gCup: gCup ? Number(gCup) : null,
@@ -310,12 +340,71 @@ const MATCHERS = FOODS
   .flatMap(f => f.aliases.map(a => ({ a, f })))
   .sort((x, y) => y.a.length - x.a.length)
   .map(({ a, f }) => ({
-    f,
+    f, a,
     re: new RegExp(`(^|[^a-z])${a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(e?s)?(?![a-z])`)
   }));
 
+// Words that only describe a food, so "organic whole milk", "2% milk" or "large brown eggs" are still
+// that food. Anything else in front of a food's name makes a different product: "ice cream" is not
+// cream, "string cheese" is not Monterey Jack.
+const MODIFIERS = new Set(("fresh freshly organic large small medium jumbo extra big whole raw ripe boneless skinless lean " +
+  "unsalted salted plain light low-fat lowfat nonfat non-fat fat-free reduced-fat low-sodium reduced-sodium unsweetened " +
+  "sweetened frozen chilled cold warm hot red green yellow white black brown golden baby mini sliced diced chopped minced " +
+  "shredded grated crushed ground dried canned cooked uncooked toasted roasted pure natural homemade store-bought " +
+  "good quality of a the some").split(" "));
+// Words that may follow a food's name without changing what it is ("garlic, minced" is written "garlic minced" too).
+const AFTER_OK = new Set(("minced chopped diced sliced grated shredded crushed halved quartered peeled seeded cubed melted " +
+  "softened divided optional drained rinsed trimmed beaten juiced zested to taste for serving garnish more plus or as needed").split(" "));
+const isModifier = w => MODIFIERS.has(w) || /^\d+(\.\d+)?%?$/.test(w);
+
+/**
+ * The food a name refers to, and how well it fits:
+ *   "exact": the name is the food, give or take describing words ("organic 2% milk" → milk)
+ *   "head":  the food's name ends the name, after other words ("string cheese" → cheese): a different
+ *            product of the same kind, so a good aisle hint
+ *   "loose": the food's name is inside a longer one ("garlic bread" → garlic): most likely something else
+ * A food at the end of the name wins over a longer one inside it ("garlic bread" is bread, not garlic).
+ */
+// Speed: a food's name can only appear in a name that contains its last word (maybe plural), so each
+// name is only tested against the foods whose last word it contains, in the same longest-first order;
+// and the answer for a name is remembered (the same lines repeat across recipes).
+const tokens = t => t.split(/[^a-z0-9%]+/).filter(Boolean);
+const BY_LAST = new Map();
+MATCHERS.forEach((m, i) => { const last = tokens(m.a.toLowerCase()).pop(); if (!last) return; if (!BY_LAST.has(last)) BY_LAST.set(last, []); BY_LAST.get(last).push(i); });
+const memo = new Map();
+function candidates(n) {
+  const idx = new Set();
+  for (const w of tokens(n)) for (const k of [w, w.replace(/e?s$/, "")]) for (const i of BY_LAST.get(k) || []) idx.add(i);
+  return [...idx].sort((a, b) => a - b).map(i => MATCHERS[i]);
+}
+
+export function matchFoodDetail(name) {
+  // "chicken stock or water" is chicken stock: only the first choice counts.
+  const n = name.toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, " ").split(/\s+or\s+/)[0].trim();
+  if (memo.has(n)) return memo.get(n);
+  const found = scan(n, candidates(n));
+  if (memo.size > 5000) memo.clear();
+  memo.set(n, found);
+  return found;
+}
+function scan(n, list) {
+  let loose = null;
+  for (const m of list) {
+    const hit = m.re.exec(n);
+    if (!hit) continue;
+    const start = hit.index + hit[1].length, end = hit.index + hit[0].length;
+    const words = t => t.replace(/[^a-z0-9%\- ]/g, " ").split(" ").filter(Boolean);
+    if (words(n.slice(end)).every(w => AFTER_OK.has(w))) {
+      return { food: m.f, alias: m.a, fit: words(n.slice(0, start)).every(isModifier) ? "exact" : "head" };
+    }
+    loose ||= { food: m.f, alias: m.a, fit: "loose" };
+  }
+  return loose;
+}
+
+// The same scan over every food, without the index or memory (tests check both agree).
+export const matchFoodDetailFull = name => scan(name.toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, " ").split(/\s+or\s+/)[0].trim(), MATCHERS);
+
 export function matchFood(name) {
-  const n = name.toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, " ");
-  for (const m of MATCHERS) if (m.re.test(n)) return m.f;
-  return null;
+  return matchFoodDetail(name)?.food || null;
 }

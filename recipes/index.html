@@ -18,6 +18,45 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app.css">
+<!-- Every module, fetched in parallel instead of a few at a time down the import chain. Keep in step with
+     js/ and sw.js FILES (test/files.test.mjs checks). -->
+<link rel="modulepreload" href="js/app.js">
+<link rel="modulepreload" href="js/data.js">
+<link rel="modulepreload" href="js/fields.js">
+<link rel="modulepreload" href="js/fillin.js">
+<link rel="modulepreload" href="js/fooddb.js">
+<link rel="modulepreload" href="js/grocery-add.js">
+<link rel="modulepreload" href="js/grocery.js">
+<link rel="modulepreload" href="js/household.js">
+<link rel="modulepreload" href="js/ingredients.js">
+<link rel="modulepreload" href="js/live.js">
+<link rel="modulepreload" href="js/nutrition.js">
+<link rel="modulepreload" href="js/parse.js">
+<link rel="modulepreload" href="js/pixicons.js">
+<link rel="modulepreload" href="js/prices.js">
+<link rel="modulepreload" href="js/quickadd.js">
+<link rel="modulepreload" href="js/ratings.js">
+<link rel="modulepreload" href="js/recipe-data.js">
+<link rel="modulepreload" href="js/scan.js">
+<link rel="modulepreload" href="js/sprites.js">
+<link rel="modulepreload" href="js/store.js">
+<link rel="modulepreload" href="js/stores.js">
+<link rel="modulepreload" href="js/sync.js">
+<link rel="modulepreload" href="js/tags.js">
+<link rel="modulepreload" href="js/timers.js">
+<link rel="modulepreload" href="js/ui.js">
+<link rel="modulepreload" href="js/util.js">
+<link rel="modulepreload" href="js/version.js">
+<link rel="modulepreload" href="js/views/book.js">
+<link rel="modulepreload" href="js/views/convert.js">
+<link rel="modulepreload" href="js/views/editor.js">
+<link rel="modulepreload" href="js/views/grocery.js">
+<link rel="modulepreload" href="js/views/pantry.js">
+<link rel="modulepreload" href="js/views/plan.js">
+<link rel="modulepreload" href="js/views/prices.js">
+<link rel="modulepreload" href="js/views/recipe.js">
+<link rel="modulepreload" href="js/views/settings.js">
+<link rel="modulepreload" href="js/views/stores.js">
 <script>
   // Apply saved theme before first paint to avoid a flash.
   try {

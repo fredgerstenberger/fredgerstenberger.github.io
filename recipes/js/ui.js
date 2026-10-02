@@ -83,7 +83,7 @@ export function confirmBox(message, okLabel = "Delete", danger = true) {
 
 // ---- Toast ----
 let toastTimer;
-// action: { label, run } adds a button (e.g. Undo) and keeps the toast up a little longer.
+// action: { label, run, ms } adds a button (e.g. Undo) and keeps the toast up a little longer (ms).
 // badge: a person's initial shown first (for a partner's changes).
 export function toast(msg, action = null, badge = "") {
   const t = document.getElementById("toast");
@@ -99,7 +99,7 @@ export function toast(msg, action = null, badge = "") {
   }
   t.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.hidden = true; }, action ? 4000 : 2200);
+  toastTimer = setTimeout(() => { t.hidden = true; }, action ? action.ms || 4000 : 2200);
 }
 
 // ---- Stars ----

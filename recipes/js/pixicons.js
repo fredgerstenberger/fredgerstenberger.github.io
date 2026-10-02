@@ -11,6 +11,8 @@ const ICONS = {
   baking:     { p: [".....k..", "....k...", "...k....", "bbbbbbbb", "bwwwwwwb", ".bwwwwb.", "..bbbb..", "........"], c: { k: "#9AA7B4", b: "#6C8EBF", w: "#F4F7FB" } },
   condiments: { p: ["...kk...", "...rr...", "..rrrr..", ".rrrrrr.", ".rwwwwr.", ".rwwwwr.", ".rrrrrr.", ".rrrrrr."], c: { k: "#4A4F57", r: "#E0503C", w: "#FFE9A8" } },
   spices:     { p: ["..kkkk..", ".kkkkkk.", ".gggggg.", ".gwwwwg.", ".gwwwwg.", ".gggggg.", ".gggggg.", "........"], c: { k: "#9AA7B4", g: "#7A9E3E", w: "#F1F5E6" } },
+  snacks:     { p: ["r.r.r.r.", "rrrrrrrr", ".yyyyyy.", ".yywwyy.", ".ywwwwy.", ".yywwyy.", "rrrrrrrr", ".r.r.r.r"], c: { r: "#D2462E", y: "#F2C14E", w: "#FFF3C4" } }, // crimped bag of chips
+  drinks:     { p: ["...kk...", "...oo...", "..obbo..", ".obbbbo.", ".orrrro.", ".orwwro.", ".obbbbo.", "..oooo.."], c: { k: "#2E6FA8", o: "#5E9FCB", b: "#9FD6F2", r: "#E0503C", w: "#FFFFFF" } }, // bottle
   frozen:     { p: ["...c....", ".c.c.c..", "..ccc...", "ccccccc.", "..ccc...", ".c.c.c..", "...c....", "........"], c: { c: "#5BB6E8" } },
   other:      { p: ["........", ".kkkkkk.", "kyyyyyyk", "kyyyyyyk", "kkkkkkkk", "kyyyyyyk", "kyyyyyyk", ".kkkkkk."], c: { k: "#9C7A4F", y: "#D7B07A" } },
   home:       { p: ["..wwww..", ".wwwwww.", "wwwkkwww", "wwk..kww", "wwk..kww", "wwwkkwww", ".wwwwww.", "..wwww.."], c: { w: "#E3E9EF", k: "#8E9BA8" } },
