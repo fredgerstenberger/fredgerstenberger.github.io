@@ -13,6 +13,7 @@ import { me } from "../ratings.js";
 import * as stores from "../stores.js";
 import * as house from "../household.js";
 import { openStorePicker } from "./stores.js";
+import * as live from "../live.js";
 
 const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
 const HINT_KEY = "rb.groceryHint";
@@ -37,7 +38,20 @@ async function keepAwake(on) {
   showWake();
 }
 const showWake = () => { const el = document.getElementById("gwake"); if (el) el.hidden = !(wake && shopping()); };
+// A partner's changes: the list as last drawn is compared with what a sync brought in, and a short
+// note says what changed ("Emma checked eggs"). Registered before the app's own refresh on sync.
+let seen = null, livePaint = null;
 if (typeof document !== "undefined") {
+  addEventListener("rb:synced", () => {
+    if (!seen || !onGrocery() || !document.getElementById("gbody")) return;
+    const chs = live.changes(seen.snap, live.snapshot(store.get(), seen.week));
+    livePaint?.(); // also while typing in the add box, when the app holds off redrawing the screen
+    const msg = live.describe(chs);
+    const t = document.getElementById("toast");
+    if (!msg || (!t.hidden && t.classList.contains("act"))) return; // never cover an Undo
+    const who = new Set(chs.map(c => c.who));
+    toast(msg, null, who.size === 1 ? live.initial(chs[0].who) : "");
+  });
   // iOS drops the wake lock whenever the app goes to the background; take it again on return.
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && shopping() && onGrocery()) keepAwake(true); });
   addEventListener("hashchange", () => { if (!onGrocery()) keepAwake(false); });
@@ -50,11 +64,11 @@ function progressHTML(done, total, left) {
   return `<div class="gprog" role="status">${bar}<b>${done} of ${total}</b>${left ? `<span>· ~${left} left</span>` : ""}</div>`;
 }
 
-function rowHTML({ id, kind, name, amount, sub, checked }) {
+function rowHTML({ id, kind, name, amount, sub, checked, who }) {
   return `<li class="grow ${checked ? "got" : ""}" data-id="${esc(id)}" data-kind="${kind}">
     <button class="grow-main" aria-pressed="${checked}">
       <span class="gbox">${checked ? pix("check", 16) : ""}</span>
-      <span class="gname">${esc(cap1(name))}${sub ? `<small>${esc(sub)}</small>` : ""}</span>
+      <span class="gname">${esc(cap1(name))}${who ? `<span class="gby" title="${esc(who)}">${esc(live.initial(who))}</span>` : ""}${sub ? `<small>${esc(sub)}</small>` : ""}</span>
       ${amount ? `<span class="gamt">${esc(amount)}</span>` : ""}
     </button>
     <div class="grow-actions" aria-hidden="true"><button class="more" tabindex="-1">Details</button><button class="rm" tabindex="-1">Remove</button></div>
@@ -118,8 +132,11 @@ export function groceryView(key) {
     document.getElementById("gprog").innerHTML = total ? progressHTML(done, total, priced.length ? money(estLeft) : "") : "";
     document.getElementById("gchips").innerHTML = frequentItems(history(), onList()).map(n => `<button class="chip quiet" type="button" data-quick="${esc(n)}">+ ${esc(n)}</button>`).join("");
 
-    const itemRow = i => rowHTML({ id: i.key, kind: "item", name: i.name, amount: i.amount, sub: i.note, checked: i.checked });
-    const extraRow = ({ e, p }) => rowHTML({ id: e.id, kind: e.src, name: p.name, amount: p.amount, checked: e.checked });
+    // A partner's initial: on things they added, and in the cart on things they checked.
+    const mine = me().name;
+    const other = n => (n && n !== mine ? n : "");
+    const itemRow = i => rowHTML({ id: i.key, kind: "item", name: i.name, amount: i.amount, sub: i.note, checked: i.checked, who: i.checked ? other(g.checkedBy?.[i.key]) : "" });
+    const extraRow = ({ e, p }) => rowHTML({ id: e.id, kind: e.src, name: p.name, amount: p.amount, checked: e.checked, who: other(e.checked ? e.cb : e.by) });
     // Aisles list only what's left to get; checked items move to "In cart" at the bottom. Things you
     // added go in their aisle when it's known ("milk" → Dairy), otherwise under Added items.
     const loose = extras.filter(x => !x.p.aisle && !x.e.checked);
@@ -175,7 +192,9 @@ export function groceryView(key) {
     document.querySelector(".page")?.classList.toggle("shopping", shop);
     document.querySelector(".page")?.classList.toggle("hasbar", shop || total > done);
     bindBody();
+    seen = { week: key, snap: live.snapshot(store.get(), key) };
   }
+  livePaint = paint;
 
   // Set an item's checked state. Returns a function that puts everything back (for Undo).
   const setChecked = (id, kind, on) => {
@@ -189,13 +208,16 @@ export function groceryView(key) {
       const was = e.checked; e.checked = on;
       return () => { const x = findExtra(id); if (x) x.checked = was; };
     }
-    const was = !!g.checked[id], pWas = pantry[id];
+    const was = !!g.checked[id], pWas = pantry[id], byWas = g.checkedBy?.[id];
     if (on) g.checked[id] = true; else delete g.checked[id];
+    const by = me().name;
+    if (on && by) (g.checkedBy ||= {})[id] = by; else if (g.checkedBy) delete g.checkedBy[id];
     // Bought a pantry item → remember you have it; unchecking means you don't.
     const it = findItem(id);
     if (it && it.kind !== "F") pantry[id] = on;
     return () => {
       if (was) g.checked[id] = true; else delete g.checked[id];
+      if (byWas) (g.checkedBy ||= {})[id] = byWas; else if (g.checkedBy) delete g.checkedBy[id];
       if (pWas === undefined) delete pantry[id]; else pantry[id] = pWas;
     };
   };
@@ -339,7 +361,7 @@ export function groceryView(key) {
     root.querySelectorAll("[data-have]").forEach(b => b.onclick = () => { pantry[b.dataset.have] = true; store.save(); paint(); });
     root.querySelectorAll("[data-need]").forEach(b => b.onclick = () => { pantry[b.dataset.need] = false; store.save(); paint(); });
     root.querySelectorAll("[data-outof]").forEach(b => b.onclick = () => { pantry[b.dataset.outof] = false; store.save(); toast("Added to the list"); paint(); });
-    document.getElementById("uncheck")?.addEventListener("click", () => { g.checked = {}; g.extras.forEach(e => e.checked = false); house.items().forEach(h => h.checked && house.setChecked(h.id, false)); store.save(); paint(); });
+    document.getElementById("uncheck")?.addEventListener("click", () => { g.checked = {}; delete g.checkedBy; g.extras.forEach(e => e.checked = false); house.items().forEach(h => h.checked && house.setChecked(h.id, false)); store.save(); paint(); });
     document.getElementById("unhide")?.addEventListener("click", () => { g.hidden = {}; store.save(); paint(); });
     document.getElementById("share")?.addEventListener("click", async () => {
       const text = `Groceries · ${weekLabel(key)}\n\n` + listAsText(key, { ...sec, extras: manual() });

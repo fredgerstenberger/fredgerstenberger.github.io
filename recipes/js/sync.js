@@ -329,15 +329,15 @@ export function start() {
     window.addEventListener("online", () => { if (meta) schedule(300); });
   }
   migrate();
-  // Every minute normally; every 8 seconds while a grocery list is open, so a partner's checks show up fast.
+  // Every minute normally; every 4 seconds while a grocery list is open, so a partner's checks show up fast.
   clearInterval(interval);
   let lastPoll = Date.now();
   interval = setInterval(() => {
     if (!meta || document.visibilityState !== "visible") return;
-    if (Date.now() - lastPoll < (onGrocery() ? 8000 : 60000)) return;
+    if (Date.now() - lastPoll < (onGrocery() ? 4000 : 60000)) return;
     lastPoll = Date.now();
     syncNow().catch(() => {});
-  }, 4000);
+  }, 1000);
   stamp();
   schedule(500);
 }

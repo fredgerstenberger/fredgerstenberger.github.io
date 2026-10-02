@@ -68,7 +68,7 @@ function hash(str) {
 }
 const GONE = fp(null);
 
-// A grocery week { checked, hidden, edits, extras[] } as flat fields: "c|eggs", "x|<extra id>", …
+// A grocery week { checked, checkedBy, hidden, edits, extras[] } as flat fields: "c|eggs", "b|eggs", "x|<extra id>", …
 // Other records are already flat maps (pantry item → yes/no, setting → value).
 export function toFields(k, v) {
   const out = {};
@@ -84,6 +84,8 @@ export function toFields(k, v) {
   }
   if (k.startsWith("g:")) {
     for (const [i, on] of Object.entries(v.checked || {})) if (on) out["c|" + i] = true;
+    // Who checked an item (v18+). Older versions drop these fields; the check itself is kept.
+    for (const [i, who] of Object.entries(v.checkedBy || {})) if (who && v.checked?.[i]) out["b|" + i] = who;
     for (const [i, on] of Object.entries(v.hidden || {})) if (on) out["h|" + i] = true;
     for (const [i, e] of Object.entries(v.edits || {})) if (e) out["e|" + i] = e;
     (v.extras || []).forEach((e, n) => { if (e?.id) out["x|" + e.id] = { text: e.text, checked: !!e.checked, at: e.at ?? n, ...(e.by ? { by: e.by } : {}) }; });
@@ -111,6 +113,7 @@ export function fromFields(k, fields) {
     else if (kind === "h") g.hidden[id] = true;
     else if (kind === "e") g.edits[id] = x;
     else if (kind === "x") g.extras.push({ id, ...x });
+    else if (kind === "b") (g.checkedBy ||= {})[id] = x;
   }
   g.extras.sort((a, b) => (a.at - b.at) || (a.id < b.id ? -1 : 1));
   return g;

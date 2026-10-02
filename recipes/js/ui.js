@@ -84,10 +84,13 @@ export function confirmBox(message, okLabel = "Delete", danger = true) {
 // ---- Toast ----
 let toastTimer;
 // action: { label, run } adds a button (e.g. Undo) and keeps the toast up a little longer.
-export function toast(msg, action = null) {
+// badge: a person's initial shown first (for a partner's changes).
+export function toast(msg, action = null, badge = "") {
   const t = document.getElementById("toast");
   t.textContent = msg;
+  if (badge) { const b = document.createElement("span"); b.className = "gby"; b.textContent = badge; t.prepend(b); }
   t.classList.toggle("act", !!action);
+  t.classList.toggle("who", !!badge);
   if (action) {
     const b = document.createElement("button");
     b.textContent = action.label;

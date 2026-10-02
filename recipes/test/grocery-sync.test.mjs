@@ -147,3 +147,35 @@ test("item 6: Done shopping on one phone while the other adds something; Undo br
     assert.equal(H.get(eggs).checked, true);
   }
 });
+
+test("item 7: who checked a recipe item syncs, and the other phone's note says so", async () => {
+  const { A, B } = await pair();
+  const LB = await B.load("live");
+  const gA = A.store.groceryState(WK), gB = B.store.groceryState(WK);
+  const before = LB.snapshot(B.store.get(), WK);
+  gA.checked.eggs = true; (gA.checkedBy ||= {}).eggs = "Fred"; A.store.save();
+  const HB = await B.load("household");
+  HB.add("Coffee", "Emma"); gB.checked.milk = true; (gB.checkedBy ||= {}).milk = "Emma"; B.store.save();
+  await A.sync.syncNow(); await B.sync.syncNow(); await settle(A, B);
+  const g = B.store.groceryState(WK);
+  assert.deepEqual(g.checked, { eggs: true, milk: true });
+  assert.deepEqual(g.checkedBy, { eggs: "Fred", milk: "Emma" });
+  assert.deepEqual(A.store.groceryState(WK).checkedBy, { eggs: "Fred", milk: "Emma" });
+  // B's own changes are part of "before" when the view draws them; here only Fred's check is new.
+  const mid = LB.snapshot({ ...B.store.get(), grocery: { [WK]: { checked: { milk: true }, checkedBy: { milk: "Emma" } } } }, WK);
+  assert.equal(LB.describe(LB.changes(mid, LB.snapshot(B.store.get(), WK))), "Fred checked eggs");
+  assert.ok(LB.changes(before, LB.snapshot(B.store.get(), WK)).length >= 2);
+});
+
+test("item 7: a phone that doesn't keep 'checked by' (older version) loses only the name, never the check", async () => {
+  const { A, B } = await pair();
+  const gA = A.store.groceryState(WK);
+  gA.checked.eggs = true; gA.checkedBy = { eggs: "Fred" }; A.store.save(); await settle(A, B);
+  // Like an older app saving the week: same checks, no checkedBy.
+  delete B.store.groceryState(WK).checkedBy; B.store.groceryState(WK).checked.foil = true; B.store.save();
+  await B.sync.syncNow(); await A.sync.syncNow(); await settle(A, B);
+  for (const p of [A, B]) {
+    assert.deepEqual(p.store.groceryState(WK).checked, { eggs: true, foil: true }, p.name);
+    assert.equal(p.store.groceryState(WK).checkedBy?.eggs, undefined, p.name);
+  }
+});
