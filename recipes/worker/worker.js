@@ -1,5 +1,6 @@
 import { ldJsonBlocks, recipeFromLdTexts, finishRecipe, htmlTitle, pageTextLite } from "../js/recipe-data.js";
 import { fp } from "../js/fields.js";
+import { normalizeLabel, checkLabel } from "../js/label.js";
 
 // Recipe Box helper — a small Cloudflare Worker with two jobs:
 //
@@ -9,6 +10,8 @@ import { fp } from "../js/fields.js";
 //      Results are cached for a week. (The old GET /?url= page proxy is retired.)
 //
 //   2. POST /scan   { images: ["data:image/jpeg;base64,…"], model?: "@cf/…" }
+//      POST /label  { images: ["data:image/jpeg;base64,…"], model?: "@cf/…" }  (a Nutrition Facts label:
+//                   returns just its fields, checked; the photo isn't kept anywhere)
 //      POST /read   { text: "…page text…", model?: "@cf/…" }  (recipe pages with no structured data)
 //
 //   3. POST /sync   { box: "<secret code>", since: 0, changes: [{ k, u, v }] }
@@ -49,7 +52,7 @@ const MODELS = [
 ];
 
 // Shown at /status so you can confirm which version Cloudflare is running.
-const VERSION = "2026-10-06";
+const VERSION = "2026-10-07";
 
 const MAX_PAGE_BYTES = 5_000_000;
 const MAX_SCAN_BYTES = 8_000_000; // request body: up to a few resized photos
@@ -78,6 +81,29 @@ Rules:
 const READ_PROMPT = PROMPT.replace("You are reading a photo of a recipe, usually a cookbook page.",
   "You are reading the text of a recipe web page (with menus, ads and comments mixed in). Ignore everything that isn't the recipe.")
   .replace("If several photos are pages of the same recipe, combine them in order.", "");
+
+const LABEL_PROMPT = `You are reading a photo or screenshot of a Nutrition Facts label on a food package.
+Return ONLY a JSON object, no other text, with exactly these keys:
+{
+  "serving_size": string or null,
+  "serving_grams": number or null,
+  "serving_ml": number or null,
+  "household_measure": string or null,
+  "servings_per_container": number or null,
+  "calories": number or null,
+  "protein": number or null,
+  "total_carbs": number or null,
+  "total_fat": number or null,
+  "fiber": number or null
+}
+Rules:
+- serving_size: the serving size text exactly as printed, e.g. "2 oz (56g)" or "1 cup (240mL)".
+- serving_grams / serving_ml: the metric amount of one serving, if printed (the number in grams or mL).
+- household_measure: the everyday measure if printed, e.g. "about 1/2 cup", "2 slices", "1 bar", "2 oz".
+- All nutrient values are PER SERVING (not per container, not % Daily Value), in grams; calories in kcal.
+- If the label has two columns (per serving and per container), use the per-serving column.
+- "<1g" means 0.5. "0g" means 0.
+- Use null for anything that isn't shown or that you can't read. Never guess or calculate a value.`;
 
 function cors(origin) {
   return {
@@ -235,7 +261,7 @@ function dataUrlBytes(dataUrl) {
   return bytes;
 }
 
-async function runModel(env, model, images, text) {
+async function runModel(env, model, images, text, prompt = PROMPT) {
   // Chat format with OpenAI-style image parts — used by the current vision models.
   const chat = {
     messages: [{
@@ -243,7 +269,7 @@ async function runModel(env, model, images, text) {
       content: text != null
         ? `${READ_PROMPT}\n\n--- PAGE TEXT ---\n${text}`
         : [
-          { type: "text", text: PROMPT },
+          { type: "text", text: prompt },
           ...images.map(url => ({ type: "image_url", image_url: { url } }))
         ]
     }],
@@ -255,7 +281,7 @@ async function runModel(env, model, images, text) {
   } catch (e) {
     // Older Llama vision format: one image as raw bytes plus a prompt.
     if (model.includes("llama-3.2") && images.length) {
-      return await env.AI.run(model, { prompt: PROMPT, image: [...dataUrlBytes(images[0])], max_tokens: 4096 });
+      return await env.AI.run(model, { prompt, image: [...dataUrlBytes(images[0])], max_tokens: 4096 });
     }
     throw e;
   }
@@ -294,6 +320,36 @@ async function scan(request, env, headers) {
   const recipe = extractJSON(text);
   if (!recipe) return json({ model, recipe: null, text }, 200, headers); // app falls back to its text parser
   return json({ model, recipe }, 200, headers);
+}
+
+// A Nutrition Facts label: the fields only, cleaned and checked (calories vs the macros). Same access
+// checks as /scan plus the rate limit. Nothing is stored: the photo is only passed to the model.
+const MAX_LABEL_BYTES = 4_000_000;
+async function label(request, env, headers) {
+  if (!env.AI) return json({ error: "Workers AI isn't connected. In the Worker's Settings → Bindings, add a Workers AI binding named AI, then deploy again." }, 500, headers);
+  if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) return json({ error: "Wrong or missing app key. Enter the same key in Recipe Box → Settings." }, 401, headers);
+  if (rateLimited(request)) return json({ error: "Too many requests. Try again in a minute." }, 429, headers);
+  if (Number(request.headers.get("Content-Length") || 0) > MAX_LABEL_BYTES) return json({ error: "Photo too large." }, 413, headers);
+  let body;
+  try { body = await request.json(); } catch { return json({ error: "Bad request" }, 400, headers); }
+  const images = (body.images || []).filter(s => typeof s === "string" && s.startsWith("data:image/")).slice(0, 2);
+  if (!images.length) return json({ error: "No photo received." }, 400, headers);
+  const model = MODELS.includes(body.model) ? body.model : MODELS[0];
+  let out;
+  try {
+    out = await runModel(env, model, images, null, LABEL_PROMPT);
+  } catch (e) {
+    const msg = String(e.message || e);
+    const hint = /limit|quota|neuron|429/i.test(msg) ? " You may have used up today's free Workers AI allowance; try again tomorrow." : "";
+    return json({ error: `The model couldn't read the label: ${msg}.${hint}` }, 502, headers);
+  }
+  const raw = extractJSON(answerText(out));
+  if (!raw) return json({ model, label: null, error: "Couldn't find a Nutrition Facts label in that picture." }, 200, headers);
+  const fields = normalizeLabel(raw);
+  if (fields.kcal == null && fields.protein == null && fields.carbs == null && fields.fat == null) {
+    return json({ model, label: null, error: "Couldn't read the nutrition numbers. Try a closer, straighter photo." }, 200, headers);
+  }
+  return json({ model, label: fields, check: checkLabel(fields) }, 200, headers);
 }
 
 // ---------- 4. Official data: BLS prices + USDA nutrition ----------
@@ -545,6 +601,10 @@ export default {
     if (path === "/scan" || path === "/read") {
       if (request.method !== "POST") return json({ error: "Use POST" }, 405, headers);
       return scan(request, env, headers);
+    }
+    if (path === "/label") {
+      if (request.method !== "POST") return json({ error: "Use POST" }, 405, headers);
+      return label(request, env, headers);
     }
     if (path === "/sync") {
       if (request.method !== "POST") return json({ error: "Use POST" }, 405, headers);

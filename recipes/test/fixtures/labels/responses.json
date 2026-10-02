@@ -1,0 +1,9 @@
+{
+  "_about": "Saved Workers AI responses for POST /label (offline tests). Each is what env.AI.run returned for a label photo.",
+  "pasta-clean": { "response": "{\"serving_size\":\"2 oz (56g)\",\"serving_grams\":56,\"serving_ml\":null,\"household_measure\":\"2 oz\",\"servings_per_container\":8,\"calories\":190,\"protein\":10,\"total_carbs\":35,\"total_fat\":1,\"fiber\":4}" },
+  "yogurt-chatty": { "choices": [{ "message": { "content": "<think>The label shows per serving values.</think>\n```json\n{\"serving_size\": \"3/4 cup (170g)\", \"serving_grams\": \"170 g\", \"serving_ml\": null, \"household_measure\": \"3/4 cup\", \"servings_per_container\": \"about 4\", \"calories\": \"100\", \"protein\": \"17g\", \"total_carbs\": \"6g\", \"total_fat\": \"0.5g\", \"fiber\": \"0g\"}\n```" } }] },
+  "oatmilk-ml-only": { "response": { "serving_size": "1 cup (240mL)", "serving_grams": null, "serving_ml": 240, "household_measure": "1 cup", "servings_per_container": 7, "calories": 120, "protein": 3, "total_carbs": 16, "total_fat": 5, "fiber": 2 } },
+  "misread-calories": { "response": "{\"serving_size\":\"1 bar (60g)\",\"serving_grams\":60,\"household_measure\":\"1 bar\",\"servings_per_container\":12,\"calories\":910,\"protein\":20,\"total_carbs\":23,\"total_fat\":7,\"fiber\":10}" },
+  "no-label": { "response": "I don't see a Nutrition Facts label in this image; it looks like the front of a box." },
+  "all-null": { "response": "{\"serving_size\":null,\"serving_grams\":null,\"serving_ml\":null,\"household_measure\":null,\"servings_per_container\":null,\"calories\":null,\"protein\":null,\"total_carbs\":null,\"total_fat\":null,\"fiber\":null}" }
+}
