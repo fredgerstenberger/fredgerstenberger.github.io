@@ -133,9 +133,10 @@ export function findTimes(escapedText) {
     const u = unit.toLowerCase();
     const mult = u.startsWith("h") ? 60 : u.startsWith("s") ? 1 / 60 : 1;
     const n = a.includes("/") ? a.split("/").reduce((x, y) => +x / +y) : parseFloat(a);
-    const min = n * mult;
-    if (!min || min > 24 * 60) return m;
-    if (!timers.some(t => t.min === min)) timers.push({ min, text: shortTime(min) });
+    // "20 to 25 minutes" offers both: start the short one and check, or go straight for the long one.
+    const mins = [n * mult, b ? parseFloat(b) * mult : null].filter(x => x && x <= 24 * 60);
+    if (!mins.length) return m;
+    for (const min of mins) if (!timers.some(t => t.min === min)) timers.push({ min, text: shortTime(min) });
     return `<b>${m}</b>`;
   });
   return { html, timers };

@@ -81,7 +81,7 @@ export function recipeView(id) {
         amt = canConvert
           ? `<button class="amt" data-conv="${i}" aria-label="Show conversions for ${esc(a)}">${esc(a)}</button>`
           : `<span class="amt">${esc(a)}</span>`;
-        rest = esc(ing.name + (ing.note ? `, ${ing.note}` : ""));
+        rest = esc((ing.display || ing.name) + (ing.note ? `, ${ing.note}` : ""));
       }
       return `<li class="${done ? "done" : ""}"><label><input type="checkbox" data-ing="${i}" ${done ? "checked" : ""}><span>${amt} ${rest}</span></label></li>`;
     }).join("");
