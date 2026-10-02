@@ -34,7 +34,7 @@ export function shell({ title, body, status = "", actions = "", back = "#/", cal
 }
 
 // Calm pages show the title in the top bar once the big title has scrolled away.
-addEventListener("scroll", () => document.querySelector(".page.calm")?.classList.toggle("scrolled", scrollY > 56), { passive: true });
+if (typeof addEventListener === "function") addEventListener("scroll", () => document.querySelector(".page.calm")?.classList.toggle("scrolled", scrollY > 56), { passive: true });
 
 export function render(html, { keepScroll = false } = {}) {
   const y = window.scrollY;

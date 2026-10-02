@@ -1,6 +1,7 @@
 // Ingredient line parsing, unit conversion and friendly formatting.
 import { matchFood } from "./fooddb.js";
 import { usdaFood, noteUnknown, customFood } from "./data.js";
+import { nutritionVariant } from "./variants.js";
 
 // ---- Units ----
 // dim: "mass" (base g), "vol" (base ml), "count"
@@ -243,17 +244,36 @@ export function parseIngredient(line) {
   let food = matchFood(name) || matchFood(s);
   // "2 cans tomatoes" means canned tomatoes, not fresh.
   if (unit === "can" && food?.aisle !== "canned") food = matchFood("canned " + name) || food;
+  if (food && food.kind !== "X") food = withYourInfo(food, name);
   if (!food) {
     // Not in the built-in table: use a USDA lookup if we have one, otherwise ask for it in the background.
     // Your own info wins; it fills in on top of the USDA match when there is one.
     const key = cleanName(name);
     const mine = customFood(key), usda = usdaFood(key);
     food = mine && usda ? { ...usda, ...mine, nu: mine.nu || usda.nu, usda: mine.nu ? null : usda.usda } : mine || usda;
+    if (food) food = { ...food, infoKey: key };
     if (!usda) noteUnknown(key);
   }
   name = name.trim();
   const display = sizeWords.length ? `${sizeWords.join(" ")} ${name}` : name;
   return { raw, qty, qtyMax, unit, size, name, display, note, food, compound };
+}
+
+// A table food, with your info for it when you've added some (a label, or your own numbers).
+// A specific product ("protein pasta", "Barilla penne", "skim milk") gets its own info key; until you add
+// its info it uses the table food's numbers as a stand-in. Aisle, price and the grocery list always follow
+// the table food (name stays the same).
+function withYourInfo(food, name) {
+  const v = nutritionVariant(name, food);
+  const infoKey = v ? v.key : food.name;
+  const mine = customFood(infoKey);
+  if (!v && !mine?.nu) return food;
+  return {
+    ...food, infoKey, base: food.name,
+    nu: mine?.nu || food.nu,
+    gCup: mine?.gCup ?? food.gCup, gEach: mine?.gEach ?? food.gEach,
+    standIn: !mine?.nu, yours: !!mine?.nu, label: mine?.label || null
+  };
 }
 
 // ---- Conversions ----
