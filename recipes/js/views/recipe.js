@@ -117,6 +117,7 @@ export function recipeView(id) {
     if (r.cookMin) times.push(`Cook ${fmtMinutes(r.cookMin)}`);
 
     render(shell({
+      bigTitle: false,
       title: r.title,
       back: "#/book",
       actions: `<button class="tb-btn" id="cookBtn" aria-pressed="${P.cook}">${P.cook ? "Exit cook" : "Cook mode"}</button>`,

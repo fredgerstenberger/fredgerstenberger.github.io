@@ -61,7 +61,7 @@ export function groceryView(key) {
 
   render(shell({
     title: "Groceries",
-    calm: true,
+    bigTitle: false,
     body: `
       <h1 class="ctitle">Groceries</h1>
       <div class="csub">

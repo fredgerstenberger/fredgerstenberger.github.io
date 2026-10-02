@@ -16,8 +16,10 @@ export const app = () => document.getElementById("app");
 
 export function go(hash) { location.hash = hash; }
 
-/** A full page. The back arrow goes back (or home). calm: the Calm Pixel chrome (no window frame). */
-export function shell({ title, body, status = "", actions = "", back = "#/", calm = false }) {
+/** A full page in the Calm Pixel style: a quiet top bar (back arrow, title once you scroll, actions) and
+ * a large title. bigTitle: false for screens that draw their own title. */
+export function shell({ title, body, status = "", actions = "", back = "#/", calm = true, bigTitle = true }) {
+  if (calm && bigTitle) body = `<h1 class="ctitle">${esc(title)}</h1>` + body;
   return `<main class="page${calm ? " calm" : ""}">
     <section class="win screen">
       <div class="titlebar">

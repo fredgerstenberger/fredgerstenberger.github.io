@@ -47,7 +47,7 @@ function homeView() {
     ["settings", "Settings", "#/settings", ""]
   ];
 
-  render(`<main class="page">
+  render(`<main class="page calm home">
     <header class="hero">
       <div>
         <h1><span>Recipe</span><span>Box</span></h1>
