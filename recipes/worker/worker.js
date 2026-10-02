@@ -1,7 +1,11 @@
+import { ldJsonBlocks, recipeFromLdTexts, finishRecipe, htmlTitle, pageTextLite } from "../js/recipe-data.js";
+
 // Recipe Box helper — a small Cloudflare Worker with two jobs:
 //
-//   1. GET  /?url=https://some-recipe-site.com/recipe
-//      Downloads a recipe page for the app (browsers can't read other sites directly).
+//   1. GET  /recipe?url=https://some-recipe-site.com/recipe[&ai=1&model=…]
+//      Reads a recipe page and returns just the recipe as JSON (from the page's structured data, or
+//      with AI when there is none). It never returns the page itself, so it isn't a general proxy.
+//      Results are cached for a week. (The old GET /?url= page proxy is retired.)
 //
 //   2. POST /scan   { images: ["data:image/jpeg;base64,…"], model?: "@cf/…" }
 //      POST /read   { text: "…page text…", model?: "@cf/…" }  (recipe pages with no structured data)
@@ -44,7 +48,7 @@ const MODELS = [
 ];
 
 // Shown at /status so you can confirm which version Cloudflare is running.
-const VERSION = "2026-10-04";
+const VERSION = "2026-10-05";
 
 const MAX_PAGE_BYTES = 5_000_000;
 const MAX_SCAN_BYTES = 8_000_000; // request body: up to a few resized photos
@@ -123,15 +127,10 @@ function rateLimited(request) {
 }
 
 // ---------- 1. Recipe page proxy ----------
-async function proxy(request, env, headers) {
-  if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) return new Response("Wrong or missing app key.", { status: 401, headers });
-  if (rateLimited(request)) return new Response("Too many requests. Try again in a minute.", { status: 429, headers });
-  const target = new URL(request.url).searchParams.get("url");
-  let url;
-  try { url = new URL(target); } catch { return new Response("Missing or invalid ?url=", { status: 400, headers }); }
-  if (!allowedTarget(url)) return new Response("URL not allowed", { status: 400, headers });
+// Download a public web page, following redirects ourselves so every hop gets the address check.
+// Returns { html, url } or { error, status }.
+async function fetchPublicPage(url) {
   try {
-    // Follow redirects ourselves so every hop gets the same address check.
     let res;
     for (let hop = 0; ; hop++) {
       res = await fetch(url.toString(), {
@@ -145,20 +144,64 @@ async function proxy(request, env, headers) {
       });
       const loc = res.status >= 300 && res.status < 400 && res.headers.get("Location");
       if (!loc) break;
-      if (hop >= 5) return new Response("Too many redirects", { status: 508, headers });
-      try { url = new URL(loc, url); } catch { return new Response("Bad redirect", { status: 502, headers }); }
-      if (!allowedTarget(url)) return new Response("URL not allowed", { status: 400, headers });
+      if (hop >= 5) return { error: "Too many redirects", status: 508 };
+      try { url = new URL(loc, url); } catch { return { error: "Bad redirect", status: 502 }; }
+      if (!allowedTarget(url)) return { error: "URL not allowed", status: 400 };
     }
-    if (Number(res.headers.get("Content-Length")) > MAX_PAGE_BYTES) return new Response("Page too large", { status: 413, headers });
+    if (!res.ok) return { error: `The site answered HTTP ${res.status}`, status: 502 };
+    if (Number(res.headers.get("Content-Length")) > MAX_PAGE_BYTES) return { error: "Page too large", status: 413 };
     const body = await res.arrayBuffer();
-    if (body.byteLength > MAX_PAGE_BYTES) return new Response("Page too large", { status: 413, headers });
-    return new Response(body, {
-      status: res.status,
-      headers: { ...headers, "Content-Type": res.headers.get("Content-Type") || "text/html; charset=utf-8" }
-    });
+    if (body.byteLength > MAX_PAGE_BYTES) return { error: "Page too large", status: 413 };
+    return { html: new TextDecoder().decode(body), url };
   } catch (e) {
-    return new Response(`Fetch failed: ${e.message}`, { status: 502, headers });
+    return { error: `Couldn't download the page: ${e.message}`, status: 502 };
   }
+}
+
+const RECIPE_TTL = 7 * 24 * 3600 * 1000;
+
+// GET /recipe?url=…[&ai=1&model=…] → { recipe, via: "data" | "ai" }
+// The Worker reads the page and returns only the recipe, never the page itself, so it's no use as a
+// general-purpose proxy. Results are cached for a week and shared, so a popular recipe is fetched once.
+async function recipe(request, env, headers) {
+  if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) return json({ error: "Wrong or missing app key. Enter the same key in Recipe Box → Settings." }, 401, headers);
+  if (rateLimited(request)) return json({ error: "Too many requests. Try again in a minute." }, 429, headers);
+  const params = new URL(request.url).searchParams;
+  let url;
+  try { url = new URL(params.get("url")); } catch { return json({ error: "Missing or invalid url" }, 400, headers); }
+  if (!allowedTarget(url)) return json({ error: "That address isn't allowed." }, 400, headers);
+  url.hash = "";
+  const wantAI = params.get("ai") === "1" && !!env.AI;
+  const model = MODELS.includes(params.get("model")) ? params.get("model") : MODELS[0];
+
+  const key = "recipe:" + url.href;
+  if (env.CACHE) {
+    const hit = (await cacheOp(env, { get: [key] }).catch(() => ({})))[key];
+    if (hit && Date.now() - hit.at < RECIPE_TTL && (hit.via === "data" || wantAI)) return json({ recipe: hit.recipe, via: hit.via, cached: true }, 200, headers);
+  }
+
+  const page = await fetchPublicPage(url);
+  if (page.error) return json({ error: page.error }, page.status, headers);
+  let out = null;
+  const r = recipeFromLdTexts(ldJsonBlocks(page.html));
+  if (r && r.ingredients.length) out = { recipe: finishRecipe(r, url.href, htmlTitle(page.html)), via: "data" };
+  else if (wantAI) {
+    const textForAI = pageTextLite(page.html).slice(0, 40000);
+    if (textForAI.length >= 50) {
+      try {
+        const got = extractJSON(answerText(await runModel(env, model, [], textForAI)));
+        if (got && Array.isArray(got.ingredients) && got.ingredients.length) {
+          out = { recipe: { ...got, title: got.title || htmlTitle(page.html), url: url.href, site: url.hostname.replace(/^www\./, "") }, via: "ai", model };
+        }
+      } catch (e) {
+        const msg = String(e.message || e);
+        return json({ error: `AI couldn't read the page: ${msg}${/limit|quota|neuron|429/i.test(msg) ? ". You may have used up today's free Workers AI allowance." : ""}` }, 502, headers);
+      }
+    }
+  }
+  if (!out) return json({ error: "Downloaded the page but couldn't find a recipe on it.", code: "no_recipe", ai: !!env.AI }, 422, headers);
+  if (env.CACHE) await cacheOp(env, { put: { [key]: { ...out, at: Date.now() } } }).catch(() => {});
+  return json(out, 200, headers);
 }
 
 // ---------- 2. Photo scan ----------
@@ -507,12 +550,17 @@ export default {
       if (request.method !== "POST") return json({ error: "Use POST" }, 405, headers);
       return invite(request, env, headers);
     }
+    if (path === "/recipe") return recipe(request, env, headers);
     if (path === "/prices") return prices(env, headers);
     if (path === "/nutrition") return nutrition(request, env, headers);
     if (path === "/status") {
       return json({ ok: true, version: VERSION, ai: !!env.AI, sync: !!env.SYNC, data: !!env.CACHE, fdcKey: !!env.FDC_KEY, blsKey: !!env.BLS_KEY, keyRequired: !!env.APP_KEY, models: MODELS }, 200, headers);
     }
-    if (request.method !== "GET") return new Response("Method not allowed", { status: 405, headers });
-    return proxy(request, env, headers);
+    // The old "send me this page" route (GET /?url=) is retired: use /recipe. Older app versions then
+    // fall back to the public proxies until they update.
+    if (path === "" && new URL(request.url).searchParams.has("url")) {
+      return json({ error: "This Worker now reads recipes itself. Update Recipe Box (Settings → Check for updates)." }, 410, headers);
+    }
+    return json({ error: "Not found" }, 404, headers);
   }
 };

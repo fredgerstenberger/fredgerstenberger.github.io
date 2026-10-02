@@ -259,9 +259,16 @@ export function settingsView() {
     let linkOk = false, linkStatus = 0, st = null;
     try {
       const key = store.settings().scanKey;
-      const res = await fetch(`${base}/?url=${encodeURIComponent("https://example.com/")}`, { headers: key ? { "X-App-Key": key } : {} });
+      const headers = key ? { "X-App-Key": key } : {};
+      // A page with no recipe: a working Worker answers "no recipe found" (422).
+      let res = await fetch(`${base}/recipe?url=${encodeURIComponent("https://example.com/")}`, { headers });
       linkStatus = res.status;
-      linkOk = res.ok && /Example Domain/i.test(await res.text());
+      linkOk = res.status === 422 && (await res.json().catch(() => ({}))).code === "no_recipe";
+      if (!linkOk && linkStatus !== 401) { // older Worker: its page proxy
+        res = await fetch(`${base}/?url=${encodeURIComponent("https://example.com/")}`, { headers });
+        linkOk = res.ok && /Example Domain/i.test(await res.text());
+        if (res.status === 401) linkStatus = 401;
+      }
     } catch {}
     try { const r = await fetch(`${base}/status`); if (r.ok) st = await r.json(); } catch {}
     const line = (ok, text) => `<div>${ok ? "✓" : "✗"} ${text}</div>`;
