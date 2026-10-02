@@ -119,26 +119,25 @@ export const SPRITES = {
     ],
     colors: { k: K, w: "#FFFFFF", b: "#6FA8DC" }
   },
+  // Two toggle switches, one on and one off.
   settings: {
     map: [
-      "......kkkk......",
-      ".kkkk.kssk.kkkk.",
-      ".kssk.kssk.kssk.",
-      ".kssskssssksssk.",
-      ".kksssssssssskk.",
-      "...kssskksssk...",
-      "kkksssk..kssskkk",
-      "kssssk....kssssk",
-      "kssssk....kssssk",
-      "kkksssk..kssskkk",
-      "...kssskksssk...",
-      ".kksssssssssskk.",
-      ".kssskssssksssk.",
-      ".kssk.kssk.kssk.",
-      ".kkkk.kssk.kkkk.",
-      "......kkkk......"
+      "..kkkkkkkkkkkk..",
+      ".kgggggggkwwwwk.",
+      "kgggggggkwwwwwwk",
+      "kgggggggkwwwwwwk",
+      ".kgggggggkwwwwk.",
+      "..kkkkkkkkkkkk..",
+      "................",
+      "................",
+      "..kkkkkkkkkkkk..",
+      ".kwwwwksssssssk.",
+      "kwwwwwwksssssssk",
+      "kwwwwwwksssssssk",
+      ".kwwwwksssssssk.",
+      "..kkkkkkkkkkkk.."
     ],
-    colors: { k: K, s: "#C9CED6" }
+    colors: { k: K, g: "#3FAE5A", w: "#FFFFFF", s: "#C9CED6" }
   },
   price: {
     map: [
