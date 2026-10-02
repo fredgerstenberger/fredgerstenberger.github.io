@@ -44,7 +44,7 @@ const MODELS = [
 ];
 
 // Shown at /status so you can confirm which version Cloudflare is running.
-const VERSION = "2026-10-03";
+const VERSION = "2026-10-04";
 
 const MAX_PAGE_BYTES = 5_000_000;
 const MAX_SCAN_BYTES = 8_000_000; // request body: up to a few resized photos
@@ -88,28 +88,68 @@ function json(data, status, headers) {
   return new Response(JSON.stringify(data), { status, headers: { ...headers, "Content-Type": "application/json" } });
 }
 
+// Refuse anything that isn't an ordinary public web address: private/reserved IPv4 ranges, any IPv6
+// literal, numeric tricks like 2130706433 or 0x7f.0.0.1, and local-only names.
 function isPrivateHost(host) {
-  return /^(localhost|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|0\.|\[?::1\]?$|\[?f[cd])/i.test(host);
+  const h = String(host || "").toLowerCase().replace(/\.+$/, "");
+  if (!h || h.startsWith("[") || h.includes(":")) return true;                 // IPv6 literals: recipes never need them
+  if (/(^|\.)(localhost|local|internal|intranet|lan|home\.arpa|corp)$/.test(h)) return true;
+  const parts = h.split(".");
+  if (parts.every(x => /^(0x[0-9a-f]*|\d+)$/.test(x))) {
+    // Numeric host: only plain dotted-decimal public IPv4 is allowed.
+    if (parts.length !== 4 || parts.some(x => !/^(0|[1-9]\d{0,2})$/.test(x) || +x > 255)) return true;
+    const [a, b] = parts.map(Number);
+    return a === 0 || a === 10 || a === 127 || a >= 224 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) || (a === 192 && b === 0) || (a === 198 && (b === 18 || b === 19));
+  }
+  return false;
+}
+
+function allowedTarget(u) {
+  return /^https?:$/.test(u.protocol) && !u.username && !u.password && !isPrivateHost(u.hostname);
+}
+
+// Light rate limit for the link proxy: per address, per Worker instance (each Cloudflare location runs
+// its own, so this only stops bursts; APP_KEY is what actually locks the Worker to your app).
+const RATE = { max: 30, windowMs: 60_000 };
+const hits = new Map();
+function rateLimited(request) {
+  const ip = request.headers.get("CF-Connecting-IP") || "?";
+  const now = Date.now();
+  let e = hits.get(ip);
+  if (!e || now > e.reset) { e = { n: 0, reset: now + RATE.windowMs }; hits.set(ip, e); }
+  if (hits.size > 5000) for (const [k, v] of hits) if (now > v.reset) hits.delete(k);
+  return ++e.n > RATE.max;
 }
 
 // ---------- 1. Recipe page proxy ----------
-async function proxy(request, headers) {
+async function proxy(request, env, headers) {
+  if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) return new Response("Wrong or missing app key.", { status: 401, headers });
+  if (rateLimited(request)) return new Response("Too many requests. Try again in a minute.", { status: 429, headers });
   const target = new URL(request.url).searchParams.get("url");
   let url;
   try { url = new URL(target); } catch { return new Response("Missing or invalid ?url=", { status: 400, headers }); }
-  if (!/^https?:$/.test(url.protocol) || isPrivateHost(url.hostname)) {
-    return new Response("URL not allowed", { status: 400, headers });
-  }
+  if (!allowedTarget(url)) return new Response("URL not allowed", { status: 400, headers });
   try {
-    const res = await fetch(url.toString(), {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9"
-      },
-      redirect: "follow",
-      cf: { cacheTtl: 3600, cacheEverything: true }
-    });
+    // Follow redirects ourselves so every hop gets the same address check.
+    let res;
+    for (let hop = 0; ; hop++) {
+      res = await fetch(url.toString(), {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.9"
+        },
+        redirect: "manual",
+        cf: { cacheTtl: 3600, cacheEverything: true }
+      });
+      const loc = res.status >= 300 && res.status < 400 && res.headers.get("Location");
+      if (!loc) break;
+      if (hop >= 5) return new Response("Too many redirects", { status: 508, headers });
+      try { url = new URL(loc, url); } catch { return new Response("Bad redirect", { status: 502, headers }); }
+      if (!allowedTarget(url)) return new Response("URL not allowed", { status: 400, headers });
+    }
+    if (Number(res.headers.get("Content-Length")) > MAX_PAGE_BYTES) return new Response("Page too large", { status: 413, headers });
     const body = await res.arrayBuffer();
     if (body.byteLength > MAX_PAGE_BYTES) return new Response("Page too large", { status: 413, headers });
     return new Response(body, {
@@ -448,9 +488,13 @@ export default {
     const headers = cors(origin);
 
     if (request.method === "OPTIONS") return new Response(null, { headers });
-    if (origin && !ALLOWED_ORIGINS.includes(origin)) return new Response("Forbidden", { status: 403, headers });
-
     const path = new URL(request.url).pathname.replace(/\/+$/, "");
+
+    // /status is for checking setup from a browser tab, so it answers anyone (it reveals no data).
+    // Everything else only answers your app: browsers always send its Origin on these requests.
+    // (Scripts can fake an Origin header, so set APP_KEY to really lock the Worker down.)
+    if (path !== "/status" && !ALLOWED_ORIGINS.includes(origin)) return new Response("Forbidden", { status: 403, headers });
+
     if (path === "/scan" || path === "/read") {
       if (request.method !== "POST") return json({ error: "Use POST" }, 405, headers);
       return scan(request, env, headers);
@@ -469,6 +513,6 @@ export default {
       return json({ ok: true, version: VERSION, ai: !!env.AI, sync: !!env.SYNC, data: !!env.CACHE, fdcKey: !!env.FDC_KEY, blsKey: !!env.BLS_KEY, keyRequired: !!env.APP_KEY, models: MODELS }, 200, headers);
     }
     if (request.method !== "GET") return new Response("Method not allowed", { status: 405, headers });
-    return proxy(request, headers);
+    return proxy(request, env, headers);
   }
 };
