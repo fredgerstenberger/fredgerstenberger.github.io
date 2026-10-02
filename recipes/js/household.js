@@ -10,7 +10,9 @@ const all = () => (store.get().household ||= {});
 export const items = () => Object.entries(all()).map(([id, h]) => ({ id, ...h })).sort((a, b) => (a.at || 0) - (b.at || 0) || (a.id < b.id ? -1 : 1));
 export const get = id => (all()[id] ? { id, ...all()[id] } : null);
 
-export function add(text, by = "", id = uid(), at = Date.now()) {
+// Each new item is later than the newest one, so several added at once (a ?add= link) keep their order.
+const nextAt = () => Math.max(Date.now(), ...Object.values(all()).map(h => (h.at || 0) + 1));
+export function add(text, by = "", id = uid(), at = nextAt()) {
   all()[id] = { text: String(text).trim(), checked: false, at, ...(by ? { by } : {}) };
   return id;
 }

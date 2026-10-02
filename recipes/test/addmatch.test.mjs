@@ -110,3 +110,10 @@ test("recipe lines: a food inside a longer product name doesn't count as that fo
   assert.equal(food("1 cup 2% milk"), "milk");
   assert.equal(parseIngredient("2% milk").qty, null);
 });
+
+test("several things added in the same moment (a ?add= link) keep their order", () => {
+  fettuccineWeek();
+  const ids = ["a", "b", "c", "d", "e", "f"].map(t => house.add(t));
+  assert.deepEqual(house.items().map(h => h.text), ["a", "b", "c", "d", "e", "f"]);
+  assert.equal(new Set(house.items().map(h => h.at)).size, ids.length);
+});
