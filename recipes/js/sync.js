@@ -161,7 +161,8 @@ export async function syncNow() {
     let applied = 0;
     for (const r of data.records || []) {
       if (isFieldRecord(r.k)) { applied += mergeIn(r); continue; }
-      if (!(r.k in meta.u) || r.u > meta.u[r.k]) {
+      // Newest wins; an exact tie goes to the larger fingerprint, as on the Worker, so all devices agree.
+      if (!(r.k in meta.u) || r.u > meta.u[r.k] || (r.u === meta.u[r.k] && fp(r.v ?? null) > (meta.h[r.k] ?? fp(null)))) {
         apply(r.k, r.v);
         meta.u[r.k] = r.u;
         meta.h[r.k] = r.v == null ? null : fp(r.v);

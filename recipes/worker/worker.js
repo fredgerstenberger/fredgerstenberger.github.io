@@ -1,4 +1,5 @@
 import { ldJsonBlocks, recipeFromLdTexts, finishRecipe, htmlTitle, pageTextLite } from "../js/recipe-data.js";
+import { fp } from "../js/fields.js";
 
 // Recipe Box helper — a small Cloudflare Worker with two jobs:
 //
@@ -48,7 +49,7 @@ const MODELS = [
 ];
 
 // Shown at /status so you can confirm which version Cloudflare is running.
-const VERSION = "2026-10-05";
+const VERSION = "2026-10-06";
 
 const MAX_PAGE_BYTES = 5_000_000;
 const MAX_SCAN_BYTES = 8_000_000; // request body: up to a few resized photos
@@ -508,7 +509,10 @@ export class RecipeSync {
       if (!c || typeof c.k !== "string" || c.k.length > 200 || typeof c.u !== "number") continue;
       const key = "k:" + c.k;
       const cur = writes[key] || await this.storage.get(key);
-      if (!cur || c.u > cur.u) writes[key] = { u: c.u, v: c.v === undefined ? null : c.v, s: ++seq };
+      const v = c.v === undefined ? null : c.v;
+      // Newest write wins. Two writes with the same time (two phones in the same millisecond) are
+      // decided by fingerprint, the same rule the app uses, so every device ends up with the same copy.
+      if (!cur || c.u > cur.u || (c.u === cur.u && fp(v) > fp(cur.v ?? null))) writes[key] = { u: c.u, v, s: ++seq };
     }
     const entries = Object.entries(writes);
     for (let i = 0; i < entries.length; i += 100) await this.storage.put(Object.fromEntries(entries.slice(i, i + 100)));
