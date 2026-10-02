@@ -949,3 +949,19 @@ dialog.win[open] { animation: fadein var(--quick) var(--ease); }
 .timer.done { animation: none; }
 @media (prefers-reduced-motion: no-preference) { .timer.done { animation: pulse 1.2s ease-in-out infinite; } }
 @keyframes pulse { 50% { filter: brightness(1.25); } }
+
+.toast.act { pointer-events: auto; display: flex; align-items: center; gap: var(--s3); padding: 6px 6px 6px 16px; }
+.toast.act button { border: 0; border-radius: 999px; background: color-mix(in srgb, var(--c-toast-ink) 18%, transparent); color: var(--c-toast-ink);
+  font: 800 14px var(--body); min-height: 36px; padding: 0 14px; cursor: pointer; }
+
+/* Checking off: the row fills, then folds away into In cart */
+.grow { transition: max-height var(--quick) var(--ease), opacity var(--quick) var(--ease); max-height: 200px; }
+.grow.leaving { max-height: 0; opacity: 0; }
+.grow.leaving + .grow { border-top-color: transparent; }
+.gcart summary { list-style: none; cursor: pointer; }
+.gcart summary::-webkit-details-marker { display: none; }
+.gcart summary .chead { margin-bottom: var(--s2); }
+.gcart .tw { transition: transform var(--quick) var(--ease); display: inline-block; }
+.gcart[open] .tw { transform: rotate(180deg); }
+.gdone { text-align: center; padding: var(--s5) var(--s4) var(--s2); color: var(--c-muted); font: var(--t-small); }
+.gdone b { display: block; color: var(--c-ink); font: var(--t-row); margin-top: var(--s2); }

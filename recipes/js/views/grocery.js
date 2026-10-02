@@ -11,6 +11,8 @@ import { pix } from "../pixicons.js";
 
 const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
 const HINT_KEY = "rb.groceryHint";
+const CART_KEY = "rb.cartOpen";
+const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function progressHTML(done, total, left) {
   const bar = total <= 24
@@ -44,15 +46,25 @@ export function groceryView(key) {
   const estLeft = priced.filter(i => !i.checked).reduce((t, i) => t + i.cost, 0);
 
   const itemRow = i => rowHTML({ id: i.key, kind: "item", name: i.name, amount: i.amount, sub: i.note, checked: i.checked });
+  const extraRow = e => rowHTML({ id: e.id, kind: "extra", name: e.text, checked: e.checked });
+  // Aisles list only what's left to get; checked items move to "In cart" at the bottom.
   const byAisle = AISLES.map(([id, label]) => {
-    const items = sec.buy.filter(i => i.aisle === id).sort((a, b) => a.checked - b.checked || a.name.localeCompare(b.name));
+    const items = sec.buy.filter(i => i.aisle === id && !i.checked).sort((a, b) => a.name.localeCompare(b.name));
     if (!items.length) return "";
-    const open = items.filter(i => !i.checked).length;
-    return `<div class="chead">${pix(id, 16)} ${label}<span class="n">${open || "✓"}</span></div>
+    return `<div class="chead">${pix(id, 16)} ${label}<span class="n">${items.length}</span></div>
       <div class="card"><ul class="glist">${items.map(itemRow).join("")}</ul></div>`;
   }).join("");
-  const extras = sec.extras.length ? `<div class="chead">${pix("home", 16)} Added items<span class="n">${sec.extras.filter(e => !e.checked).length || "✓"}</span></div>
-    <div class="card"><ul class="glist">${[...sec.extras].sort((a, b) => a.checked - b.checked).map(e => rowHTML({ id: e.id, kind: "extra", name: e.text, checked: e.checked })).join("")}</ul></div>` : "";
+  const openExtras = sec.extras.filter(e => !e.checked);
+  const extras = openExtras.length ? `<div class="chead">${pix("home", 16)} Added items<span class="n">${openExtras.length}</span></div>
+    <div class="card"><ul class="glist">${openExtras.map(extraRow).join("")}</ul></div>` : "";
+  const inCart = [...sec.buy.filter(i => i.checked).map(itemRow), ...sec.extras.filter(e => e.checked).map(extraRow)];
+  let cartOpen = false;
+  try { cartOpen = sessionStorage.getItem(CART_KEY) === "1"; } catch {}
+  const cart = inCart.length ? `<details class="gcart" id="gcart" ${cartOpen ? "open" : ""}>
+      <summary><div class="chead">${pix("cart", 16)} In cart (${inCart.length})<span class="n"><span class="tw">▾</span></span></div></summary>
+      <div class="card"><ul class="glist">${inCart.join("")}</ul></div>
+    </details>` : "";
+  const allDone = total > 0 && done === total;
 
   const prev = weekKey(addDays(parseWeekKey(key), -7)), next = weekKey(addDays(parseWeekKey(key), 7));
   const rel = weekRelation(key);
@@ -84,8 +96,10 @@ export function groceryView(key) {
         </div>`).join("")}
       </div>` : ""}
 
+      ${allDone ? `<div class="gdone">${pix("cart", 32)}<b>Everything's in the cart</b>Nice shopping.</div>` : ""}
       ${extras}
       ${byAisle}
+      ${cart}
 
       ${sec.have.length ? `<details class="ghave"><summary class="chead">${pix("canned", 16)} Already in your pantry<span class="n">${sec.have.length} ▾</span></summary>
         <div class="card"><ul class="glist">${sec.have.map(i => `<li class="grow"><div class="grow-main" style="cursor:default">
@@ -105,18 +119,38 @@ export function groceryView(key) {
   const findItem = id => sec.buy.find(i => i.key === id);
   const findExtra = id => g.extras.find(x => x.id === id);
 
-  const toggle = (id, kind) => {
-    if (kind === "extra") { const e = findExtra(id); if (e) e.checked = !e.checked; }
-    else {
-      const on = !g.checked[id];
-      if (on) g.checked[id] = true; else delete g.checked[id];
-      // Bought a pantry item → remember you have it; unchecking means you don't.
-      const it = findItem(id);
-      if (it && it.kind !== "F") pantry[id] = on;
+  // Set an item's checked state. Returns a function that puts everything back (for Undo).
+  const setChecked = (id, kind, on) => {
+    if (kind === "extra") {
+      const e = findExtra(id); if (!e) return () => {};
+      const was = e.checked; e.checked = on;
+      return () => { const x = findExtra(id); if (x) x.checked = was; };
     }
+    const was = !!g.checked[id], pWas = pantry[id];
+    if (on) g.checked[id] = true; else delete g.checked[id];
+    // Bought a pantry item → remember you have it; unchecking means you don't.
+    const it = findItem(id);
+    if (it && it.kind !== "F") pantry[id] = on;
+    return () => {
+      if (was) g.checked[id] = true; else delete g.checked[id];
+      if (pWas === undefined) delete pantry[id]; else pantry[id] = pWas;
+    };
+  };
+  const toggle = (id, kind, li) => {
+    const on = !li.classList.contains("got");
+    const name = li.querySelector(".gname").firstChild.textContent;
     try { localStorage.setItem(HINT_KEY, "1"); } catch {}
-    store.save();
-    redraw();
+    const commit = () => {
+      const undo = setChecked(id, kind, on);
+      store.save();
+      redraw();
+      if (on) toast(`${name} is in the cart`, { label: "Undo", run: () => { undo(); store.save(); redraw(); } });
+    };
+    if (reducedMotion()) return commit();
+    // The box fills, then the row folds away (about 300 ms in all).
+    li.classList.toggle("got", on);
+    li.querySelector(".gbox").innerHTML = on ? pix("check", 16) : "";
+    setTimeout(() => { li.classList.add("leaving"); setTimeout(commit, 180); }, 120);
   };
   const remove = (id, kind) => {
     if (kind === "extra") g.extras = g.extras.filter(x => x.id !== id);
@@ -128,10 +162,11 @@ export function groceryView(key) {
   const details = (id, kind) => kind === "extra" ? extraSheet(g, findExtra(id), redraw, remove) : itemSheet(g, findItem(id), redraw, remove);
 
   root.querySelectorAll(".grow[data-id]").forEach(li => bindRow(li, {
-    tap: () => toggle(li.dataset.id, li.dataset.kind),
+    tap: () => toggle(li.dataset.id, li.dataset.kind, li),
     more: () => details(li.dataset.id, li.dataset.kind),
     remove: () => remove(li.dataset.id, li.dataset.kind)
   }));
+  document.getElementById("gcart")?.addEventListener("toggle", e => { try { sessionStorage.setItem(CART_KEY, e.target.open ? "1" : "0"); } catch {} });
   root.querySelectorAll("[data-have]").forEach(b => b.onclick = () => { pantry[b.dataset.have] = true; store.save(); redraw(); });
   root.querySelectorAll("[data-need]").forEach(b => b.onclick = () => { pantry[b.dataset.need] = false; store.save(); redraw(); });
   root.querySelectorAll("[data-outof]").forEach(b => b.onclick = () => { pantry[b.dataset.outof] = false; store.save(); toast("Added to the list"); redraw(); });

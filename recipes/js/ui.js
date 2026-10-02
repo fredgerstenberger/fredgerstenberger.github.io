@@ -83,12 +83,20 @@ export function confirmBox(message, okLabel = "Delete", danger = true) {
 
 // ---- Toast ----
 let toastTimer;
-export function toast(msg) {
+// action: { label, run } adds a button (e.g. Undo) and keeps the toast up a little longer.
+export function toast(msg, action = null) {
   const t = document.getElementById("toast");
   t.textContent = msg;
+  t.classList.toggle("act", !!action);
+  if (action) {
+    const b = document.createElement("button");
+    b.textContent = action.label;
+    b.onclick = () => { t.hidden = true; action.run(); };
+    t.append(b);
+  }
   t.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.hidden = true; }, 2200);
+  toastTimer = setTimeout(() => { t.hidden = true; }, action ? 4000 : 2200);
 }
 
 // ---- Stars ----
