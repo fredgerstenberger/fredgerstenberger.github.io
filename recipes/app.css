@@ -941,7 +941,7 @@ dialog.win[open] { animation: fadein var(--quick) var(--ease); }
 @keyframes fadein { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: none; } }
 
 /* Toast and timers */
-.toast, .toast.win { border: 0; border-radius: 999px; background: var(--c-toast); color: var(--c-toast-ink); box-shadow: 0 6px 20px rgba(0, 0, 0, .2); font-family: var(--body); font-weight: 700; }
+.toast, .toast.win { width: max-content; border: 0; border-radius: 999px; background: var(--c-toast); color: var(--c-toast-ink); box-shadow: 0 6px 20px rgba(0, 0, 0, .2); font-family: var(--body); font-weight: 700; }
 .timerdock { border-top: 1px solid var(--c-line); background: var(--c-card); }
 .timer { border: 1px solid var(--c-line); border-radius: 12px; }
 .timer .tclock { font-family: var(--body); font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -1014,7 +1014,7 @@ body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
 .gopt small { display: block; font: var(--t-small); color: var(--c-muted); margin-top: 2px; }
 
 /* A partner's change note: their initial, then what they did */
-.toast.who { display: flex; align-items: center; gap: var(--s2); padding-left: 8px; width: max-content; }
+.toast.who { display: flex; align-items: center; gap: var(--s2); padding-left: 8px; }
 .toast .gby { margin: 0; flex: none; }
 .gname .gby { margin-left: 8px; vertical-align: 1px; }
 .got .gname .gby { opacity: .8; }
