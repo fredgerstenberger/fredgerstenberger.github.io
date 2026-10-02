@@ -1,4 +1,5 @@
 // Settings: theme, filter thresholds, planning, units, import proxy, backups.
+import { me, setMyName } from "../ratings.js";
 import * as store from "../store.js";
 import { esc } from "../util.js";
 import { shell, render, toast, confirmBox, applyTheme } from "../ui.js";
@@ -32,6 +33,9 @@ function syncHTML(s) {
   return `
     <div class="setrow" style="border-top:1px solid var(--sunk)"><span>Status<small id="syncStatus">${i.error ? esc(i.error) : `Last synced ${ago(i.last)}${i.pending ? ` · ${i.pending} change${i.pending > 1 ? "s" : ""} waiting` : ""}`}</small></span>
       <button class="btn small" id="syncNow">Sync now</button></div>
+    <label class="field" style="margin-top:12px"><span>Your name</span>
+      <input type="text" id="myName" value="${esc(me().name)}" placeholder="e.g. Emma" autocomplete="given-name" maxlength="40">
+      <small>Shown next to your ratings. Use the same name on all your devices so they count as one person.</small></label>
     <p style="margin:14px 0 6px"><b>Add another device or a partner</b></p>
     <p class="muted" style="font-size:14px;margin:0 0 8px">Each invite works <b>once</b> and expires after 24 hours.</p>
     <div id="inviteOut"></div>
@@ -300,6 +304,7 @@ export function settingsView() {
     askJoin(code, worker);
   });
   document.getElementById("syncNow")?.addEventListener("click", () => runSync());
+  document.getElementById("myName")?.addEventListener("change", e => { setMyName(e.target.value); flash(e.target); });
   document.getElementById("newInvite")?.addEventListener("click", async e => {
     const btn = e.currentTarget;
     btn.disabled = true;

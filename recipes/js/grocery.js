@@ -14,7 +14,7 @@ function singular(w) {
 }
 
 export function pluralize(word, n) {
-  if (n <= 1) return word;
+  if (n <= 1 || /^(dozen|pair)$/.test(word)) return word; // "2 dozen", not "2 dozens"
   if (/(s|x|ch|sh)$/.test(word)) return word + "es";
   if (/[^aeiou]y$/.test(word)) return word.slice(0, -1) + "ies";
   if (/(tomato|potato)$/.test(word)) return word + "es";
@@ -103,6 +103,15 @@ export function buildList(weekKey) {
   return [...acc.values()].map(a => { const amount = amountText(a); return { ...a, sources: [...a.sources], amount }; });
 }
 
+// "12 eggs" describes what's in one package, so 2 cartons hold "24 eggs". A size like "14.5 oz" is
+// per package and stays as it is ("3 cans (14.5 oz)").
+const MEASURE = /^(oz|fl|lb|lbs|g|kg|ml|l|qt|gal|pt|ct|count)\b/i;
+function packageDesc(desc, n) {
+  const m = String(desc).match(/^(\d+(?:\.\d+)?)\s+(.+)$/);
+  if (!m || n <= 1 || MEASURE.test(m[2])) return desc;
+  return `${Math.round(+m[1] * n * 100) / 100} ${m[2]}`;
+}
+
 function ceilTo(n, step) { return Math.ceil(n / step - 1e-6) * step; }
 
 // Builds the shopping amount text and sets a.cost (what you'd pay at the store, whole packages).
@@ -116,7 +125,7 @@ function amountText(a) {
     const pp = packagePrice(f);
     if (pp != null) a.cost = n * pp;
     const label = pluralize(f.pkg.label, n);
-    parts.push(`${n} ${label}${f.pkg.desc ? ` (${f.pkg.desc})` : ""}`);
+    parts.push(`${n} ${label}${f.pkg.desc ? ` (${packageDesc(f.pkg.desc, n)})` : ""}`);
   } else if (f && a.grams) {
     if (f.gEach && (f.aisle === "produce" || f.aisle === "bakery" || f.name === "eggs")) {
       const n = Math.max(1, Math.ceil(a.grams / f.gEach - 0.1));

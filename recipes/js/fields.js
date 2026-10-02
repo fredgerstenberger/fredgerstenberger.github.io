@@ -1,5 +1,5 @@
-// Field-by-field merging for records two people edit at the same time: each week's grocery list,
-// the pantry, your prices, your ingredient info and settings.
+// Field-by-field merging for records two people edit at the same time: recipes, each week's meal plan
+// and grocery list, the pantry, your prices, your ingredient info and settings.
 //
 // Such a record's synced value carries `_ft`: { field: [time, fingerprint] }, saying when each field
 // last changed and what it changed to (a removed field keeps a "tombstone" entry). Two copies merge
@@ -13,7 +13,39 @@
 export const FT = "_ft";
 const MAPS = ["pantry", "prices", "settings", "foods", "asked"];
 
-export const isFieldRecord = k => k.startsWith("g:") || MAPS.includes(k);
+export const isFieldRecord = k => k.startsWith("r:") || k.startsWith("g:") || k.startsWith("p:") || MAPS.includes(k);
+
+// Recipes merge per top-level field (title, rating, notes, tags, ingredients, steps, …; lists like
+// ingredients count as one field, so the last edit of the list wins). Deleting a recipe is still a
+// whole-record delete, which older app versions understand: whichever is later wins, the delete or
+// an edit on another phone; on an exact tie the delete wins (see sync.js mergeIn).
+export const isDeletable = k => k.startsWith("r:");
+// Each person's rating is its own field ("ratings|n:emma"), so two people rating at once both count.
+
+// Meal plans: each meal's properties are separate fields ("m|<meal id>|servings"), so one person
+// changing servings and the other moving the meal both stick. A meal is only kept while it has
+// both a recipe and at least one slot; removing a meal clears those, so a removal wins over a
+// concurrent edit of the same meal's servings.
+function planFields(v, out) {
+  for (const m of v.meals || []) {
+    if (!m || !m.id) continue;
+    for (const [p, x] of Object.entries(m)) if (p !== "id" && x != null) out[`m|${m.id}|${p}`] = x;
+  }
+  for (const [p, x] of Object.entries(v)) if (p !== "meals" && p !== FT && x != null) out["w|" + p] = x;
+  return out;
+}
+function planFromFields(fields) {
+  const week = {}, meals = {};
+  for (const [f, x] of Object.entries(fields)) {
+    const [kind, id, prop] = f.split("|");
+    if (kind === "w") week[id] = x;
+    else if (kind === "m" && prop) (meals[id] ||= { id })[prop] = x;
+  }
+  week.meals = Object.values(meals)
+    .filter(m => m.rid && Array.isArray(m.slots) && m.slots.length)
+    .sort((a, b) => (a.id < b.id ? -1 : 1));
+  return week;
+}
 
 // JSON with sorted keys, so the same data always fingerprints the same on every device.
 export function stable(v) {
@@ -41,6 +73,15 @@ const GONE = fp(null);
 export function toFields(k, v) {
   const out = {};
   if (!v || typeof v !== "object") return out;
+  if (k.startsWith("p:")) return planFields(v, out);
+  if (k.startsWith("r:")) {
+    for (const [f, x] of Object.entries(v)) {
+      if (f === FT || x == null) continue;
+      if (f === "ratings" && typeof x === "object") { for (const [who, n] of Object.entries(x)) if (n) out["ratings|" + who] = n; }
+      else out[f] = x;
+    }
+    return out;
+  }
   if (k.startsWith("g:")) {
     for (const [i, on] of Object.entries(v.checked || {})) if (on) out["c|" + i] = true;
     for (const [i, on] of Object.entries(v.hidden || {})) if (on) out["h|" + i] = true;
@@ -53,6 +94,15 @@ export function toFields(k, v) {
 }
 
 export function fromFields(k, fields) {
+  if (k.startsWith("p:")) return planFromFields(fields);
+  if (k.startsWith("r:")) {
+    const r = {};
+    for (const [f, x] of Object.entries(fields)) {
+      if (f.startsWith("ratings|")) (r.ratings ||= {})[f.slice(8)] = x;
+      else r[f] = x;
+    }
+    return r;
+  }
   if (!k.startsWith("g:")) return { ...fields };
   const g = { checked: {}, extras: [], hidden: {}, edits: {} };
   for (const [f, x] of Object.entries(fields)) {
@@ -66,16 +116,18 @@ export function fromFields(k, fields) {
   return g;
 }
 
-// Note edits: give every field whose value differs from its fingerprint the time `now`.
-// Returns true if anything changed.
+// Note edits: give every field whose value differs from its fingerprint the time `now`, and always
+// later than that field's previous edit (so an edit beats the value it replaced even within the same
+// millisecond, or when this phone's clock is behind). Returns true if anything changed.
 export function stampFields(times, fields, now) {
   let changed = false;
+  const at = f => (times[f] && times[f][0] >= now ? times[f][0] + 1 : now);
   for (const [f, x] of Object.entries(fields)) {
     const h = fp(x);
-    if (!times[f] || times[f][1] !== h) { times[f] = [now, h]; changed = true; }
+    if (!times[f] || times[f][1] !== h) { times[f] = [at(f), h]; changed = true; }
   }
   for (const f of Object.keys(times)) {
-    if (!(f in fields) && times[f][1] !== GONE) { times[f] = [now, GONE]; changed = true; }
+    if (!(f in fields) && times[f][1] !== GONE) { times[f] = [at(f), GONE]; changed = true; }
   }
   return changed;
 }
@@ -88,6 +140,13 @@ function fieldTime(fields, times, f, recordTime) {
   if (t && t[1] === h) return { v, h, t: t[0] };
   if (v !== undefined || t) return { v, h, t: recordTime };
   return { v, h, t: -Infinity };
+}
+
+// The most recent edit time of any field in a copy of a record (-Infinity if it has none).
+export function latestEdit(fields, times, recordTime) {
+  let t = -Infinity;
+  for (const f of new Set([...Object.keys(fields), ...Object.keys(times)])) t = Math.max(t, fieldTime(fields, times, f, recordTime).t);
+  return t;
 }
 
 /**

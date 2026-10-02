@@ -90,12 +90,12 @@ test("/status still works from a plain browser tab (no Origin), for the setup ch
   assert.equal(st.keyRequired, true);
 });
 
-test("RecipeSync: newest write of a record wins; older and equal-time writes are ignored", async () => {
+test("RecipeSync: newest write of a record wins; older writes are ignored", async () => {
   const w = makeWorker();
   const post = async body => (await w.call("/sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ box: "b".repeat(24), ...body }) })).json();
   let r = await post({ since: 0, changes: [{ k: "r:1", u: 10, v: { t: "a" } }] });
   assert.deepEqual(r.records.map(x => [x.k, x.u, x.v.t]), [["r:1", 10, "a"]]);
-  r = await post({ since: r.seq, changes: [{ k: "r:1", u: 5, v: { t: "old" } }, { k: "r:1", u: 10, v: { t: "tie" } }] });
+  r = await post({ since: r.seq, changes: [{ k: "r:1", u: 5, v: { t: "old" } }] });
   assert.deepEqual(r.records, [], "rejected writes are not echoed");
   r = await post({ since: 0, changes: [{ k: "r:1", u: 11, v: { t: "b" } }] });
   assert.equal(r.records.find(x => x.k === "r:1").v.t, "b");
@@ -157,4 +157,16 @@ test("the old page proxy (GET /?url=) is retired", async () => {
     assert.ok(!(await res.text()).includes("SECRET-PAGE-CONTENT"));
     assert.equal(net.seen.length, 0, "nothing was downloaded");
   } finally { net.restore(); }
+});
+
+test("RecipeSync: two writes with the same time resolve the same way whichever arrives first", async () => {
+  const results = [];
+  for (const order of [[0, 1], [1, 0]]) {
+    const w = makeWorker();
+    const post = async body => (await w.call("/sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ box: "t".repeat(24), ...body }) })).json();
+    const writes = [{ k: "p:wk", u: 100, v: { meals: [{ id: "m1" }] } }, { k: "p:wk", u: 100, v: { meals: [{ id: "m2" }] } }];
+    for (const i of order) await post({ since: 0, changes: [writes[i]] });
+    results.push(JSON.stringify((await post({ since: 0, changes: [] })).records[0].v));
+  }
+  assert.equal(results[0], results[1]);
 });

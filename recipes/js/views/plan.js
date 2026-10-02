@@ -2,6 +2,7 @@
 // A "meal" is one batch of a recipe: cooked once, eaten at one or more slots (leftovers).
 // Groceries count each batch once.
 import * as store from "../store.js";
+import { avgRating } from "../ratings.js";
 import { esc, uid, DAYS, MEALS, cap, addDays, parseWeekKey, weekKey, planningWeekKey, fmtDate, startOfDay, weekRelation, prepLabel, isPastDay } from "../util.js";
 import { shell, render, modal, closeModal, toast, go, metaLine } from "../ui.js";
 import { nutritionFor, servingsOf } from "../nutrition.js";
@@ -232,7 +233,7 @@ function pickRecipe(key, slot) {
     el.querySelectorAll("[data-f]").forEach(b => b.setAttribute("aria-pressed", b.dataset.f === filter));
     const words = q.toLowerCase().split(/\s+/).filter(Boolean);
     const hits = all.filter(r => (!filter || matches(r, filter)) && words.every(w => searchText(r).includes(w)))
-      .sort((a, b) => (b.rating || 0) - (a.rating || 0) || a.title.localeCompare(b.title));
+      .sort((a, b) => avgRating(b) - avgRating(a) || a.title.localeCompare(b.title));
     pl.innerHTML = hits.length ? hits.map(r => `<li><button data-rid="${r.id}"><b>${esc(r.title)}</b><span class="muted">${metaLine(r).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ")}</span></button></li>`).join("")
       : `<li class="muted" style="padding:14px 4px">No recipes match${filter ? ` “${filter.replace(":", "")}” — <button class="btn small" id="nof">show all</button>` : "."}</li>`;
     pl.querySelector("#nof")?.addEventListener("click", () => { filter = ""; draw(); });

@@ -351,6 +351,15 @@ h2.sect:first-child, h3.sect:first-child { margin-top: 0; }
 .stars button { border: 0; background: none; padding: 4px; cursor: pointer; line-height: 0; }
 .stars svg { width: 28px; height: auto; }
 .stars .off svg { opacity: 0.22; filter: grayscale(1); }
+.stars.show { margin: 0; }
+.stars.show span { padding: 4px; line-height: 0; }
+.stars.small svg { width: 20px; }
+.stars.small { margin: 0; }
+.ratingbox { margin: 0 0 14px; }
+.ravg, .rmine { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ravg { margin-left: -4px; }
+.rmine { font-size: 14px; margin-top: 2px; }
+.rwho { font-size: 14px; margin: 2px 0 0; }
 .facts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));

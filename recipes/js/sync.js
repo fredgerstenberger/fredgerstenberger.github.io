@@ -7,7 +7,7 @@
 // next time sync runs.
 import * as store from "./store.js";
 import { bump } from "./data.js";
-import { fp, isFieldRecord, toFields, fromFields, stampFields, mergeFields, FT } from "./fields.js";
+import { fp, isFieldRecord, isDeletable, toFields, fromFields, stampFields, mergeFields, latestEdit, FT } from "./fields.js";
 
 const KEY = "recipebox.sync";
 let meta = loadMeta();
@@ -100,7 +100,11 @@ function stamp(info) {
     }
   }
   for (const k of Object.keys(meta.h)) {
-    if (!(k in recs) && meta.h[k] !== null && !isFieldRecord(k)) { meta.h[k] = null; meta.u[k] = now; dirty.add(k); }
+    if (!(k in recs) && meta.h[k] !== null && (!isFieldRecord(k) || isDeletable(k))) {
+      // A delete is timed after every edit we know of, so it beats them.
+      const last = isFieldRecord(k) ? latestEdit({}, times(k), meta.u[k] ?? 0) : -Infinity;
+      meta.h[k] = null; meta.u[k] = Math.max(now, (meta.u[k] ?? 0) + 1, last + 1); dirty.add(k);
+    }
   }
   meta.dirty = [...dirty];
   saveMeta();
@@ -157,7 +161,8 @@ export async function syncNow() {
     let applied = 0;
     for (const r of data.records || []) {
       if (isFieldRecord(r.k)) { applied += mergeIn(r); continue; }
-      if (!(r.k in meta.u) || r.u > meta.u[r.k]) {
+      // Newest wins; an exact tie goes to the larger fingerprint, as on the Worker, so all devices agree.
+      if (!(r.k in meta.u) || r.u > meta.u[r.k] || (r.u === meta.u[r.k] && fp(r.v ?? null) > (meta.h[r.k] ?? fp(null)))) {
         apply(r.k, r.v);
         meta.u[r.k] = r.u;
         meta.h[r.k] = r.v == null ? null : fp(r.v);
@@ -188,6 +193,22 @@ function mergeIn(r) {
   const k = r.k;
   const cur = records()[k];
   const local = { fields: toFields(k, cur), times: times(k), u: meta.u[k] ?? 0 };
+  const keep = u => { meta.u[k] = u; if (!meta.dirty.includes(k)) meta.dirty.push(k); return 0; };
+  const done = () => { meta.dirty = meta.dirty.filter(x => x !== k); };
+  // Recipes can be deleted: the later of the delete and the other copy's newest edit wins; a tie deletes.
+  if (isDeletable(k)) {
+    const incomingTimes = (r.v && r.v[FT]) || {};
+    if (r.v == null) {
+      if (cur === undefined) { meta.h[k] = null; meta.u[k] = Math.max(meta.u[k] ?? r.u, r.u); done(); return 0; }
+      if (r.u >= latestEdit(local.fields, local.times, local.u)) { apply(k, null); meta.h[k] = null; meta.u[k] = r.u; done(); return 1; }
+      return keep(Math.max(Date.now(), r.u + 1)); // edited here after it was deleted: put it back
+    }
+    if (cur === undefined && meta.h[k] === null) { // we deleted it
+      const tin = latestEdit(toFields(k, r.v), incomingTimes, r.u);
+      if (tin <= (meta.u[k] ?? -Infinity)) return keep(Math.max(Date.now(), r.u + 1, meta.u[k])); // re-send the delete
+      local.fields = {}; local.times = {}; local.u = -Infinity;        // edited elsewhere after our delete: bring it back
+    }
+  }
   const incoming = { fields: toFields(k, r.v), times: (r.v && r.v[FT]) || {}, u: r.u };
   const m = mergeFields(local, incoming);
   meta.ft[k] = m.times;
@@ -219,7 +240,7 @@ function newCode() {
 // (edited at time -1), so the box's settings, pantry and prices win, and only things the box
 // doesn't have yet (e.g. this device's own recipes) are added to it.
 export async function enable(code) {
-  meta = { code: code || newCode(), since: 0, h: {}, u: {}, ft: {}, dirty: [], last: 0, error: "" };
+  meta = { code: code || newCode(), since: 0, h: {}, u: {}, ft: {}, fv: FIELD_VERSION, dirty: [], last: 0, error: "" };
   for (const [k, v] of Object.entries(records())) {
     meta.h[k] = fp(v);
     meta.u[k] = code ? -1 : 0;
@@ -278,13 +299,19 @@ export async function resetCode() {
 
 const onGrocery = () => /^#\/grocery/.test(location.hash || "");
 
-// Devices that synced before field merging existed: give every field its record's last edit time.
+// Records that became field-merged in a newer version (grocery etc. in v14, plans and recipes in v16):
+// give every field its record's last edit time, and note the record's new normal form so nothing
+// is re-sent just because of the upgrade.
+const FIELD_VERSION = 2;
 function migrate() {
-  if (!meta || meta.ft) return;
-  meta.ft = {};
+  if (!meta || (meta.fv || 0) >= FIELD_VERSION) return;
+  meta.ft ||= {};
   for (const [k, v] of Object.entries(records())) {
-    if (isFieldRecord(k) && k in meta.u) stampFields(times(k), toFields(k, v), meta.u[k]);
+    if (!isFieldRecord(k) || !(k in meta.u)) continue;
+    if (!Object.keys(times(k)).length) stampFields(times(k), toFields(k, v), meta.u[k]);
+    if (!meta.dirty.includes(k)) meta.h[k] = fp(v);
   }
+  meta.fv = FIELD_VERSION;
   saveMeta();
 }
 
