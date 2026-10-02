@@ -143,6 +143,23 @@ export function parseIngredient(line) {
     }
   }
 
+  if (qty !== null) {
+    // "1 dozen eggs", "2 dozen", "1/2 dozen"
+    m = s.match(/^dozens?\b\s*/i);
+    if (m) { qty *= 12; if (qtyMax != null) qtyMax *= 12; s = s.slice(m[0].length); }
+    // UK/AU style "2 x 400g tins tomatoes" (count × container size) or "2 x 200g chicken breasts" (count × amount).
+    m = s.match(/^[x×]\s*(?=[\d.])/i);
+    if (m) {
+      s = s.slice(m[0].length);
+      const nm = s.match(new RegExp(String.raw`^(${NUM})\s*-?\s*`));
+      const su = nm ? readUnit(s.slice(nm[0].length)) : {};
+      if (su.unit && UNITS[su.unit].dim !== "count") {
+        const cont = readUnit(su.rest.replace(SIZE_WORDS, ""));
+        if (!(cont.unit && UNITS[cont.unit].pkg)) { qty *= parseNum(nm[1]); qtyMax = null; s = s.slice(nm[0].length); }
+      }
+    }
+  }
+
   // "(14.5 oz)" / "(14.5-ounce)" can size.
   const sizeRe = new RegExp(String.raw`^\(\s*(${NUM})\s*-?\s*([a-zA-Z. ]+?)\s*\)\s*`);
   m = s.match(sizeRe);
@@ -185,6 +202,14 @@ export function parseIngredient(line) {
         if (!unit) { const u3 = readUnit(s); unit = u3.unit; s = u3.rest; }
       }
     }
+    // Compound amounts: "1 tbsp + 1 tsp", "1/3 cup plus 2 tbsp", "1 pound 2 ounces" → one amount in the first unit.
+    while (qty !== null && qtyMax === null && unit && UNITS[unit].dim !== "count") {
+      const cm = s.match(new RegExp(String.raw`^(?:\+|plus\b|and\b)?\s*(${NUM})\s*`, "i"));
+      const u2 = cm ? readUnit(s.slice(cm[0].length)) : {};
+      if (!u2.unit || UNITS[u2.unit].dim !== UNITS[unit].dim) break;
+      qty += parseNum(cm[1]) * UNITS[u2.unit].f / UNITS[unit].f;
+      s = u2.rest;
+    }
   }
   s = s.replace(/^of\s+/i, "").replace(SIZE_WORDS, "");
 
@@ -193,6 +218,8 @@ export function parseIngredient(line) {
   if (ci > 0) { name = s.slice(0, ci).trim(); note = s.slice(ci + 1).trim(); }
 
   let food = matchFood(name) || matchFood(s);
+  // "2 cans tomatoes" means canned tomatoes, not fresh.
+  if (unit === "can" && food?.aisle !== "canned") food = matchFood("canned " + name) || food;
   if (!food) {
     // Not in the built-in table: use a USDA lookup if we have one, otherwise ask for it in the background.
     // Your own info wins; it fills in on top of the USDA match when there is one.
