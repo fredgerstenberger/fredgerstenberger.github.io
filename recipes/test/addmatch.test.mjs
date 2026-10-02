@@ -20,8 +20,8 @@ const CASES = [
   ["salt and vinegar chips", "Salt and vinegar chips", "", "snacks", "salt and vinegar chip"],
   ["orange chicken", "Orange chicken", "", "frozen", "orange chicken"],
   ["chicken nuggets", "Chicken nuggets", "", "frozen", "chicken nuggets"],
-  ["2% milk", "2% milk", "", "dairy", "milk"],
-  ["1 gallon 2% milk", "2% milk", "1 gallon", "dairy", "milk"],
+  ["2% milk", "2% milk", "", "dairy", "milk (2%)"],
+  ["1 gallon 2% milk", "2% milk", "1 gallon", "dairy", "milk (2%)"],
   ["apple juice", "Apple juice", "", "drinks", "apple juice"],
   ["apple sauce", "Apple sauce", "", "canned", "applesauce"],
   ["corn flakes", "Corn flakes", "", "dry", "corn flake"],
@@ -38,8 +38,8 @@ const CASES = [
   // good matches keep working
   ["2 lb chicken thighs", "Chicken thighs", "2 lb", "meat", "chicken thighs"],
   ["3 avocados", "Avocados", "3", "produce", "avocado"],
-  ["organic whole milk", "Organic whole milk", "", "dairy", "milk"],
-  ["large brown eggs", "Large brown eggs", "", "dairy", "eggs"],
+  ["organic whole milk", "Organic whole milk", "", "dairy", "milk (whole)"],
+  ["large brown eggs", "Large brown eggs", "", "dairy", "eggs (brown)"],
   ["heavy cream", "Heavy cream", "", "dairy", "heavy cream"]
 ];
 for (const [typed, name, amount, aisle, key] of CASES) {
@@ -76,7 +76,7 @@ test("add flow: the same item still joins its line (recipe item or one you added
   fettuccineWeek();
   assert.equal(addToList(WK, "2 cups heavy cream").result, "recipe");
   assert.match(store.groceryState(WK).edits["heavy cream"].amount, /\+ 2 cups$/);
-  addToList(WK, "milk");
+  addToList(WK, "2% milk");
   const r = addToList(WK, "1 gallon 2% milk");
   assert.equal(r.result, "merged");
   assert.equal(lines().length, 1);

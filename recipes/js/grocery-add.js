@@ -4,7 +4,10 @@
 // leaves white vinegar, your pantry answers and every other line exactly as they were.
 import * as store from "./store.js";
 import { sectionize } from "./grocery.js";
-import { parseAdd, mergeAdd, noteAdded } from "./quickadd.js";
+import { parseAdd, mergeAdd, noteAdded, varietyOf } from "./quickadd.js";
+import { parseIngredient } from "./ingredients.js";
+
+const sameWords = (a, b) => a.length === b.length && a.every((w, i) => w === b[i]);
 import * as house from "./household.js";
 
 /**
@@ -19,17 +22,21 @@ export function addToList(week, text, by = "") {
   if (!p) return null;
   const s = store.get(), g = store.groceryState(week), pantry = s.pantry, sec = sectionize(week);
   const history = (s.history ||= {});
-  const fromRecipes = [...sec.buy, ...sec.ask, ...sec.have].find(i => i.key === p.key) || (g.hidden[p.key] ? { key: p.key, hiddenOnly: true } : null);
+  // A recipe line is the same item when it's the same food with the same variety words in every recipe
+  // line behind it ("2% milk" joins a "2 cups 2% milk" line, not a plain "milk" or "skim milk" one).
+  const same = i => p.known ? i.key === p.food && i.lines.every(l => sameWords(varietyOf(parseIngredient(l.line)?.name, i.food), p.variety)) : i.key === p.key;
+  const fromRecipes = [...sec.buy, ...sec.ask, ...sec.have].find(same) || (g.hidden[p.key] ? { key: p.key, hiddenOnly: true } : null);
   const lines = [...house.items().map(h => ({ ...h, src: "house" })), ...g.extras.map(e => ({ ...e, src: "extra" }))];
   const line = lines.find(e => parseAdd(e.text)?.key === p.key);
   let result, amount = p.amount;
   if (fromRecipes) {
-    delete g.hidden[p.key];
-    delete g.checked[p.key];
-    if (pantry[p.key] === true || sec.ask.some(i => i.key === p.key)) pantry[p.key] = false; // you need it after all
+    const rk = fromRecipes.key;
+    delete g.hidden[rk];
+    delete g.checked[rk];
+    if (pantry[rk] === true || sec.ask.some(i => i.key === rk)) pantry[rk] = false; // you need it after all
     if (p.amount && !fromRecipes.hiddenOnly) {
-      const cur = (g.edits[p.key]?.amount ?? fromRecipes.amount ?? "").replace(/\s*\([^)]*\)/g, "");
-      g.edits[p.key] = { ...(g.edits[p.key] || {}), amount: cur ? `${cur} + ${p.amount}` : p.amount };
+      const cur = (g.edits[rk]?.amount ?? fromRecipes.amount ?? "").replace(/\s*\([^)]*\)/g, "");
+      g.edits[rk] = { ...(g.edits[rk] || {}), amount: cur ? `${cur} + ${p.amount}` : p.amount };
     }
     result = "recipe";
   } else if (line) {

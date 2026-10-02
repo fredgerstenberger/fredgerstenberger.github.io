@@ -10,13 +10,31 @@ const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** { name, amount, key, aisle, qty, unit } for something typed into the add box. */
 /**
- * { name, amount, key, aisle, qty, unit, size, known } for something typed into the add box.
+ * { name, amount, key, aisle, qty, unit, size, known, food, variety } for something typed into the add box.
  * An item is only treated as a food from the table ("known", keyed by that food) when its name is that
  * food give or take describing words: "2 lb chicken thighs", "3 avocados", "organic 2% milk". A longer
  * name that merely contains a food is its own item ("ice cream", "garlic bread", "salt and vinegar
  * chips"), keyed by its own name, so it never merges into or changes another line; a food at the end
  * of its name still suggests the aisle ("string cheese" → Dairy).
  */
+// Words that make a different product of the same food: oat vs almond milk, whole vs 2% vs skim, salted
+// vs unsalted butter, red vs green peppers. Two items that differ in these stay two lines, even though they
+// share the food's nutrition and price.
+const VARIETY = new Set(("whole skim nonfat non-fat fat-free low-fat lowfat reduced-fat full-fat part-skim lactose-free " +
+  "oat almond soy coconut cashew rice pea hemp macadamia goat " +
+  "vanilla chocolate strawberry unsweetened sweetened salted unsalted light lite dark low-sodium reduced-sodium no-salt " +
+  "red green yellow orange white black brown purple golden " +
+  "greek decaf caffeine-free diet zero wheat multigrain gluten-free").split(" "));
+const words = t => String(t || "").toLowerCase().split(/[^a-z0-9%\-]+/).filter(Boolean);
+// What a food is when nothing else is said: green peas are peas, white sugar is sugar.
+const DEFAULT_VARIETY = { onion: "yellow", peas: "green", sugar: "white", rice: "white", "cooked rice": "white", mushrooms: "white",
+  cornmeal: "yellow", "kidney beans": "red", almonds: "whole" };
+/** The variety words in a name that aren't part of the food's own name or its default ("2% milk" → ["2%"]). */
+export function varietyOf(name, food) {
+  const own = new Set([...words(food?.name), DEFAULT_VARIETY[food?.name]].filter(Boolean).map(singular));
+  return [...new Set(words(name).map(singular).filter(w => !own.has(w) && (VARIETY.has(w) || /^\d+(\.\d+)?%$/.test(w))))].sort();
+}
+
 export function parseAdd(text) {
   const raw = String(text || "").trim().replace(/\s+/g, " ");
   if (!raw) return null;
@@ -29,11 +47,12 @@ export function parseAdd(text) {
   // Your own food info or a USDA match (not in the table) is keyed by the cleaned name already.
   const extra = ing.food && !FOOD_BY_NAME[ing.food.name] ? ing.food : null;
   const known = m?.fit === "exact" && m.food.kind !== "X" && !m.food.variants.has(m.alias);
-  const key = known ? m.food.name : own;
+  const variety = known ? varietyOf(ing.name || raw, m.food) : [];
+  const key = known ? (variety.length ? `${m.food.name} (${variety.join(" ")})` : m.food.name) : own;
   const aisle = m && m.fit !== "loose" && m.food.kind !== "X" ? m.food.aisle : extra?.aisle || null;
   const qty = ing.qty;
   const amount = qty != null ? displayAmount(ing) : "";
-  return { name: cap1(nameText), amount, key, aisle, qty, unit: ing.unit, size: ing.size || null, known };
+  return { name: cap1(nameText), amount, key, aisle, qty, unit: ing.unit, size: ing.size || null, known, food: known ? m.food.name : null, variety };
 }
 
 /** Text for an amount plus a name, as it would be typed ("4 eggs", "2 lb chicken thighs"). */
