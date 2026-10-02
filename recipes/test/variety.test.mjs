@@ -54,3 +54,53 @@ for (const [recipe, typed, results, after] of FLOWS) {
   });
 }
 
+
+// ---- "Use for recipe": a different variety of a recipe's food can be folded into the recipe line ----
+const { useForRecipe } = await d.load("grocery-add");
+const { sectionize } = await d.load("grocery");
+const recipeLine = k => sectionize(WK).buy.find(i => i.key === k);
+
+const OFFERS = [
+  // recipe lines, typed, offered for (recipe line key) or null
+  [["2 cups milk"], "2% milk", "milk"],
+  [["2 cups milk"], "1 gallon oat milk", null],          // different food (plant milk)
+  [["2 cups skim milk"], "skim milk", null],             // same item: joins the line, nothing to offer
+  [["2 cups milk"], "paper towels", null],
+  [["1 cup heavy cream"], "ice cream", null],
+  [["2 tbsp unsalted butter"], "salted butter", "butter"]
+];
+for (const [recipe, typed, offered] of OFFERS) {
+  test(`use for recipe: [${recipe}] + "${typed}" → ${offered ? `offer for ${offered}` : "no offer"}`, () => {
+    freshWeek(recipe);
+    assert.equal(addToList(WK, typed).related?.key ?? null, offered);
+  });
+}
+
+test("use for recipe: the recipe line takes the name and the amount; Undo puts both back", () => {
+  freshWeek(["2 cups milk"]);
+  const before = recipeLine("milk").amount;
+  const r = addToList(WK, "1 gallon 2% milk");
+  const undo = useForRecipe(WK, r.id, r.related.key);
+  assert.deepEqual(lines(), []);
+  assert.equal(recipeLine("milk").name, "2% milk");
+  assert.equal(recipeLine("milk").amount, `${before.replace(/\s*\([^)]*\)/g, "")} + 1 gallon`);
+  // Now it is 2% milk: adding it again joins the line instead of offering again.
+  assert.equal(addToList(WK, "2% milk").result, "recipe");
+  undo();
+  assert.deepEqual(lines(), ["1 gallon 2% milk"]);
+  assert.equal(recipeLine("milk").name, "milk");
+});
+
+test("use for recipe: a pantry question line is put on the list", () => {
+  freshWeek(["1 tbsp honey"]);
+  assert.ok(sectionize(WK).ask.some(i => i.key === "honey"));
+  const r = addToList(WK, "raw honey");
+  assert.equal(r.result, "recipe", "raw honey is the same item as honey: it simply joins");
+  assert.equal(r.related ?? null, null);
+  freshWeek(["2 tbsp unsalted butter"]);
+  store.get().pantry.butter = undefined;
+  const r2 = addToList(WK, "salted butter");
+  assert.ok(useForRecipe(WK, r2.id, r2.related.key));
+  assert.equal(store.get().pantry.butter, false);
+  assert.equal(recipeLine("butter").name, "salted butter");
+});

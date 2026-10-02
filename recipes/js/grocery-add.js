@@ -24,7 +24,9 @@ export function addToList(week, text, by = "") {
   const history = (s.history ||= {});
   // A recipe line is the same item when it's the same food with the same variety words in every recipe
   // line behind it ("2% milk" joins a "2 cups 2% milk" line, not a plain "milk" or "skim milk" one).
-  const same = i => p.known ? i.key === p.food && i.lines.every(l => sameWords(varietyOf(parseIngredient(l.line)?.name, i.food), p.variety)) : i.key === p.key;
+  // A line you renamed ("2% milk" after Use for recipe) is judged by its new name.
+  const names = i => g.edits[i.key]?.name ? [g.edits[i.key].name] : i.lines.map(l => parseIngredient(l.line)?.name);
+  const same = i => p.known ? i.key === p.food && names(i).every(n => sameWords(varietyOf(n, i.food), p.variety)) : i.key === p.key;
   const fromRecipes = [...sec.buy, ...sec.ask, ...sec.have].find(same) || (g.hidden[p.key] ? { key: p.key, hiddenOnly: true } : null);
   const lines = [...house.items().map(h => ({ ...h, src: "house" })), ...g.extras.map(e => ({ ...e, src: "extra" }))];
   const line = lines.find(e => parseAdd(e.text)?.key === p.key);
@@ -45,9 +47,40 @@ export function addToList(week, text, by = "") {
     else { const x = g.extras.find(e => e.id === line.id); x.text = merged; x.checked = false; }
     result = "merged"; amount = parseAdd(merged).amount;
   } else {
-    house.add(text, by);
+    const id = house.add(text, by);
     result = "added";
+    // Same food as a recipe line still to buy (or to ask about), but a different variety: "2% milk" while
+    // a recipe needs "milk". They stay two lines; the caller can offer to use this one for the recipe.
+    const related = p.known && [...sec.buy, ...sec.ask].find(i => i.key === p.food && !i.checked);
+    noteAdded(history, p);
+    return { p, result, amount, id, related: related ? { key: related.key, name: related.name } : null };
   }
   noteAdded(history, p);
   return { p, result, amount };
+}
+
+/**
+ * "Use for recipe": fold the line just added (household id) into the recipe line `recipeKey`. The recipe
+ * line takes the name you typed ("2% milk") and any amount you typed is added to it; your line goes.
+ * Returns a function that puts everything back (Undo), or null if either line is gone.
+ */
+export function useForRecipe(week, id, recipeKey) {
+  const h = house.get(id);
+  const g = store.groceryState(week), pantry = store.get().pantry;
+  const item = sectionize(week);
+  const it = [...item.buy, ...item.ask].find(i => i.key === recipeKey);
+  if (!h || !it) return null;
+  const p = parseAdd(h.text);
+  const before = { edit: g.edits[recipeKey], checked: g.checked[recipeKey], pantry: pantry[recipeKey] };
+  const cur = (g.edits[recipeKey]?.amount ?? it.amount ?? "").replace(/\s*\([^)]*\)/g, "");
+  g.edits[recipeKey] = { ...(g.edits[recipeKey] || {}), name: p.name.toLowerCase(), ...(p.amount ? { amount: cur ? `${cur} + ${p.amount}` : p.amount } : {}) };
+  delete g.checked[recipeKey];
+  if (pantry[recipeKey] === true || item.ask.some(i => i.key === recipeKey)) pantry[recipeKey] = false; // you need it
+  house.remove(id);
+  return () => {
+    house.restore([h]);
+    if (before.edit) g.edits[recipeKey] = before.edit; else delete g.edits[recipeKey];
+    if (before.checked) g.checked[recipeKey] = true;
+    if (before.pantry === undefined) delete pantry[recipeKey]; else pantry[recipeKey] = before.pantry;
+  };
 }

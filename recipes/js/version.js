@@ -2,7 +2,7 @@
 export const APP_VERSION = 20;
 export const RELEASED = "2026-10-02";
 export const WHATS_NEW = [
-  "Oat, almond and soy milk (or whole, 2% and skim) stay separate lines on the grocery list.",
+  "Oat, almond and soy milk (or whole, 2% and skim) stay separate lines on the grocery list. Adding \"2% milk\" when a recipe needs milk offers Use for recipe.",
   "\"half and half\" is read as the cream, and amounts like \"1,000 g\" or \"1,5 kg\" work.",
   "Reloading for an update no longer loses text you're typing in another tab.",
   "Adding \"ice cream\", \"garlic bread\" or \"salt and vinegar chips\" now adds them (they no longer count as cream, garlic or vinegar), in the right aisle. New Snacks and Drinks aisles.",

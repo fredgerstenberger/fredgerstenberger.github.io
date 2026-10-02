@@ -15,7 +15,7 @@ import * as house from "../household.js";
 import { openStorePicker } from "./stores.js";
 import * as live from "../live.js";
 import * as sync from "../sync.js";
-import { addToList } from "../grocery-add.js";
+import { addToList, useForRecipe } from "../grocery-add.js";
 
 const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
 const HINT_KEY = "rb.groceryHint";
@@ -271,12 +271,23 @@ export function groceryView(key) {
   function addManual(text, quiet = false) {
     const r = addToList(key, text, me().name);
     if (!r) return null;
-    const { p, result, amount } = r;
+    const { p, result, amount, related } = r;
     const aisle = AISLES.find(a => a[0] === p.aisle);
-    if (!quiet) toast(result === "added" ? `Added ${p.name}${aisle ? ` · ${aisle[1]}` : ""}`
-      : `${p.name} is already on the list${amount ? (result === "recipe" ? ` · added ${amount}` : ` · now ${amount}`) : ""}`);
     store.save();
     paint();
+    if (quiet) return p;
+    if (related) {
+      // Same food as a recipe line, different variety: two lines unless you say this one is for the recipe.
+      toast(`Added ${p.name} · a recipe needs ${cap1(related.name)}`, { label: "Use for recipe", ms: 7000, run: () => {
+        const undo = useForRecipe(key, r.id, related.key);
+        if (!undo) return;
+        store.save(); paint();
+        toast(`${p.name} is on the list for the recipe`, { label: "Undo", run: () => { undo(); store.save(); paint(); } });
+      } });
+    } else {
+      toast(result === "added" ? `Added ${p.name}${aisle ? ` · ${aisle[1]}` : ""}`
+        : `${p.name} is already on the list${amount ? (result === "recipe" ? ` · added ${amount}` : ` · now ${amount}`) : ""}`);
+    }
     return p;
   }
 

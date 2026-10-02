@@ -1044,3 +1044,4 @@ body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
 .ohandle { touch-action: none; align-self: stretch; display: grid; place-items: center; width: 48px; flex: none; font-size: 22px; user-select: none; -webkit-user-select: none; cursor: grab; }
 .orow.dragging { transition: none; background: var(--c-card); }
 .orow.dragging .ohandle { cursor: grabbing; color: var(--c-accent); }
+.toast.act button { white-space: nowrap; flex: none; }
