@@ -130,7 +130,9 @@ export function groceryView(key) {
   // Things you added: the ongoing household list, plus any still sitting on this week's list from
   // before the household list existed (or added by an older app version).
   const manual = () => [...house.items().map(h => ({ ...h, src: "house" })), ...g.extras.map(e => ({ ...e, src: "extra" }))];
-  const onList = () => new Set([...sec.buy.filter(i => !i.checked).map(i => i.key), ...manual().filter(e => !e.checked).map(e => parseAdd(e.text).key)]);
+  // On the list = recipe lines (by food and by the name they show, e.g. "2% milk" after Use for recipe) and
+  // lines you added, so quick chips and suggestions don't offer them again.
+  const onList = () => new Set([...sec.buy.filter(i => !i.checked).flatMap(i => [i.key, parseAdd(i.name)?.key]), ...manual().filter(e => !e.checked).map(e => parseAdd(e.text).key)]);
 
   function paint() {
     if (!document.getElementById("gbody")) return; // left the list before a delayed check finished
