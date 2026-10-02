@@ -5,8 +5,8 @@ import { device } from "./helpers/device.mjs";
 import { makeWorker } from "./helpers/worker.mjs";
 
 export const WK = "2026-10-05";
-export async function phone(w, name, seed = {}) {
-  const d = await device({ name, fetch: w.fetchFor(), seed: { "recipebox.v1": { settings: { proxy: w.base }, ...seed } } });
+export async function phone(w, name, seed = {}, opts = {}) {
+  const d = await device({ name, fetch: w.fetchFor(), seed: { "recipebox.v1": { settings: { proxy: w.base }, ...seed } }, ...opts });
   return { ...d, store: await d.load("store"), sync: await d.load("sync"), Q: await d.load("quickadd"), R: await d.load("ratings") };
 }
 export async function settle(...ps) {
@@ -178,4 +178,62 @@ test("item 7: a phone that doesn't keep 'checked by' (older version) loses only 
     assert.deepEqual(p.store.groceryState(WK).checked, { eggs: true, foil: true }, p.name);
     assert.equal(p.store.groceryState(WK).checkedBy?.eggs, undefined, p.name);
   }
+});
+
+// Two phones on one clock the test moves forward, so "before" and "after" are explicit.
+async function pairAt() {
+  let t = Date.UTC(2026, 9, 6, 17, 0);
+  const now = () => t, w = makeWorker();
+  const A = await phone(w, "A", {}, { now }), B = await phone(w, "B", {}, { now });
+  await A.sync.enable(); await B.sync.enable(A.sync.info().code); await settle(A, B);
+  A.R.setMyName("Fred"); B.R.setMyName("Emma");
+  return { A, B, tick: (ms = 1000) => { t += ms; }, HA: await A.load("household"), HB: await B.load("household") };
+}
+
+test("round 3: both phones adding the same thing before syncing end up with one line, the same on both", async () => {
+  const { A, B, tick, HA, HB } = await pairAt();
+  HA.add("milk", "Fred"); A.store.save(); tick();
+  HB.add("1 gallon milk", "Emma"); B.store.save(); tick();
+  await A.sync.syncNow(); await B.sync.syncNow(); await settle(A, B);
+  assert.equal(HA.items().length, 2, "two lines before the list tidies up");
+  // Each phone tidies up when it shows the list; both reach the same single line.
+  HA.mergeDuplicates(); A.store.save(); tick();
+  HB.mergeDuplicates(); B.store.save(); tick();
+  await A.sync.syncNow(); await B.sync.syncNow(); await settle(A, B);
+  for (const H of [HA, HB]) assert.deepEqual(H.items().map(h => [h.text, h.by, h.checked]), [["1 gallon milk", "Fred", false]]);
+  assert.deepEqual(HA.items(), HB.items());
+});
+
+test("round 3: one phone tidying duplicates is enough; the other gets the same single line", async () => {
+  const { A, B, tick, HA, HB } = await pairAt();
+  HA.add("2 lb chicken thighs", "Fred"); A.store.save(); tick();
+  HB.add("1 lb chicken thighs", "Emma"); B.store.save(); tick();
+  await A.sync.syncNow(); await B.sync.syncNow(); await settle(A, B);
+  HB.mergeDuplicates(); B.store.save(); tick();
+  await B.sync.syncNow(); await A.sync.syncNow(); await settle(A, B);
+  for (const H of [HA, HB]) assert.deepEqual(H.items().map(h => h.text), ["3 lb chicken thighs"]);
+});
+
+test("round 3: Done shopping vs an edit made after it: the item comes back unchecked, visible on both", async () => {
+  const { A, B, tick, HA, HB } = await pairAt();
+  const id = HA.add("eggs", "Fred"); A.store.save(); tick();
+  await settle(A, B);
+  HA.setChecked(id, true, "Fred"); A.store.save(); tick();
+  await settle(A, B);
+  HA.clearChecked(); A.store.save(); tick();          // Fred taps Done shopping
+  HB.edit(id, "2 dozen eggs"); B.store.save(); tick(); // Emma edits it a moment later, before syncing
+  await A.sync.syncNow(); await B.sync.syncNow(); await settle(A, B);
+  for (const H of [HA, HB]) assert.deepEqual(H.items().map(h => [h.text, h.checked]), [["2 dozen eggs", false]]);
+});
+
+test("round 3: Done shopping vs an edit made before it: the removal wins on both", async () => {
+  const { A, B, tick, HA, HB } = await pairAt();
+  const id = HA.add("eggs", "Fred"); A.store.save(); tick();
+  await settle(A, B);
+  HA.setChecked(id, true, "Fred"); A.store.save(); tick();
+  await settle(A, B);
+  HB.edit(id, "2 dozen eggs"); B.store.save(); tick(); // Emma edits first, offline
+  HA.clearChecked(); A.store.save(); tick();          // then Fred taps Done shopping
+  await B.sync.syncNow(); await A.sync.syncNow(); await settle(A, B);
+  for (const H of [HA, HB]) assert.deepEqual(H.items(), []);
 });

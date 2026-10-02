@@ -47,6 +47,7 @@ let seen = null, livePaint = null;
 if (typeof document !== "undefined") {
   addEventListener("rb:synced", () => {
     if (!seen || !onGrocery() || !document.getElementById("gbody")) return;
+    if (house.mergeDuplicates()) store.save(); // the same thing added on both phones at once
     const chs = live.changes(seen.snap, live.snapshot(store.get(), seen.week));
     livePaint?.(); // also while typing in the add box, when the app holds off redrawing the screen
     const msg = live.describe(chs);
@@ -82,6 +83,7 @@ export function groceryView(key) {
   key = key || currentWeek();
   setWeek(key);
   house.migrateWeekExtras();
+  if (house.mergeDuplicates()) store.save();
   const g = store.groceryState(key);
   const prev = weekKey(addDays(parseWeekKey(key), -7)), next = weekKey(addDays(parseWeekKey(key), 7));
   const rel = weekRelation(key);
@@ -252,7 +254,7 @@ export function groceryView(key) {
     if (kind === "item") return itemSheet(g, findItem(id), paint, remove);
     const e = kind === "house" ? house.get(id) : findExtra(id);
     if (!e) return;
-    extraSheet(e, text => { if (kind === "house") house.update(id, { text }); else findExtra(id).text = text; store.save(); paint(); }, () => remove(id, kind));
+    extraSheet(e, text => { if (kind === "house") house.edit(id, text); else Object.assign(findExtra(id), { text, checked: false }); store.save(); paint(); }, () => remove(id, kind));
   };
 
   // Add what was typed. Something already on the list merges into its line instead of repeating.
