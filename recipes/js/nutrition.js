@@ -1,5 +1,5 @@
 // Nutrition: use the site's numbers when published, otherwise estimate from ingredients.
-import { parseIngredient, toGrams } from "./ingredients.js";
+import { parseIngredient, toGrams, cleanName } from "./ingredients.js";
 import { dataVersion } from "./data.js";
 
 const cache = new Map();
@@ -45,7 +45,7 @@ export function estimate(recipe) {
       covered++; // "salt to taste" – negligible, still understood
       rows.push({ line, food: ing.food.name, grams: 0, kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
     } else {
-      rows.push({ line, food: null, grams: null });
+      rows.push({ line, food: null, grams: null, key: ing.food?.infoKey || cleanName(ing.name), source: "none" });
     }
   }
   // Each ingredient's share of the recipe's calories or protein (whichever is bigger), for ranking.

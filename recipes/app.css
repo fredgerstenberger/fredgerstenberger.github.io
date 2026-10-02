@@ -1057,3 +1057,32 @@ body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
 .ratingbox .ravg { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; font: 600 14px var(--body); color: var(--c-muted); }
 .ratingbox .ravg svg { width: 14px; height: auto; }
 .ratingbox .ravg b { color: var(--c-ink); }
+
+/* Nutrition by ingredient: tap one to see where its numbers come from and add its label */
+.nubd summary .nuhint { font-weight: 600; color: var(--c-faint); }
+.nurows { list-style: none; margin: 6px 0 0; padding: 0; }
+.nurow { display: flex; align-items: center; gap: var(--s3); width: 100%; min-height: 48px; padding: var(--s2) 0; border: 0; border-bottom: 1px solid var(--c-line);
+  background: none; color: var(--c-ink); text-align: left; font: 600 14px/1.35 var(--body); cursor: pointer; }
+.nurow:active { background: var(--c-bg); }
+.nurow .nuname { flex: 1; min-width: 0; }
+.nurow .nuval { text-align: right; white-space: nowrap; color: var(--c-muted); font-variant-numeric: tabular-nums; }
+.nurow .nugo { color: var(--c-faint); font-size: 18px; }
+.nurow.miss .nuname { color: var(--c-muted); }
+.nutag { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: var(--c-chip); color: var(--c-muted); font: 700 11px/1.5 var(--body); vertical-align: 1px; }
+.nutag.label, .nutag.yours { background: color-mix(in srgb, var(--c-check) 18%, transparent); color: var(--c-check); }
+.nutag.standin, .nutag.none { background: color-mix(in srgb, #E9A23B 20%, transparent); color: #A86A12; }
+:root[data-theme="dark"] .nutag.standin, :root[data-theme="dark"] .nutag.none { color: #F2C14E; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .nutag.standin, :root:not([data-theme="light"]) .nutag.none { color: #F2C14E; } }
+/* Label sheet */
+.fsrc { margin: 0 0 10px; font: 700 15px/1.4 var(--body); }
+.fsact { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.fsfile { cursor: pointer; }
+.lcform { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
+.lcform label { display: flex; flex-direction: column; gap: 4px; font: 700 13px var(--body); color: var(--c-muted); }
+.lcform label.wide, .lcform .btnrow, .lcform .lcwarn { grid-column: 1 / -1; }
+.lcform .lin { display: flex; align-items: center; gap: 6px; }
+.lcform .lin input { flex: 1; min-width: 0; }
+.lcform .lin small { color: var(--c-faint); font-weight: 600; }
+.lcwarn { margin: 0; padding: var(--s2) var(--s3); border-radius: var(--r-sm); background: color-mix(in srgb, #E9A23B 18%, transparent); color: var(--c-ink); font: 600 14px/1.4 var(--body); }
+.lcwarn[hidden] { display: none; }
+.fillscan { margin: 6px 0 2px; }

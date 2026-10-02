@@ -59,6 +59,7 @@ function itemHTML(it, i) {
   return `<fieldset class="fillitem" data-i="${i}">
     <legend>${esc(it.key)}</legend>
     <small class="muted">${esc(it.line)}</small>
+    ${!it.builtIn || it.needNu ? `<button type="button" class="btn small fillscan" data-scan="${esc(it.key)}">📷 Scan label</button>` : ""}
     ${showNu ? `<div class="fillrow"><span>Nutrition for</span>${num("nqty", nr.qty ?? 1, "1")}${unitSelect("nunit", nr.unit || u)}</div>
       <div class="fillgrid">
         <label>Calories${num("kcal", nr.kcal, "kcal")}</label>
@@ -137,6 +138,8 @@ export function openInfo(recipe, items, { first = false, onDone } = {}) {
       ${first ? `<p class="muted" style="font-size:14px">You won't be asked about these again. Change them anytime with <b>Ingredient info</b> on the recipe.</p>` : ""}
     </form>`, { onClose: () => onDone?.() });
   el.querySelector("#fillSkip").onclick = close;
+  // A label is quicker than typing: open that ingredient's label sheet.
+  el.querySelectorAll("[data-scan]").forEach(b => b.onclick = () => import("./labelsheet.js").then(m => m.openFoodSheet(recipe, b.dataset.scan)));
   el.querySelector("#fillForm").onsubmit = e => {
     e.preventDefault();
     let n = 0;

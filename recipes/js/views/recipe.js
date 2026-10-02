@@ -11,6 +11,7 @@ import { sprite } from "../sprites.js";
 import { openAddToPlan } from "./plan.js";
 import { recipeCost, money, REGIONS } from "../prices.js";
 import { infoItems, openInfo, askAfterSave } from "../fillin.js";
+import { openFoodSheet } from "../labelsheet.js";
 
 const progress = {}; // id → { ings:Set, steps:Set, servings, cook }
 let redrawCurrent = null;
@@ -58,6 +59,23 @@ function ratingHTML(r) {
     <div class="rmine"><span class="rlabel">Your rating</span>${starsHTML(mine, { label: "Your rating" })}${hint}</div>
     ${avg}
   </div>`;
+}
+
+// Each ingredient's part of the nutrition, biggest first, with where its numbers come from. Tapping one
+// opens its nutrition: scan or paste the product's label to make it exact.
+const SRC = { label: "Label", yours: "Yours", usda: "USDA", standin: "≈ {base} values", table: "", none: "Not counted" };
+function nuRowsHTML(rows) {
+  const seen = new Set();
+  return rows.filter(r => r.key).slice().sort((a, b) => (b.kcal ?? -1) - (a.kcal ?? -1)).map(row => {
+    const tag = (SRC[row.source] ?? "").replace("{base}", row.food || "");
+    const dup = seen.has(row.key + row.line); seen.add(row.key + row.line);
+    if (dup) return "";
+    return `<li><button class="nurow ${row.source === "none" ? "miss" : ""}" data-food="${esc(row.key)}">
+      <span class="nuname">${esc(row.line)}${tag ? `<small class="nutag ${row.source}">${esc(tag)}</small>` : ""}</span>
+      <span class="nuval">${row.kcal != null ? `${Math.round(row.kcal)} kcal<br>${Math.round(row.protein)} g P` : "?"}</span>
+      <span class="nugo" aria-hidden="true">›</span>
+    </button></li>`;
+  }).join("");
 }
 
 function fmtN(n) { return n == null || isNaN(n) ? "–" : Math.round(n); }
@@ -170,11 +188,9 @@ export function recipeView(id) {
           <p class="muted" style="font-size:14px;margin:0 0 6px">${est
             ? `Estimated from ingredients (${Math.round(nu.coverage * 100)}% recognized)${nu.assumedServings ? ", assuming 4 servings — set servings in Edit" : ` for ${nu.servings} servings`}.`
             : `From ${esc(r.site || "the recipe")}${nu.serving ? ` · serving: ${esc(nu.serving)}` : ""}.`}</p>
-          ${nu.rows && nu.rows.length ? `<details class="breakdown"><summary>Ingredient breakdown</summary><table>
-            ${nu.rows.map(row => row.food
-              ? `<tr><td>${esc(row.line)}<br><span class="muted">→ ${esc(row.usda ? `USDA: ${row.usda}` : row.mine ? `${row.food} (your info)` : row.food)}${row.grams ? `, ${Math.round(row.grams)} g` : ""}</span></td><td class="n">${Math.round(row.kcal)} kcal<br>${Math.round(row.protein)} g P</td></tr>`
-              : `<tr class="miss"><td>${esc(row.line)}<br><span>not recognized — not counted</span></td><td class="n">?</td></tr>`).join("")}
-          </table></details>` : ""}
+          ${nu.rows && nu.rows.length ? `<details class="breakdown nubd" ${P.nubd ? "open" : ""}><summary>Nutrition by ingredient <span class="nuhint">· tap one to add its label</span></summary>
+            <ul class="nurows">${nuRowsHTML(nu.rows)}</ul>
+          </details>` : ""}
 
           <h2 class="sect">Cost <small>estimate</small></h2>
           ${cost.total > 0 ? `<div class="nutri">
@@ -230,6 +246,8 @@ export function recipeView(id) {
     document.getElementById("clearIngs")?.addEventListener("click", () => { P.ings.clear(); draw(); });
     document.getElementById("editIngs").onclick = () => { P.editIngs = !P.editIngs; P.ings.clear(); draw(); if (!P.editIngs) askAfterSave(r.id); };
     document.getElementById("ingInfo")?.addEventListener("click", () => openInfo(r, infoItems(r, true)));
+    root.querySelector(".nubd")?.addEventListener("toggle", e => { P.nubd = e.target.open; });
+    root.querySelectorAll("[data-food]").forEach(b => b.onclick = () => openFoodSheet(r, b.dataset.food));
     if (P.editIngs) {
       const saveIngs = () => { store.putRecipe(r); };
       root.querySelectorAll("[data-ingtext]").forEach(inp => inp.addEventListener("change", () => {
