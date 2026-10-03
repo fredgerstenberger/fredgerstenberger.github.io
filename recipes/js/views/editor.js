@@ -55,7 +55,7 @@ export function addView(params) {
 
       <div id="editor"></div>
       <p class="muted" style="font-size:14px;margin-top:22px">Or <button class="btn small" id="manualBtn" type="button">type one in</button></p>
-      ${s.proxy ? "" : `<p class="note">Imports use free public proxies, which are sometimes slow or down. For reliable imports, <a href="#/settings">set up your own free proxy</a> (5 minutes).</p>`}`
+      ${s.proxy ? "" : `<p class="note">Without your Cloudflare Worker, links are read through free public services, which are sometimes slow or blocked by recipe sites. Add your Worker's address in <a href="#/settings">Settings</a> for reliable imports; the same Worker reads cookbook photos and labels and keeps your phones in sync.</p>`}`
   }));
 
   const statusEl = document.getElementById("status");

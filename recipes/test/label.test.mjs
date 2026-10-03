@@ -60,7 +60,28 @@ Sugars / Sucres 1 g
 Protein / Protéines 20 g`
 };
 
+// Sprouts protein pasta: "Gram" spelled out.
+LABELS.sprouts = `Nutrition Facts
+8 servings per container
+Serving size 2 OZ 56 Gram
+Amount per serving
+Calories 180
+% Daily Value*
+Total Fat 1g 1%
+Saturated Fat 0g 0%
+Trans Fat 0g
+Cholesterol 0mg 0%
+Sodium 0mg 0%
+Total Carbohydrate 41g 15%
+Dietary Fiber 3g 11%
+Total Sugars 2g
+Protein 7g 14%`;
+// Only ounces.
+LABELS.ouncesOnly = LABELS.sprouts.replace("2 OZ 56 Gram", "2 oz");
+
 const EXPECT = {
+  sprouts: { servingText: "2 OZ 56 Gram", grams: 56, household: "2 OZ", kcal: 180, protein: 7, carbs: 41, fat: 1, fiber: 3 },
+  ouncesOnly: { servingText: "2 oz", grams: 57, gramsFrom: "oz", kcal: 180 },
   pasta: { servings: 8, servingText: "2 oz (56g)", grams: 56, ml: null, household: "2 oz", kcal: 190, protein: 10, carbs: 35, fat: 1, fiber: 4 },
   yogurt: { servings: 4, servingText: "3/4 cup (170g)", grams: 170, ml: null, household: "3/4 cup", kcal: 100, protein: 17, carbs: 6, fat: 0.5, fiber: 0 },
   oatmilk: { servings: 7, servingText: "1 cup (240mL)", grams: null, ml: 240, household: "1 cup", kcal: 120, protein: 3, carbs: 16, fat: 5, fiber: 2 },
@@ -123,4 +144,18 @@ test("food info: per 100 g, the label's serving kept, where it came from", () =>
   assert.equal(milk.nu.kcal, 50);          // 120 kcal per 240 ml ≈ 240 g
   assert.equal(milk.gCup, 240);            // "1 cup (240 mL)"
   assert.equal(labelToFood({ kcal: 100 }), null, "no serving size: can't convert");
+});
+
+test("Sprouts label (\"2 OZ 56 Gram\") per 100 g: 321 kcal, 12.5 P, 73.2 C, 1.8 F, 5.4 fiber", () => {
+  const food = labelToFood(parseLabelText(LABELS.sprouts), { how: "text", at: 1 });
+  const r1 = x => Math.round(x * 10) / 10;
+  assert.deepEqual([Math.round(food.nu.kcal), r1(food.nu.protein), r1(food.nu.carbs), r1(food.nu.fat), r1(food.nu.fiber)], [321, 12.5, 73.2, 1.8, 5.4]);
+});
+
+test("ounces only: 2 oz is taken as 57 g, and the saved label remembers it was worked out", () => {
+  const food = labelToFood(parseLabelText(LABELS.ouncesOnly), { how: "text", at: 1 });
+  assert.equal(food.label.grams, 57);
+  assert.equal(food.label.gramsFrom, "oz");
+  assert.equal(parseLabelText("Serving size 1 cup (240mL)\nCalories 90").gramsFrom, undefined, "fl oz / mL labels are not ounce-weight labels");
+  assert.equal(parseLabelText("Serving size 8 fl oz\nCalories 90").grams, null);
 });

@@ -157,12 +157,6 @@ function handleIncomingUrl() {
   }
 }
 
-// Like a native app, the screen doesn't pinch-zoom. Safari ignores the viewport's maximum-scale for pinches,
-// so stop its gesture events (iOS's system Zoom in Accessibility settings still works).
-function noPinchZoom() {
-  for (const t of ["gesturestart", "gesturechange"]) document.addEventListener(t, e => e.preventDefault(), { passive: false });
-}
-
 // Weeks start the day after the household's shopping & prep day (a synced setting). If it changed, on
 // this phone or the other, what's stored under the old weeks moves to the new ones.
 function applyWeekSetting() {
@@ -171,7 +165,6 @@ function applyWeekSetting() {
 }
 
 function init() {
-  noPinchZoom();
   applyWeekSetting();
   applyTheme();
   initModal();

@@ -1,7 +1,7 @@
 // Grocery price estimates: rough US national averages (2025), adjusted by region,
 // overridable per item with your own store's prices (Prices screen).
 import { FOODS, FOOD_BY_NAME } from "./fooddb.js";
-import { parseIngredient, toGrams } from "./ingredients.js";
+import { parseIngredient, toGrams, parseRecipe } from "./ingredients.js";
 import * as store from "./store.js";
 import { officialPrice, dataVersion } from "./data.js";
 
@@ -88,6 +88,7 @@ pork tenderloin|4.50|l
 pork shoulder|3.50|l
 ground pork|4.50|p
 bacon|6.50|p
+hot dogs|5.00|p
 sausage|5.50|p
 ham|6.00|l
 prosciutto|6.00|p
@@ -351,12 +352,11 @@ const cache = new Map();
 /** Cost of the amounts a recipe actually uses (2 tbsp of a $12 bottle ≈ 36¢). */
 export function recipeCost(recipe) {
   const s = store.settings();
-  const key = `${recipe.id}:${recipe.updated || 0}:${s.priceRegion}:${s.priceCustomPct}:${store.get().pricesUpdated || 0}:${dataVersion()}`;
+  const key = `${recipe.id}:${recipe.updated || 0}:${s.priceRegion}:${s.priceCustomPct}:${store.get().pricesUpdated || 0}:${dataVersion()}:${store.foodsVersion()}`;
   if (cache.has(key)) return cache.get(key);
   let total = 0, counted = 0, covered = 0;
   const rows = [];
-  for (const line of recipe.ingredients || []) {
-    const ing = parseIngredient(line);
+  for (const { line, ing } of parseRecipe(recipe)) {
     if (!ing || ing.header) continue;
     if (ing.food && ing.food.kind === "X") continue;
     counted++;

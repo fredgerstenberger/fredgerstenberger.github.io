@@ -107,9 +107,13 @@ export function setPrice(name, price, basis) {
 // ---- Your own info for ingredients (nutrition and the raw price you typed) ----
 // foods[key] = { nu (per 100 g), gCup, gEach, nuRef: {qty, unit, kcal, protein, carbs, fat}, priceRef: {price, qty, unit} }
 // asked[key] = time you were first asked about it, so each ingredient is only asked about once.
+// Changes with every edit of your ingredient info, so parses that use it are redone (see parseRecipe).
+let foodsRev = 0;
+export const foodsVersion = () => foodsRev;
 export function putFood(key, entry) {
   state.foods ||= {};
   if (entry) state.foods[key] = entry; else delete state.foods[key];
+  foodsRev++;
   save();
 }
 export function markAsked(keys) {

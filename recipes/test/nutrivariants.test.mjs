@@ -46,7 +46,7 @@ const KEYS = [
   ["1 red bell pepper, diced", "bell pepper", null],
   ["2 cups low-sodium chicken broth", "chicken broth", null],
   ["1 large yellow onion", "onion", null],
-  ["1 cup whole milk", "milk", "whole milk"]
+  ["1 cup whole milk", "milk", null]                 // the table's milk is whole milk
 ];
 for (const [line, food, key] of KEYS) {
   test(`variant: "${line}" → ${key ?? food}`, () => {

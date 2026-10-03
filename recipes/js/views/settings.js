@@ -131,7 +131,8 @@ export function settingsView() {
   const s = store.settings();
   const st = store.get();
   const seg = (key, opts) => `<div class="seg" role="group">${opts.map(([v, l]) => `<button data-set="${key}" data-val="${v}" aria-pressed="${s[key] === v}">${l}</button>`).join("")}</div>`;
-  const num = (key, min, max, step = 1) => `<input type="number" data-num="${key}" min="${min}" max="${max}" step="${step}" inputmode="${step < 1 ? "decimal" : "numeric"}" value="${s[key]}">`;
+  // `label` is what VoiceOver reads for the field (the text beside it isn't tied to it).
+  const num = (key, min, max, step = 1, label = "") => `<input type="number" data-num="${key}" min="${min}" max="${max}" step="${step}" inputmode="${step < 1 ? "decimal" : "numeric"}" value="${s[key]}"${label ? ` aria-label="${esc(label)}"` : ""}>`;
   const bookmarklet = `javascript:location.href='${APP_URL}?url='+encodeURIComponent(location.href)`;
 
   render(shell({
@@ -141,23 +142,23 @@ export function settingsView() {
       <div class="setrow"><span>Theme</span>${seg("theme", [["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]])}</div>
 
       <h2 class="sect">Recipe filters</h2>
-      <div class="setrow"><span>Low calorie<small>kcal per serving, at most</small></span>${num("lowCal", 100, 2000, 25)}</div>
-      <div class="setrow"><span>High protein<small>grams per serving, at least</small></span>${num("highProtein", 5, 150)}</div>
-      <div class="setrow"><span>Quick<small>total minutes, at most</small></span>${num("quickMin", 5, 240, 5)}</div>
+      <div class="setrow"><span>Low calorie<small>kcal per serving, at most</small></span>${num("lowCal", 100, 2000, 25, "Low calorie: calories per serving, at most")}</div>
+      <div class="setrow"><span>High protein<small>grams per serving, at least</small></span>${num("highProtein", 5, 150, 1, "High protein: grams of protein per serving, at least")}</div>
+      <div class="setrow"><span>Quick<small>total minutes, at most</small></span>${num("quickMin", 5, 240, 5, "Quick: total minutes, at most")}</div>
 
-      <div class="setrow"><span>Budget<small>$ per serving, at most</small></span>${num("budget", 0.5, 50, 0.25)}</div>
+      <div class="setrow"><span>Budget<small>$ per serving, at most</small></span>${num("budget", 0.5, 50, 0.25, "Budget: dollars per serving, at most")}</div>
 
       <h2 class="sect">Prices</h2>
       <label class="field"><span>Where you shop<small>Adjusts the built-in US-average estimates</small></span>
         <select id="region">${REGIONS.map(([id, name, f]) => `<option value="${id}" ${s.priceRegion === id ? "selected" : ""}>${esc(name)}${f ? ` (${f === 1 ? "baseline" : `${f > 1 ? "+" : "−"}${Math.round(Math.abs(f - 1) * 100)}%`})` : ""}</option>`).join("")}</select>
       </label>
-      <div class="setrow" id="customRow" ${s.priceRegion === "custom" ? "" : "hidden"}><span>Custom level<small>% of US average (e.g. 115)</small></span>${num("priceCustomPct", 50, 250, 1)}</div>
+      <div class="setrow" id="customRow" ${s.priceRegion === "custom" ? "" : "hidden"}><span>Custom level<small>% of US average (e.g. 115)</small></span>${num("priceCustomPct", 50, 250, 1, "Custom price level: percent of US average")}</div>
       <p class="muted" style="font-size:14px;margin:4px 0 0">Regional levels are rough estimates. For real accuracy, enter what your store charges on the <a href="#/prices">Prices</a> screen; your prices are used as-is.</p>
 
       <h2 class="sect">Cooking &amp; planning</h2>
       <div class="setrow"><span>Shopping &amp; prep day<small>Your week runs from the next day, and the grocery list starts fresh</small></span>
-        <select id="prepDay" class="setsel">${DAY_LONG.map((d, i) => `<option value="${i}" ${(s.prepDay ?? 0) === i ? "selected" : ""}>${d}</option>`).join("")}</select></div>
-      <div class="setrow"><span>People per meal<small>Sets suggested servings in the meal plan</small></span>${num("people", 1, 12)}</div>
+        <select id="prepDay" class="setsel" aria-label="Shopping and prep day">${DAY_LONG.map((d, i) => `<option value="${i}" ${(s.prepDay ?? 0) === i ? "selected" : ""}>${d}</option>`).join("")}</select></div>
+      <div class="setrow"><span>People per meal<small>Sets suggested servings in the meal plan</small></span>${num("people", 1, 12, 1, "People per meal")}</div>
       <div class="setrow"><span>Default units</span>${seg("units", [["original", "Original"], ["us", "US"], ["metric", "Metric"]])}</div>
       <div class="setrow"><span>Keep screen on in cook mode</span>${seg("wakeLock", [[true, "On"], [false, "Off"]])}</div>
 
