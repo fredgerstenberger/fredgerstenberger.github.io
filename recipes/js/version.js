@@ -2,7 +2,8 @@
 export const APP_VERSION = 25;
 export const RELEASED = "2026-10-03";
 export const WHATS_NEW = [
-  "Grocery lists start fresh every week. Things last week's list didn't get to are offered once on this week's list: \"Still need these?\" Add to this week, or Start fresh.",
+  "Grocery lists start fresh every week. Things last week's list didn't get to are offered once on this week's list: \"Still need these?\" Add to this week, or Start fresh. (Skipped it by mistake? \"From last week\" at the bottom of the list brings it back.)",
+  "Settings → Shopping & prep day: your week runs from the next day, and the grocery list starts fresh on it. The meal plan, lists and everything already planned follow, on both phones.",
   "Grocery list: about twice as many items fit on screen. Groceries and the store button share the top line, the item count sits beside the week, and rows (and the add box) are a little shorter. Your usual-item chips appear when you tap into the add box.",
   "Shopping mode goes full screen: same-size rows as the list, with a progress bar and \"X of Y\" pinned at the top. Stop shopping takes you back to the list, with what you got folded under In cart.",
   "New font: IBM Plex Sans.",

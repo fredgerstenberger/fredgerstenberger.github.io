@@ -1,31 +1,32 @@
-// Weekly meal plan (Mon–Sun, 3 meals a day). Sunday before the week is shop + prep day.
+// Weekly meal plan (7 days, 3 meals a day). The day before the week is shop + prep day (Settings; Sunday by
+// default, so Mon–Sun).
 // A "meal" is one batch of a recipe: cooked once, eaten at one or more slots (leftovers).
 // Groceries count each batch once.
 import * as store from "../store.js";
 import { avgRating } from "../ratings.js";
-import { esc, uid, DAYS, MEALS, cap, addDays, parseWeekKey, weekKey, planningWeekKey, fmtDate, startOfDay, weekRelation, prepLabel, isPastDay } from "../util.js";
+import { esc, uid, weekDays, dayDate, MEALS, cap, addDays, parseWeekKey, weekKey, planningWeekKey, fmtDate, startOfDay, weekRelation, prepLabel, isPastDay } from "../util.js";
 import { shell, render, modal, closeModal, toast, go, metaLine } from "../ui.js";
 import { nutritionFor, servingsOf } from "../nutrition.js";
 import { matches, searchText } from "./book.js";
 import { recipeCost, money } from "../prices.js";
 
-const SLOT_ORDER = DAYS.flatMap(d => MEALS.map(m => `${d}-${m}`));
-const slotIdx = s => SLOT_ORDER.indexOf(s);
+// Slots in the week's order (it starts the day after your shopping day).
+const slotIdx = s => { const [d, m] = s.split("-"); return weekDays().indexOf(d) * MEALS.length + MEALS.indexOf(m); };
 const SHORT = { mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun" };
 
 export function currentWeek() {
-  return sessionStorage.getItem("rb.week") || planningWeekKey();
+  const k = sessionStorage.getItem("rb.week");
+  return k ? weekKey(parseWeekKey(k)) : planningWeekKey(); // (a week remembered before the shopping day changed)
 }
 export function setWeek(k) { sessionStorage.setItem("rb.week", k); }
 
 export function weekLabel(key) {
-  const mon = parseWeekKey(key);
-  const sun = addDays(mon, 6);
-  return `${fmtDate(mon)} – ${fmtDate(sun)}`;
+  const first = parseWeekKey(key);
+  return `${fmtDate(first)} – ${fmtDate(addDays(first, 6))}`;
 }
 
 export function weekNav(key, base) {
-  const home = planningWeekKey(); // this week, or next week from Sunday (shop & prep day) on
+  const home = planningWeekKey(); // this week, or next week from the shop & prep day on
   const rel = weekRelation(key);
   const jump = key === home ? "" : `<a href="${base}/${home}">${weekRelation(home) === "Next week" ? "Go to next week" : "Go to this week"}</a>`;
   return `<div class="weeknav">
@@ -43,17 +44,17 @@ let moving = null;
 window.addEventListener("hashchange", () => { if (!location.hash.startsWith("#/plan")) moving = null; });
 
 export function planView(key) {
-  key = key || currentWeek();
+  key = key ? weekKey(parseWeekKey(key)) : currentWeek();
   setWeek(key);
   if (moving && moving.key !== key) moving = null;
   const wk = store.week(key);
   const meals = (wk.meals || []).filter(m => store.recipe(m.rid));
-  const mon = parseWeekKey(key);
+  const first = parseWeekKey(key);
   const todayStr = startOfDay(new Date()).getTime();
   const people = store.settings().people || 1;
 
-  const days = DAYS.map((d, di) => {
-    const date = addDays(mon, di);
+  const days = weekDays().map((d, di) => {
+    const date = addDays(first, di);
     let kcal = 0, protein = 0;
     const rows = MEALS.map(m => {
       const slot = `${d}-${m}`;
@@ -116,7 +117,7 @@ export function planView(key) {
         ${weekCost > 0 ? `<span style="flex-basis:100%">Food cost ${money(weekCost)} · ${money(weekCost / servingsTotal)}/serving</span>` : ""}
       </div>
       ${days}
-      <h2 class="sect">Sunday prep list <small>${prep.length ? `${prep.length} to cook` : ""}</small></h2>
+      <h2 class="sect">${DAY_LONG[weekDays()[6]]} prep list <small>${prep.length ? `${prep.length} to cook` : ""}</small></h2>
       ${prep.length ? `<ul class="preplist">${prep.map(x => {
         const r = store.recipe(x.rid);
         const sl = [...x.slots].sort((a, b) => slotIdx(a) - slotIdx(b));
@@ -279,10 +280,10 @@ function mealOptions(key, rid, existing, presetSlot) {
     <p class="muted" style="margin:0 0 10px;font-size:14px">Cook once; extra ticks are leftovers. Groceries count it once. Gray slots already have a meal or are in the past.</p>
     <div class="slotpick">
       <span></span>${MEALS.map(m => `<span class="h">${cap(m)}</span>`).join("")}
-      ${DAYS.map(d => `<span class="d">${SHORT[d]} ${addDays(parseWeekKey(key), DAYS.indexOf(d)).getDate()}</span>${MEALS.map(m => {
+      ${weekDays().map((d, di) => `<span class="d">${SHORT[d]} ${dayDate(key, d).getDate()}</span>${MEALS.map(m => {
         const s = `${d}-${m}`;
         if (taken[s]) return `<span class="taken" title="${esc(taken[s])}"><span class="sr">${SHORT[d]} ${m}: taken by </span>${esc(shortTitle(taken[s]))}</span>`;
-        if (isPastDay(key, DAYS.indexOf(d)) && !chosen.has(s)) return `<span class="taken past"><span class="sr">${SHORT[d]} ${m}: </span>past</span>`;
+        if (isPastDay(key, di) && !chosen.has(s)) return `<span class="taken past"><span class="sr">${SHORT[d]} ${m}: </span>past</span>`;
         return `<label><input type="checkbox" data-slot="${s}" ${chosen.has(s) ? "checked" : ""} aria-label="${SHORT[d]} ${m}"></label>`;
       }).join("")}`).join("")}
     </div>

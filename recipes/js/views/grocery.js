@@ -91,7 +91,7 @@ function rowHTML({ id, kind, name, amount, sub, checked, who }) {
 }
 
 export function groceryView(key) {
-  key = key || currentWeek();
+  key = key ? weekKey(parseWeekKey(key)) : currentWeek();
   setWeek(key);
   house.migrateWeekExtras();
   if (house.assignWeeks() + house.prune() + house.mergeDuplicates()) store.save();
@@ -132,10 +132,12 @@ export function groceryView(key) {
   const manual = () => [...house.inWeek(key).map(h => ({ ...h, src: "house" })), ...g.extras.map(e => ({ ...e, src: "extra" }))];
   // Each week's list starts fresh. On this week's list, what last week's list didn't get checked off
   // (things you added and recipe groceries) is offered once: "Still need these?". Not things already here.
-  function leftovers() {
+  // Answered already (or skipped by mistake): `again` offers them anyway, from "From last week" at the bottom.
+  let again = false;
+  function leftovers(any = again) {
     if (key !== planningWeekKey()) return [];
     const gp = store.get().grocery?.[prev];
-    if (gp?.carry) return [];
+    if (gp?.carry && !any) return [];
     const here = new Set([...sec.buy.map(i => i.key), ...manual().map(e => parseAdd(e.text)?.key)]);
     const out = [], seen = new Set();
     const offer = (id, name, amount, text) => {
@@ -206,6 +208,7 @@ export function groceryView(key) {
     try { hint = !localStorage.getItem(HINT_KEY); } catch {}
 
     const carry = shop ? [] : leftovers();
+    const later = !shop && !carry.length ? leftovers(true).length : 0; // answered, but some are still there
     document.getElementById("gbody").innerHTML = `
       ${carry.length ? `<div class="gcarry"><div class="chead">${pix("cart", 16)} From last week</div>
       <div class="card gask">
@@ -230,8 +233,9 @@ export function groceryView(key) {
           <span class="gname">${esc(cap1(i.name))}</span><button class="chip quiet" data-outof="${esc(i.key)}">Ran out</button></div></li>`).join("")}</ul></div>
       </details>` : ""}
       ${total && hint ? `<p class="ghint" id="ghint">Tap an item to check it off. Press and hold, or swipe left, for details.</p>` : ""}
-      ${total ? `<div class="gfoot">
-        <button class="cbtn ghost" id="share">Share list</button>
+      ${total || later ? `<div class="gfoot">
+        ${total ? `<button class="cbtn ghost" id="share">Share list</button>` : ""}
+        ${later ? `<button class="cbtn ghost" id="fromLast">From last week (${later})</button>` : ""}
         ${done ? `<button class="cbtn ghost" id="uncheck">Uncheck all</button>` : ""}
         ${Object.keys(g.hidden).length ? `<button class="cbtn ghost" id="unhide">Restore removed (${Object.keys(g.hidden).length})</button>` : ""}
       </div>` : ""}
@@ -376,7 +380,7 @@ export function groceryView(key) {
   // Answer "Still need these?": bring the ticked ones over (things you added move to this week's list,
   // recipe groceries are added by name), and remember it was answered so neither phone asks again.
   function answerCarry(bring) {
-    const list = leftovers(), ticked = new Set([...document.querySelectorAll("[data-carry]")].filter(b => b.checked).map(b => b.dataset.carry));
+    const list = leftovers(true), ticked = new Set([...document.querySelectorAll("[data-carry]")].filter(b => b.checked).map(b => b.dataset.carry));
     let n = 0;
     if (bring) for (const c of list) {
       if (!ticked.has(c.id)) continue;
@@ -385,6 +389,7 @@ export function groceryView(key) {
       n++;
     }
     store.groceryState(prev).carry = Date.now();
+    again = false;
     store.save(); paint();
     if (n) toast(`Added ${n} thing${n > 1 ? "s" : ""} from last week`);
   }
@@ -393,6 +398,7 @@ export function groceryView(key) {
     const root = document.getElementById("gbody");
     document.getElementById("carryYes")?.addEventListener("click", () => answerCarry(true));
     document.getElementById("carryNo")?.addEventListener("click", () => answerCarry(false));
+    document.getElementById("fromLast")?.addEventListener("click", () => { again = true; paint(); window.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" }); });
     document.getElementById("shopStart")?.addEventListener("click", () => { setShopping(true); keepAwake(true); paint(); window.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" }); });
     document.getElementById("shopDone")?.addEventListener("click", stopShopping);
     root.querySelectorAll(".grow[data-id]").forEach(li => bindRow(li, {
