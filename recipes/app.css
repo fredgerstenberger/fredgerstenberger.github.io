@@ -746,6 +746,11 @@ body:has(.page.calm) { background: var(--c-bg); }
 .calm h1.ctitle { font: var(--t-title); letter-spacing: -.01em; margin: 0 0 var(--s4); }
 .calm h1.ctitle:has(+ .csub) { margin-bottom: var(--s1); }
 .calm .csub { color: var(--c-muted); font: var(--t-small); display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; margin-bottom: var(--s3); }
+.gtop { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+.calm .gtop h1.ctitle { margin-bottom: var(--s1); flex: none; }
+.gtop .chip { min-width: 0; white-space: nowrap; }
+.gtop .chip > :not(.sname) { flex: none; }
+.gtop .chip .sname { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .calm .csub .wknav { display: inline-flex; align-items: center; gap: 2px; }
 .calm .csub .wknav a { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; text-decoration: none; color: var(--c-muted); }
 .calm .csub .wknav a:active { background: var(--c-chip); }
@@ -753,7 +758,7 @@ body:has(.page.calm) { background: var(--c-bg); }
   background: var(--c-chip); color: var(--c-ink); font: var(--t-small); font-weight: 700; white-space: nowrap; cursor: pointer; text-decoration: none; }
 .calm .chip.quiet { color: var(--c-muted); }
 .calm .card { background: var(--c-card); border: 1px solid var(--c-line); border-radius: var(--r); overflow: hidden; }
-.calm .chead { display: flex; align-items: center; gap: var(--s2); margin: var(--s5) 0 var(--s2); padding-left: 2px;
+.calm .chead { display: flex; align-items: center; gap: var(--s2); margin: var(--s4) 0 6px; padding-left: 2px;
   font: var(--t-head); letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); }
 .calm .chead .n { margin-left: auto; letter-spacing: 0; color: var(--c-faint); font-weight: 700; }
 .calm .cbtn { display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); min-height: 44px; padding: 0 var(--s4);
@@ -778,12 +783,13 @@ body:has(.page.calm) { background: var(--c-bg); }
 .gadd input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: 400 17px var(--body); color: var(--c-ink); padding: var(--s3) 0; }
 .gadd input::placeholder { color: var(--c-faint); }
 .gadd .plus { width: 40px; height: 40px; flex: none; border: 0; border-radius: var(--r-sm); background: var(--c-accent); color: var(--c-accent-ink); font: 700 22px/1 var(--body); cursor: pointer; }
+.gchips[hidden] { display: none; }
 .gchips { display: flex; gap: var(--s2); overflow-x: auto; scrollbar-width: none; margin: var(--s3) calc(-1 * var(--s4)) 0; padding: 0 var(--s4); }
 .gchips::-webkit-scrollbar { display: none; }
 .glist { list-style: none; margin: 0; padding: 0; }
 .grow { position: relative; overflow: hidden; }
 .grow + .grow { border-top: 1px solid var(--c-line); }
-.grow-main { position: relative; z-index: 1; display: flex; align-items: center; gap: var(--s3); width: 100%; min-height: 52px; padding: var(--s2) var(--s4);
+.grow-main { position: relative; z-index: 1; display: flex; align-items: center; gap: var(--s3); width: 100%; min-height: 44px; padding: 6px var(--s4);
   border: 0; background: var(--c-card); color: var(--c-ink); text-align: left; cursor: pointer; font: var(--t-row);
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: pan-y; transition: transform var(--quick) var(--ease), background var(--quick); }
 .grow-main:active { background: var(--c-bg); }
@@ -1028,7 +1034,7 @@ body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
 
 /* Amounts: "1 pint" with the package size as a small second line; the name gets priority for width */
 .gamt { max-width: 40%; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-.gamt .gq { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; line-height: 1.2; }
+.gamt .gq { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; line-height: 1.15; }
 .gamt .gq small { font: 400 12px/1.2 var(--body); color: var(--c-faint); }
 .gamt .gplus { font-size: 12px; line-height: 1; color: var(--c-faint); }
 .got .gamt .gq small { color: inherit; }

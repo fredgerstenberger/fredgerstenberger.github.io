@@ -104,10 +104,9 @@ export function groceryView(key) {
     title: "Groceries",
     bigTitle: false,
     body: `
-      <h1 class="ctitle">Groceries</h1>
+      <div class="gtop"><h1 class="ctitle">Groceries</h1><button class="chip" id="storeBtn" type="button"></button></div>
       <div class="csub">
         <span class="wknav"><a href="#/grocery/${prev}" aria-label="Previous week">◀</a><span>${weekLabel(key)}${rel ? ` · ${rel}` : ""}</span><a href="#/grocery/${next}" aria-label="Next week">▶</a></span>
-        <button class="chip" id="storeBtn" type="button" style="margin-left:auto"></button>
       </div>
       <div id="gprog"></div>
       <p class="gwake" id="gwake" hidden>${pix("check", 14)} Screen stays on while you shop</p>
@@ -116,7 +115,7 @@ export function groceryView(key) {
         <button class="plus" type="submit" aria-label="Add">+</button>
       </form>
       <ul class="gsug" id="gsug" role="listbox" hidden></ul>
-      <div class="gchips" id="gchips"></div>
+      <div class="gchips" id="gchips" hidden></div>
       <div id="gbody"></div>`
   }), { keepScroll: true });
 
@@ -145,7 +144,7 @@ export function groceryView(key) {
     const estLeft = priced.filter(i => !i.checked).reduce((t, i) => t + i.cost, 0);
     const st = stores.get(stores.current());
     const shop = shopping();
-    document.getElementById("storeBtn").innerHTML = `${pix("cart", 14)} ${esc(st ? st.name : "Any store")} ▾`;
+    document.getElementById("storeBtn").innerHTML = `${pix("cart", 14)} <span class="sname">${esc(st ? st.name : "Any store")}</span> ▾`;
     document.getElementById("gprog").innerHTML = total ? progressHTML(done, total, priced.length ? money(estLeft) : "") : "";
     document.getElementById("gchips").innerHTML = frequentItems(history(), onList()).map(n => `<button class="chip quiet" type="button" data-quick="${esc(n)}">+ ${esc(n)}</button>`).join("");
 
@@ -311,9 +310,12 @@ export function groceryView(key) {
     sugEl.hidden = !list.length;
     sugEl.innerHTML = list.map(s => `<li><button type="button" role="option" data-sug="${esc(s.text)}">${esc(s.name)}${s.n ? `<small>added ${s.n}×</small>` : ""}</button></li>`).join("");
   }
-  input.addEventListener("input", showSuggestions);
-  input.addEventListener("blur", () => setTimeout(() => { sugEl.hidden = true; }, 150));
-  input.addEventListener("focus", showSuggestions);
+  // Your usual items show as chips while the add box is open and empty; once you type, suggestions take over.
+  const chipsEl = document.getElementById("gchips");
+  const showChips = () => { chipsEl.hidden = document.activeElement !== input || !!input.value.trim(); };
+  input.addEventListener("input", () => { showSuggestions(); showChips(); });
+  input.addEventListener("blur", () => setTimeout(() => { sugEl.hidden = true; showChips(); }, 150));
+  input.addEventListener("focus", () => { showSuggestions(); showChips(); });
   sugEl.addEventListener("pointerdown", e => e.preventDefault()); // keep the keyboard up
   sugEl.addEventListener("click", e => {
     const b = e.target.closest("[data-sug]");
@@ -321,8 +323,8 @@ export function groceryView(key) {
     addManual(b.dataset.sug);
     input.value = ""; sugEl.hidden = true; input.focus();
   });
-  document.getElementById("gchips").addEventListener("pointerdown", e => { if (document.activeElement === input) e.preventDefault(); });
-  document.getElementById("gchips").addEventListener("click", e => {
+  chipsEl.addEventListener("pointerdown", e => { if (document.activeElement === input) e.preventDefault(); }); // keep the keyboard up
+  chipsEl.addEventListener("click", e => {
     const b = e.target.closest("[data-quick]");
     if (b) addManual(b.dataset.quick);
   });
