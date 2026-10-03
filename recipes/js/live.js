@@ -9,7 +9,7 @@ export function snapshot(state, week) {
   const out = {}, g = state.grocery?.[week] || {};
   for (const [id, on] of Object.entries(g.checked || {})) if (on) out["i:" + id] = { name: g.edits?.[id]?.name || id, checked: true, cb: g.checkedBy?.[id] || "" };
   const manual = (list, pre) => list.forEach(e => { if (e?.id) out[pre + e.id] = { name: (parseAdd(e.text)?.name || e.text || "").toLowerCase(), checked: !!e.checked, cb: e.cb || "", by: e.by || "", added: true }; });
-  manual(Object.entries(state.household || {}).map(([id, h]) => ({ id, ...h })), "h:");
+  manual(Object.entries(state.household || {}).map(([id, h]) => ({ id, ...h })).filter(h => !h.wk || h.wk === week), "h:");
   manual(g.extras || [], "x:");
   return out;
 }

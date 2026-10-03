@@ -1,7 +1,7 @@
 // Grocery list for a week: merged, rounded to packages, with pantry questions. Calm Pixel style:
 // tap anywhere on a row to check it; press and hold (or swipe left) for details, edit and remove.
 import * as store from "../store.js";
-import { esc, uid, addDays, parseWeekKey, weekKey, weekRelation } from "../util.js";
+import { esc, uid, addDays, parseWeekKey, weekKey, weekRelation, planningWeekKey } from "../util.js";
 import { shell, render, toast, modal } from "../ui.js";
 import { AISLES } from "../fooddb.js";
 import { sectionize, listAsText } from "../grocery.js";
@@ -47,7 +47,7 @@ let seen = null, livePaint = null;
 if (typeof document !== "undefined") {
   addEventListener("rb:synced", () => {
     if (!seen || !onGrocery() || !document.getElementById("gbody")) return;
-    if (house.mergeDuplicates()) store.save(); // the same thing added on both phones at once
+    if (house.assignWeeks() + house.mergeDuplicates()) store.save(); // an older app's item; the same thing added on both phones at once
     const chs = live.changes(seen.snap, live.snapshot(store.get(), seen.week));
     livePaint?.(); // also while typing in the add box, when the app holds off redrawing the screen
     const msg = live.describe(chs);
@@ -94,7 +94,7 @@ export function groceryView(key) {
   key = key || currentWeek();
   setWeek(key);
   house.migrateWeekExtras();
-  if (house.mergeDuplicates()) store.save();
+  if (house.assignWeeks() + house.prune() + house.mergeDuplicates()) store.save();
   const g = store.groceryState(key);
   const prev = weekKey(addDays(parseWeekKey(key), -7)), next = weekKey(addDays(parseWeekKey(key), 7));
   const rel = weekRelation(key);
@@ -128,9 +128,33 @@ export function groceryView(key) {
   const history = () => (store.get().history ||= {});
   const findItem = id => sec.buy.find(i => i.key === id);
   const findExtra = id => g.extras.find(x => x.id === id);
-  // Things you added: the ongoing household list, plus any still sitting on this week's list from
-  // before the household list existed (or added by an older app version).
-  const manual = () => [...house.items().map(h => ({ ...h, src: "house" })), ...g.extras.map(e => ({ ...e, src: "extra" }))];
+  // Things you added to this week's list, plus any saved in the week itself by an old app version.
+  const manual = () => [...house.inWeek(key).map(h => ({ ...h, src: "house" })), ...g.extras.map(e => ({ ...e, src: "extra" }))];
+  // Each week's list starts fresh. On this week's list, what last week's list didn't get checked off
+  // (things you added and recipe groceries) is offered once: "Still need these?". Not things already here.
+  function leftovers() {
+    if (key !== planningWeekKey()) return [];
+    const gp = store.get().grocery?.[prev];
+    if (gp?.carry) return [];
+    const here = new Set([...sec.buy.map(i => i.key), ...manual().map(e => parseAdd(e.text)?.key)]);
+    const out = [], seen = new Set();
+    const offer = (id, name, amount, text) => {
+      const k = parseAdd(text)?.key || name;
+      if (here.has(k) || seen.has(k)) return;
+      seen.add(k); out.push({ id, name, amount, text });
+    };
+    for (const h of house.leftovers(prev)) { const p = parseAdd(h.text); if (p) offer("h:" + h.id, p.name, p.amount, h.text); }
+    for (const e of gp?.extras || []) { const p = !e.checked && parseAdd(e.text); if (p) offer("x:" + e.id, p.name, p.amount, e.text); }
+    if ((store.week(prev).meals || []).length) {
+      for (const i of sectionize(prev).buy) {
+        if (i.checked || here.has(i.key)) continue;
+        // With its amount when that still reads as the same item ("1 bunch cilantro"), else just the name.
+        const amount = (i.amount || "").replace(/\s*\([^)]*\)/g, ""), withAmount = `${amount} ${i.name}`;
+        offer("r:" + i.key, i.name, amount, amount && parseAdd(withAmount)?.key === parseAdd(i.name)?.key ? withAmount : i.name);
+      }
+    }
+    return out;
+  }
   // On the list = recipe lines (by food and by the name they show, e.g. "2% milk" after Use for recipe) and
   // lines you added, so quick chips and suggestions don't offer them again.
   const onList = () => new Set([...sec.buy.filter(i => !i.checked).flatMap(i => [i.key, parseAdd(i.name)?.key]), ...manual().filter(e => !e.checked).map(e => parseAdd(e.text).key)]);
@@ -181,8 +205,15 @@ export function groceryView(key) {
     let hint = true;
     try { hint = !localStorage.getItem(HINT_KEY); } catch {}
 
+    const carry = shop ? [] : leftovers();
     document.getElementById("gbody").innerHTML = `
-      ${!meals.length && !extras.length ? `<div class="cempty">${pix("cart", 32)}<b>Nothing to buy yet</b>Plan some meals and the list builds itself, or add items above.<div class="gfoot"><a class="cbtn primary" href="#/plan/${key}">Go to meal plan</a></div></div>` : ""}
+      ${carry.length ? `<div class="gcarry"><div class="chead">${pix("cart", 16)} From last week</div>
+      <div class="card gask">
+        <p><b>Still need these?</b> They didn't get checked off last week. Uncheck anything you don't want.</p>
+        ${carry.map(c => `<label class="gopt"><input type="checkbox" checked data-carry="${esc(c.id)}"><span>${esc(cap1(c.name))}${c.amount ? `<small>${esc(c.amount)}</small>` : ""}</span></label>`).join("")}
+        <div class="btnrow"><button class="cbtn primary" id="carryYes">Add to this week</button><button class="cbtn" id="carryNo">Start fresh</button></div>
+      </div></div>` : ""}
+      ${!meals.length && !extras.length && !carry.length ? `<div class="cempty">${pix("cart", 32)}<b>Nothing to buy yet</b>Plan some meals and the list builds itself, or add items above.<div class="gfoot"><a class="cbtn primary" href="#/plan/${key}">Go to meal plan</a></div></div>` : ""}
       ${sec.ask.length ? `<div class="gaskwrap"><div class="chead">Do you have these?</div>
       <div class="card gask">
         <p>Your answer is remembered. Change it anytime in Pantry.</p>
@@ -342,8 +373,26 @@ export function groceryView(key) {
   // Stop shopping: back to the full list. What you checked off stays in "In cart" (tap one to bring it back).
   const stopShopping = () => { setShopping(false); keepAwake(false); paint(); window.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" }); };
 
+  // Answer "Still need these?": bring the ticked ones over (things you added move to this week's list,
+  // recipe groceries are added by name), and remember it was answered so neither phone asks again.
+  function answerCarry(bring) {
+    const list = leftovers(), ticked = new Set([...document.querySelectorAll("[data-carry]")].filter(b => b.checked).map(b => b.dataset.carry));
+    let n = 0;
+    if (bring) for (const c of list) {
+      if (!ticked.has(c.id)) continue;
+      if (c.id.startsWith("h:")) house.moveTo([c.id.slice(2)], key);
+      else addToList(key, c.text, me().name);
+      n++;
+    }
+    store.groceryState(prev).carry = Date.now();
+    store.save(); paint();
+    if (n) toast(`Added ${n} thing${n > 1 ? "s" : ""} from last week`);
+  }
+
   function bindBody() {
     const root = document.getElementById("gbody");
+    document.getElementById("carryYes")?.addEventListener("click", () => answerCarry(true));
+    document.getElementById("carryNo")?.addEventListener("click", () => answerCarry(false));
     document.getElementById("shopStart")?.addEventListener("click", () => { setShopping(true); keepAwake(true); paint(); window.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" }); });
     document.getElementById("shopDone")?.addEventListener("click", stopShopping);
     root.querySelectorAll(".grow[data-id]").forEach(li => bindRow(li, {

@@ -1020,6 +1020,10 @@ body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
 .gopt input { width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--c-check); flex: none; }
 .gopt span { font: var(--t-row); }
 .gopt small { display: block; font: var(--t-small); color: var(--c-muted); margin-top: 2px; }
+.gcarry .gopt { margin: 0; align-items: center; padding: 10px var(--s4); border: 0; border-top: 1px solid var(--c-line); border-radius: 0; background: none; }
+.gcarry .gopt small { display: inline; margin: 0 0 0 var(--s2); }
+.gcarry .btnrow { display: flex; gap: var(--s2); margin: 0; padding: var(--s3) var(--s4); border-top: 1px solid var(--c-line); }
+.gcarry .btnrow .primary { flex: 1; }
 
 /* A partner's change note: their initial, then what they did */
 .toast.who { display: flex; align-items: center; gap: var(--s2); padding-left: 8px; }

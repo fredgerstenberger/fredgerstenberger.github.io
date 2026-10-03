@@ -1,6 +1,6 @@
 // Recipe Box — entry point: theme, routing, home screen.
 import * as store from "./store.js";
-import { items as houseItems } from "./household.js";
+import { inWeek as houseItems } from "./household.js";
 import { esc, planningWeekKey, weekKey, DAYS, MEALS, cap, plural } from "./util.js";
 import { sprite } from "./sprites.js";
 import { render, initModal, closeModal, applyTheme } from "./ui.js";
@@ -27,7 +27,7 @@ function homeView() {
   const wk = planningWeekKey();
   const meals = store.week(wk).meals || [];
   let toBuy = 0;
-  try { const sec = sectionize(wk); toBuy = sec.buy.filter(i => !i.checked).length + sec.extras.filter(e => !e.checked).length + houseItems().filter(h => !h.checked).length; } catch {}
+  try { const sec = sectionize(wk); toBuy = sec.buy.filter(i => !i.checked).length + sec.extras.filter(e => !e.checked).length + houseItems(wk).filter(h => !h.checked).length; } catch {}
 
   // Today's plan
   const now = new Date();

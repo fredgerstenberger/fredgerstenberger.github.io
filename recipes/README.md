@@ -16,7 +16,7 @@ Live at **https://fredgerstenberger.github.io/recipes/** (after this folder is o
 - **Grocery list:** merges duplicates across recipes, rounds up to whole packages (boxes, cans, cartons, bunches; a spoonful of a pantry food is one jar or bag, and a small amount of something unknown shows just its name), groups by aisle, and asks once about pantry items like spices and sauces, then remembers your answer.
   - **Tap a row to check it off.** It folds into **In cart** at the bottom, with Undo. Press and hold (or swipe left) for details, edit and remove. A progress bar and the estimated total left sit at the top.
   - **Fast add:** type "2 lb chicken thighs" and it goes to the right aisle with its amount. Suggestions come from what you've added before (most often first) and the food table; chips offer your usual items. Adding something already on the list adds to that line instead of repeating it.
-  - **One household list for things you add** (paper towels, cat litter), shown with whichever week you're looking at, so it never disappears when the week changes.
+  - **A fresh list every week.** Things you add (paper towels, cat litter) go on the week you're looking at. When you open this week's list and last week's list has things that didn't get checked off (yours or from recipes), a card asks **Still need these?**: keep the ones you want ticked and tap **Add to this week**, or **Start fresh**. It's asked once, for both phones. Lists older than 8 weeks are deleted.
   - **Stores:** without one, the list goes produce, dairy, meat, then the packaged aisles (including Snacks and Drinks), with frozen last. Add your stores and drag the ≡ handles into the order you walk them; the list follows as you go. Stores sync; which one you're shopping at is per phone.
   - **Shopping mode:** full screen with only what's left, by aisle, a progress bar pinned at the top, and the screen kept awake (Safari 16.4+, home-screen app on iOS 18.4+). **Stop shopping** goes back to the full list; what you checked off stays folded under **In cart** at the bottom, and tapping an item there puts it back on the list.
   - **Live with a partner:** while the list is open it checks for changes every 4 seconds and says what happened ("Emma checked eggs"). Their initial shows on things they added or checked.
@@ -28,7 +28,7 @@ Data is stored on the device (localStorage). **Sync** (Settings → Sync) keeps 
 
 ## Add to the grocery list from a Shortcut or Siri
 
-Opening `https://fredgerstenberger.github.io/recipes/?add=milk, 2 lb chicken thighs, eggs` adds those items to the household list (commas, semicolons or new lines separate items) and opens the grocery list. Items already on the list merge into their line, and the link is removed from the address bar, so reloading doesn't add them twice.
+Opening `https://fredgerstenberger.github.io/recipes/?add=milk, 2 lb chicken thighs, eggs` adds those items to this week's list (commas, semicolons or new lines separate items) and opens the grocery list. Items already on the list merge into their line, and the link is removed from the address bar, so reloading doesn't add them twice.
 
 **One-tap iOS Shortcut** (Shortcuts app → **+**):
 1. **Ask for Input**: type Text, prompt "Add to groceries". For Siri, use **Dictate Text** instead. For a fixed button, use a **Text** action with e.g. `milk`.
@@ -55,7 +55,7 @@ Opening `https://fredgerstenberger.github.io/recipes/?add=milk, 2 lb chicken thi
 - `js/sync.js`: device sync (change tracking, push/pull, invites)
 - `js/fields.js`: field-by-field merging for grocery lists, pantry, prices and settings
 - `js/quickadd.js`: parsing what's typed in the add box, merging duplicates, suggestions, history
-- `js/household.js`: the ongoing household list (things you add yourself)
+- `js/household.js`: things you add yourself, each on a week's list (leftovers, moving them to the next week, pruning old weeks)
 - `js/stores.js`, `js/views/stores.js`: stores and their aisle order
 - `js/live.js`: notes for a partner's grocery changes
 - `js/pixicons.js`: small pixel icons (aisles, cart, check)

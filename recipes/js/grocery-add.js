@@ -14,7 +14,7 @@ import * as house from "./household.js";
  * Add `text` to the list shown for `week`. Returns { p, result, amount } where result is:
  *   "recipe": it's already on the list from your recipes (brought back if removed or checked)
  *   "merged": it's already a line you added (amounts combined, unchecked)
- *   "added":  a new line on the household list
+ *   "added":  a new line on that week's list
  * The caller saves and redraws.
  */
 export function addToList(week, text, by = "") {
@@ -28,7 +28,7 @@ export function addToList(week, text, by = "") {
   const names = i => g.edits[i.key]?.name ? [g.edits[i.key].name] : i.lines.map(l => parseIngredient(l.line)?.name);
   const same = i => p.known ? i.key === p.food && names(i).every(n => sameWords(varietyOf(n, i.food), p.variety)) : i.key === p.key;
   const fromRecipes = [...sec.buy, ...sec.ask, ...sec.have].find(same) || (g.hidden[p.key] ? { key: p.key, hiddenOnly: true } : null);
-  const lines = [...house.items().map(h => ({ ...h, src: "house" })), ...g.extras.map(e => ({ ...e, src: "extra" }))];
+  const lines = [...house.inWeek(week).map(h => ({ ...h, src: "house" })), ...g.extras.map(e => ({ ...e, src: "extra" }))];
   const line = lines.find(e => parseAdd(e.text)?.key === p.key);
   let result, amount = p.amount;
   if (fromRecipes) {
@@ -47,7 +47,7 @@ export function addToList(week, text, by = "") {
     else { const x = g.extras.find(e => e.id === line.id); x.text = merged; x.checked = false; }
     result = "merged"; amount = parseAdd(merged).amount;
   } else {
-    const id = house.add(text, by);
+    const id = house.add(text, by, undefined, undefined, week);
     result = "added";
     // Same food as a recipe line still to buy (or to ask about), but a different variety: "2% milk" while
     // a recipe needs "milk". They stay two lines; the caller can offer to use this one for the recipe.
