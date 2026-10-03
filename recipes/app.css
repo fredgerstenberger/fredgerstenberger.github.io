@@ -1005,8 +1005,11 @@ body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
 .shopping .gwake { margin: 0 0 var(--s2); }
 .shopping #addForm, .shopping .gsug, .shopping .gchips, .shopping .gaskwrap, .shopping .ghave,
 .shopping .ghint, .shopping .gfoot, .shopping .cempty { display: none; }
-/* Shopping mode is full screen: no title or week, just progress pinned at the top. */
-.calm.shopping .screen > .titlebar, .calm.shopping .csub { display: none; }
+/* Shopping mode: the title, store and week stay where they are and scroll away (so the first items start
+   within thumb reach); progress and "X of Y" pin to the top once they reach it. */
+.calm.shopping .screen > .titlebar.inline { position: static; }
+.shopping .csub .gcount { display: none; }
+.calm.shopping .csub { margin-bottom: 0; }
 .gshoptop { display: none; }
 .shopping .gshoptop { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: var(--s3);
   margin: 0 calc(-1 * var(--s4)); padding: var(--s3) var(--s4); background: var(--c-bg); font: var(--t-small); }

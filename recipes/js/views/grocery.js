@@ -106,11 +106,11 @@ export function groceryView(key) {
     inlineTitle: true,
     actions: `<button class="chip gstore" id="storeBtn" type="button"></button>`,
     body: `
-      <div class="gshoptop" id="gshoptop" role="status"></div>
       <div class="csub">
         <span class="wknav"><a href="#/grocery/${prev}" aria-label="Previous week">◀</a><span>${weekLabel(key)}${rel ? ` · ${rel}` : ""}</span><a href="#/grocery/${next}" aria-label="Next week">▶</a></span>
         <b class="gcount" id="gcount" role="status"></b>
       </div>
+      <div class="gshoptop" id="gshoptop" role="status"></div>
       <p class="gwake" id="gwake" hidden>${pix("check", 14)} Screen stays on while you shop</p>
       <form id="addForm" class="gadd" role="search" autocomplete="off">
         <input type="text" id="addIn" placeholder="Add an item — “2 lb chicken thighs”" autocomplete="off" autocapitalize="sentences" enterkeyhint="go" aria-label="Add an item" aria-controls="gsug">
