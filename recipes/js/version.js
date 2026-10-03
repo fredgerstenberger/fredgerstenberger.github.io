@@ -1,7 +1,8 @@
 // App version shown in Settings. Bump together with VERSION in sw.js ("rb-v" + APP_VERSION).
-export const APP_VERSION = 23;
+export const APP_VERSION = 24;
 export const RELEASED = "2026-10-03";
 export const WHATS_NEW = [
+  "New font: IBM Plex Sans.",
   "The app no longer zooms when you pinch or double-tap, like a regular iPhone app.",
   "Specific products (protein pasta, chickpea pasta, a brand) are their own ingredient instead of silently using regular pasta's numbers.",
   "Optional: in a recipe's Nutrition section, tap an ingredient to scan or paste its Nutrition Facts label. Every recipe with it gets exact numbers, on every synced phone.",
