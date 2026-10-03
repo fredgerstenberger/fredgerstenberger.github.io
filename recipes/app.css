@@ -46,7 +46,8 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
-html { -webkit-text-size-adjust: 100%; }
+/* Like a native app: no double-tap zoom (taps also respond without the 300 ms wait). Pinch is stopped in app.js. */
+html { -webkit-text-size-adjust: 100%; touch-action: manipulation; }
 body {
   background-color: var(--paper);
   background-image: radial-gradient(var(--dot) 1px, transparent 1.3px);

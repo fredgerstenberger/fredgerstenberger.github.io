@@ -156,7 +156,14 @@ function handleIncomingUrl() {
   }
 }
 
+// Like a native app, the screen doesn't pinch-zoom. Safari ignores the viewport's maximum-scale for pinches,
+// so stop its gesture events (iOS's system Zoom in Accessibility settings still works).
+function noPinchZoom() {
+  for (const t of ["gesturestart", "gesturechange"]) document.addEventListener(t, e => e.preventDefault(), { passive: false });
+}
+
 function init() {
+  noPinchZoom();
   applyTheme();
   initModal();
   initTimers(document.getElementById("timers"));
