@@ -746,11 +746,14 @@ body:has(.page.calm) { background: var(--c-bg); }
 .calm h1.ctitle { font: var(--t-title); letter-spacing: -.01em; margin: 0 0 var(--s4); }
 .calm h1.ctitle:has(+ .csub) { margin-bottom: var(--s1); }
 .calm .csub { color: var(--c-muted); font: var(--t-small); display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; margin-bottom: var(--s3); }
-.gtop { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
-.calm .gtop h1.ctitle { margin-bottom: var(--s1); flex: none; }
-.gtop .chip { min-width: 0; white-space: nowrap; }
-.gtop .chip > :not(.sname) { flex: none; }
-.gtop .chip .sname { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* Title in the top bar, next to the back arrow (shell({ inlineTitle: true })). */
+.calm .screen > .titlebar.inline { display: flex; align-items: center; gap: var(--s1); min-height: 64px; padding-top: var(--s2); padding-bottom: var(--s1); }
+.calm .screen > .titlebar.inline .wintitle { flex: none; opacity: 1; text-align: left; font: 700 26px/1.15 var(--body); letter-spacing: -.01em; padding: 0; overflow: visible; }
+.titlebar.inline .tb-right { margin-left: auto; min-width: 0; padding: 0 var(--s2); }
+.gstore { min-width: 0; white-space: nowrap; }
+.gstore > :not(.sname) { flex: none; }
+.gstore .sname { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.calm .csub .gcount { margin-left: auto; color: var(--c-ink); font-weight: 700; white-space: nowrap; }
 .calm .csub .wknav { display: inline-flex; align-items: center; gap: 2px; }
 .calm .csub .wknav a { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; text-decoration: none; color: var(--c-muted); }
 .calm .csub .wknav a:active { background: var(--c-chip); }
@@ -771,18 +774,11 @@ body:has(.page.calm) { background: var(--c-bg); }
 .calm .cempty b { display: block; color: var(--c-ink); font: var(--t-row); margin: var(--s2) 0 var(--s1); }
 
 /* Grocery list */
-.gprog { display: flex; align-items: center; gap: var(--s3); margin: 0 0 var(--s4); font: var(--t-small); color: var(--c-muted); }
-.gprog b { color: var(--c-ink); font-weight: 700; white-space: nowrap; }
-.gbar { flex: 1; display: flex; gap: 2px; min-width: 60px; }
-.gbar i { flex: 1; height: 8px; border-radius: 1px; background: var(--c-line); transition: background var(--quick) var(--ease); }
-.gbar i.on { background: var(--c-check); }
-.gbar.solid { height: 8px; border-radius: 2px; background: var(--c-line); overflow: hidden; display: block; }
-.gbar.solid i { display: block; height: 100%; background: var(--c-check); border-radius: 0; transition: width var(--quick) var(--ease); }
-.gadd { display: flex; align-items: center; gap: var(--s2); min-height: 52px; padding: 0 var(--s2) 0 var(--s4); background: var(--c-card); border: 1px solid var(--c-line); border-radius: var(--r); }
+.gadd { display: flex; align-items: center; gap: var(--s2); height: 44px; padding: 0 6px 0 var(--s4); background: var(--c-card); border: 1px solid var(--c-line); border-radius: var(--r); }
 .gadd:focus-within { border-color: var(--c-accent); }
-.gadd input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: 400 17px var(--body); color: var(--c-ink); padding: var(--s3) 0; }
+.gadd input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: 400 17px var(--body); color: var(--c-ink); padding: 0; }
 .gadd input::placeholder { color: var(--c-faint); }
-.gadd .plus { width: 40px; height: 40px; flex: none; border: 0; border-radius: var(--r-sm); background: var(--c-accent); color: var(--c-accent-ink); font: 700 22px/1 var(--body); cursor: pointer; }
+.gadd .plus { width: 32px; height: 32px; flex: none; border: 0; border-radius: var(--r-sm); background: var(--c-accent); color: var(--c-accent-ink); font: 700 22px/1 var(--body); cursor: pointer; }
 .gchips[hidden] { display: none; }
 .gchips { display: flex; gap: var(--s2); overflow-x: auto; scrollbar-width: none; margin: var(--s3) calc(-1 * var(--s4)) 0; padding: 0 var(--s4); }
 .gchips::-webkit-scrollbar { display: none; }
@@ -1028,7 +1024,7 @@ body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
 
 /* The add box is one field: the input inside draws no border, fill or focus ring of its own (the box shows focus) */
 .gadd input[type="text"], .gadd input[type="text"]:focus { flex: 1; min-width: 0; height: auto; min-height: 0; margin: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; outline: none;
-  -webkit-appearance: none; appearance: none; font: 400 17px var(--body); color: var(--c-ink); padding: var(--s3) 0; }
+  -webkit-appearance: none; appearance: none; font: 400 17px var(--body); color: var(--c-ink); padding: 0; height: 100%; }
 .gadd input[type="text"]:focus-visible { outline: none; }
 .gadd:focus-within { border-color: var(--c-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 18%, transparent); }
 

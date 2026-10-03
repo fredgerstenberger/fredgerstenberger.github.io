@@ -61,13 +61,6 @@ if (typeof document !== "undefined") {
   addEventListener("hashchange", () => { if (!onGrocery()) keepAwake(false); });
 }
 
-function progressHTML(done, total, left) {
-  const bar = total <= 24
-    ? `<span class="gbar" aria-hidden="true">${Array.from({ length: total }, (_, i) => `<i class="${i < done ? "on" : ""}"></i>`).join("")}</span>`
-    : `<span class="gbar solid" aria-hidden="true"><i style="width:${Math.round(done / total * 100)}%"></i></span>`;
-  return `<div class="gprog" role="status">${bar}<b>${done} of ${total}</b>${left ? `<span>· ${left} left</span>` : ""}</div>`;
-}
-
 // "1 pint (16 fl oz)" → "1 pint" with "16 fl oz" as a small second line, so the name gets the room and a
 // size never breaks in the middle ("16 fl / oz").
 const nb = t => esc(t).replace(/ /g, "\u00a0");
@@ -102,13 +95,13 @@ export function groceryView(key) {
   // them is repainted after every change.
   render(shell({
     title: "Groceries",
-    bigTitle: false,
+    inlineTitle: true,
+    actions: `<button class="chip gstore" id="storeBtn" type="button"></button>`,
     body: `
-      <div class="gtop"><h1 class="ctitle">Groceries</h1><button class="chip" id="storeBtn" type="button"></button></div>
       <div class="csub">
         <span class="wknav"><a href="#/grocery/${prev}" aria-label="Previous week">◀</a><span>${weekLabel(key)}${rel ? ` · ${rel}` : ""}</span><a href="#/grocery/${next}" aria-label="Next week">▶</a></span>
+        <b class="gcount" id="gcount" role="status"></b>
       </div>
-      <div id="gprog"></div>
       <p class="gwake" id="gwake" hidden>${pix("check", 14)} Screen stays on while you shop</p>
       <form id="addForm" class="gadd" role="search" autocomplete="off">
         <input type="text" id="addIn" placeholder="Add an item — “2 lb chicken thighs”" autocomplete="off" autocapitalize="sentences" enterkeyhint="go" aria-label="Add an item" aria-controls="gsug">
@@ -140,12 +133,10 @@ export function groceryView(key) {
     const extras = manual().map(e => ({ e, p: parseAdd(e.text) }));
     const total = sec.buy.length + extras.length;
     const done = sec.buy.filter(i => i.checked).length + extras.filter(x => x.e.checked).length;
-    const priced = sec.buy.filter(i => i.cost != null);
-    const estLeft = priced.filter(i => !i.checked).reduce((t, i) => t + i.cost, 0);
     const st = stores.get(stores.current());
     const shop = shopping();
     document.getElementById("storeBtn").innerHTML = `${pix("cart", 14)} <span class="sname">${esc(st ? st.name : "Any store")}</span> ▾`;
-    document.getElementById("gprog").innerHTML = total ? progressHTML(done, total, priced.length ? money(estLeft) : "") : "";
+    document.getElementById("gcount").textContent = total ? `${done} of ${total}` : "";
     document.getElementById("gchips").innerHTML = frequentItems(history(), onList()).map(n => `<button class="chip quiet" type="button" data-quick="${esc(n)}">+ ${esc(n)}</button>`).join("");
 
     // A partner's initial: on things they added, and in the cart on things they checked.
