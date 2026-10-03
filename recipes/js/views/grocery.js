@@ -103,7 +103,6 @@ export function groceryView(key) {
   // them is repainted after every change.
   render(shell({
     title: "Groceries",
-    inlineTitle: true,
     actions: `<button class="chip gstore" id="storeBtn" type="button"></button>`,
     body: `
       <div class="csub">
@@ -222,7 +221,7 @@ export function groceryView(key) {
         <p>Your answer is remembered. Change it anytime in Pantry.</p>
         ${sec.ask.map(i => `<div class="askrow">
           <span class="nm">${esc(cap1(i.name))}<small>for ${esc(i.sources.join(", "))}</small></span>
-          <button class="cbtn" data-have="${esc(i.key)}">Yes</button><button class="cbtn" data-need="${esc(i.key)}">No</button>
+          <button class="cbtn" data-have="${esc(i.pantryKey ?? i.key)}">Yes</button><button class="cbtn" data-need="${esc(i.pantryKey ?? i.key)}">No</button>
         </div>`).join("")}
       </div></div>` : ""}
       ${total > 0 && done === total ? `<div class="gdone">${pix("cart", 32)}<b>Everything's in the cart</b>Nice shopping.</div>` : ""}
@@ -230,7 +229,7 @@ export function groceryView(key) {
       ${cart}
       ${sec.have.length ? `<details class="ghave"><summary class="chead">${pix("canned", 16)} Already in your pantry<span class="n">${sec.have.length} ▾</span></summary>
         <div class="card"><ul class="glist">${sec.have.map(i => `<li class="grow"><div class="grow-main" style="cursor:default">
-          <span class="gname">${esc(cap1(i.name))}</span><button class="chip quiet" data-outof="${esc(i.key)}">Ran out</button></div></li>`).join("")}</ul></div>
+          <span class="gname">${esc(cap1(i.name))}</span><button class="chip quiet" data-outof="${esc(i.pantryKey ?? i.key)}">Ran out</button></div></li>`).join("")}</ul></div>
       </details>` : ""}
       ${total && hint ? `<p class="ghint" id="ghint">Tap an item to check it off. Press and hold, or swipe left, for details.</p>` : ""}
       ${total || later ? `<div class="gfoot">
@@ -260,17 +259,17 @@ export function groceryView(key) {
       const was = e.checked; e.checked = on;
       return () => { const x = findExtra(id); if (x) x.checked = was; };
     }
-    const was = !!g.checked[id], pWas = pantry[id], byWas = g.checkedBy?.[id];
+    const it = findItem(id), pk = it?.pantryKey ?? id; // pantry answers are per food
+    const was = !!g.checked[id], pWas = pantry[pk], byWas = g.checkedBy?.[id];
     if (on) g.checked[id] = true; else delete g.checked[id];
     const by = me().name;
     if (on && by) (g.checkedBy ||= {})[id] = by; else if (g.checkedBy) delete g.checkedBy[id];
     // Bought a pantry item → remember you have it; unchecking means you don't.
-    const it = findItem(id);
-    if (it && it.kind !== "F") pantry[id] = on;
+    if (it && it.kind !== "F") pantry[pk] = on;
     return () => {
       if (was) g.checked[id] = true; else delete g.checked[id];
       if (byWas) (g.checkedBy ||= {})[id] = byWas; else if (g.checkedBy) delete g.checkedBy[id];
-      if (pWas === undefined) delete pantry[id]; else pantry[id] = pWas;
+      if (pWas === undefined) delete pantry[pk]; else pantry[pk] = pWas;
     };
   };
   const toggle = (id, kind, li) => {

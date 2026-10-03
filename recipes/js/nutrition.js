@@ -1,6 +1,7 @@
 // Nutrition: use the site's numbers when published, otherwise estimate from ingredients.
-import { parseIngredient, toGrams, cleanName } from "./ingredients.js";
+import { parseIngredient, toGrams, cleanName, parseRecipe } from "./ingredients.js";
 import { dataVersion } from "./data.js";
+import { foodsVersion } from "./store.js";
 
 const cache = new Map();
 
@@ -23,14 +24,13 @@ export function estimate(recipe) {
   const totals = { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
   const rows = [];
   let counted = 0, covered = 0;
-  for (const line of recipe.ingredients || []) {
-    const ing = parseIngredient(line);
+  for (const { line, ing } of parseRecipe(recipe)) {
     if (!ing || ing.header) continue;
     if (ing.food && ing.food.kind === "X") continue; // water
     counted++;
     const g = toGrams(ing);
     if (ing.food?.nu && g != null) {
-      covered++;
+      if (!ing.food.standIn) covered++; // a stand-in (protein pasta on pasta's numbers) isn't really known
       const k = g / 100;
       const f = ing.food;
       const row = { line, food: f.name, key: f.infoKey || f.name, grams: g, usda: f.usda?.description || "", mine: (!!f.custom && !!f.nu) || !!f.yours,
@@ -45,7 +45,8 @@ export function estimate(recipe) {
       covered++; // "salt to taste" – negligible, still understood
       rows.push({ line, food: ing.food.name, grams: 0, kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
     } else {
-      rows.push({ line, food: null, grams: null, key: ing.food?.infoKey || cleanName(ing.name), source: "none" });
+      // Not counted. Its weight, when the amount says it, shows how much of the recipe it is.
+      rows.push({ line, food: null, grams: g ?? null, key: ing.food?.infoKey || cleanName(ing.name), source: "none" });
     }
   }
   // Each ingredient's share of the recipe's calories or protein (whichever is bigger), for ranking.
@@ -57,7 +58,7 @@ export function estimate(recipe) {
 }
 
 export function nutritionFor(recipe) {
-  const key = recipe.id + ":" + (recipe.updated || 0) + ":" + dataVersion();
+  const key = recipe.id + ":" + (recipe.updated || 0) + ":" + dataVersion() + ":" + foodsVersion();
   if (cache.has(key)) return cache.get(key);
   let out;
   const site = recipe.nutrition;

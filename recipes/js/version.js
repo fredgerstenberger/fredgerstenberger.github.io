@@ -1,7 +1,14 @@
 // App version shown in Settings. Bump together with VERSION in sw.js ("rb-v" + APP_VERSION).
-export const APP_VERSION = 26;
+export const APP_VERSION = 27;
 export const RELEASED = "2026-10-03";
 export const WHATS_NEW = [
+  "Grocery list: specific products from recipes get their own line (protein pasta and pasta, skim and whole milk). A recipe that just says \"butter\" shares the \"unsalted butter\" line.",
+  "Recipes: when protein pasta (or another big ingredient) is using regular pasta's numbers, a quiet note under Nutrition says so, with Add its label. Ingredients with no nutrition get the same note, so the fill-in form is always one tap away.",
+  "Nutrition labels: \"56 Gram\" and ounce-only serving sizes are read.",
+  "The recipe book opens faster.",
+  "Every page has its title next to the back arrow, laid out like the grocery list.",
+  "Accessibility: pinch to zoom works again (double-tap still doesn't zoom), gray text is easier to read, and the Settings fields are labeled for VoiceOver.",
+  "\"Hot dogs\" are hot dogs.",
   "Shopping mode keeps the title, store and week at the top (they scroll away), so the first items are in easy reach; the progress bar stays pinned.",
   "Grocery lists start fresh every week. Things last week's list didn't get to are offered once on this week's list: \"Still need these?\" Add to this week, or Start fresh. (Skipped it by mistake? \"From last week\" at the bottom of the list brings it back.)",
   "Settings → Shopping & prep day: your week runs from the next day, and the grocery list starts fresh on it. The meal plan, lists and everything already planned follow, on both phones.",

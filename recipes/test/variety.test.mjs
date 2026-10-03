@@ -67,7 +67,8 @@ const OFFERS = [
   [["2 cups skim milk"], "skim milk", null],             // same item: joins the line, nothing to offer
   [["2 cups milk"], "paper towels", null],
   [["1 cup heavy cream"], "ice cream", null],
-  [["2 tbsp unsalted butter"], "salted butter", "butter"]
+  [["2 tbsp unsalted butter"], "salted butter", "butter (unsalted)"], // the recipe's line is its own product now
+  [["2 cups skim milk"], "2% milk", "milk (skim)"]
 ];
 for (const [recipe, typed, offered] of OFFERS) {
   test(`use for recipe: [${recipe}] + "${typed}" → ${offered ? `offer for ${offered}` : "no offer"}`, () => {
@@ -101,6 +102,6 @@ test("use for recipe: a pantry question line is put on the list", () => {
   store.get().pantry.butter = undefined;
   const r2 = addToList(WK, "salted butter");
   assert.ok(useForRecipe(WK, r2.id, r2.related.key));
-  assert.equal(store.get().pantry.butter, false);
-  assert.equal(recipeLine("butter").name, "salted butter");
+  assert.equal(store.get().pantry.butter, false); // pantry answers stay per food
+  assert.equal(recipeLine("butter (unsalted)").name, "salted butter");
 });

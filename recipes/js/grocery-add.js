@@ -26,7 +26,7 @@ export function addToList(week, text, by = "") {
   // line behind it ("2% milk" joins a "2 cups 2% milk" line, not a plain "milk" or "skim milk" one).
   // A line you renamed ("2% milk" after Use for recipe) is judged by its new name.
   const names = i => g.edits[i.key]?.name ? [g.edits[i.key].name] : i.lines.map(l => parseIngredient(l.line)?.name);
-  const same = i => p.known ? i.key === p.food && names(i).every(n => sameWords(varietyOf(n, i.food), p.variety)) : i.key === p.key;
+  const same = i => i.key === p.key || (p.known && i.food?.name === p.food && names(i).every(n => sameWords(varietyOf(n, i.food), p.variety)));
   const fromRecipes = [...sec.buy, ...sec.ask, ...sec.have].find(same) || (g.hidden[p.key] ? { key: p.key, hiddenOnly: true } : null);
   const lines = [...house.inWeek(week).map(h => ({ ...h, src: "house" })), ...g.extras.map(e => ({ ...e, src: "extra" }))];
   const line = lines.find(e => parseAdd(e.text)?.key === p.key);
@@ -35,7 +35,8 @@ export function addToList(week, text, by = "") {
     const rk = fromRecipes.key;
     delete g.hidden[rk];
     delete g.checked[rk];
-    if (pantry[rk] === true || sec.ask.some(i => i.key === rk)) pantry[rk] = false; // you need it after all
+    const pk = fromRecipes.pantryKey ?? rk;
+    if (pantry[pk] === true || sec.ask.some(i => i.key === rk)) pantry[pk] = false; // you need it after all
     if (p.amount && !fromRecipes.hiddenOnly) {
       const cur = (g.edits[rk]?.amount ?? fromRecipes.amount ?? "").replace(/\s*\([^)]*\)/g, "");
       g.edits[rk] = { ...(g.edits[rk] || {}), amount: cur ? `${cur} + ${p.amount}` : p.amount };
@@ -51,7 +52,7 @@ export function addToList(week, text, by = "") {
     result = "added";
     // Same food as a recipe line still to buy (or to ask about), but a different variety: "2% milk" while
     // a recipe needs "milk". They stay two lines; the caller can offer to use this one for the recipe.
-    const related = p.known && [...sec.buy, ...sec.ask].find(i => i.key === p.food && !i.checked);
+    const related = p.known && [...sec.buy, ...sec.ask].find(i => i.food?.name === p.food && i.key !== p.key && !i.checked);
     noteAdded(history, p);
     return { p, result, amount, id, related: related ? { key: related.key, name: related.name } : null };
   }
@@ -70,17 +71,17 @@ export function useForRecipe(week, id, recipeKey) {
   const item = sectionize(week);
   const it = [...item.buy, ...item.ask].find(i => i.key === recipeKey);
   if (!h || !it) return null;
-  const p = parseAdd(h.text);
-  const before = { edit: g.edits[recipeKey], checked: g.checked[recipeKey], pantry: pantry[recipeKey] };
+  const p = parseAdd(h.text), pk = it.pantryKey ?? recipeKey; // pantry answers are per food
+  const before = { edit: g.edits[recipeKey], checked: g.checked[recipeKey], pantry: pantry[pk] };
   const cur = (g.edits[recipeKey]?.amount ?? it.amount ?? "").replace(/\s*\([^)]*\)/g, "");
   g.edits[recipeKey] = { ...(g.edits[recipeKey] || {}), name: p.name.toLowerCase(), ...(p.amount ? { amount: cur ? `${cur} + ${p.amount}` : p.amount } : {}) };
   delete g.checked[recipeKey];
-  if (pantry[recipeKey] === true || item.ask.some(i => i.key === recipeKey)) pantry[recipeKey] = false; // you need it
+  if (pantry[pk] === true || item.ask.some(i => i.key === recipeKey)) pantry[pk] = false; // you need it
   house.remove(id);
   return () => {
     house.restore([h]);
     if (before.edit) g.edits[recipeKey] = before.edit; else delete g.edits[recipeKey];
     if (before.checked) g.checked[recipeKey] = true;
-    if (before.pantry === undefined) delete pantry[recipeKey]; else pantry[recipeKey] = before.pantry;
+    if (before.pantry === undefined) delete pantry[pk]; else pantry[pk] = before.pantry;
   };
 }

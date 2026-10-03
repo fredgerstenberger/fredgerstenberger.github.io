@@ -78,6 +78,28 @@ function nuRowsHTML(rows) {
   }).join("");
 }
 
+// One quiet line under Nutrition when the estimate leans on numbers that aren't really this recipe's: a big
+// contributor (15%+ of calories or protein) on stand-in values, or one with none (20%+ of the weight).
+// Otherwise, ingredients with no nutrition at all are named, with the same form the first prompt showed.
+// Dismissed per recipe and ingredient, on this phone.
+const NUDGE_KEY = "rb.nuhide";
+const cap1 = t => String(t).charAt(0).toUpperCase() + String(t).slice(1);
+const nudgeHidden = () => { try { return JSON.parse(localStorage.getItem(NUDGE_KEY) || "{}"); } catch { return {}; } };
+export function nuNudge(r, nu) {
+  if (nu.source !== "estimate" || !nu.rows) return null;
+  const hidden = nudgeHidden(), id = k => `${r.id}|${k}`;
+  const weighed = nu.rows.filter(x => x.grams > 0).reduce((t, x) => t + x.grams, 0);
+  const big = nu.rows
+    .filter(x => x.key && !hidden[id(x.key)] && (x.source === "standin" ? x.share >= 0.15 : x.source === "none" && x.grams > 0 && x.grams / weighed >= 0.2))
+    .sort((a, b) => (b.share || 0) - (a.share || 0) || (b.grams || 0) - (a.grams || 0))[0];
+  if (big) return { hide: id(big.key), key: big.key, action: "Add its label",
+    text: big.source === "standin" ? `${cap1(big.key)} uses regular ${big.food} values` : `${cap1(big.key)} isn't counted` };
+  const missing = infoItems(r).filter(it => it.needNu && !it.food?.nu);
+  const names = missing.map(it => it.key), hide = id("missing:" + names.join(","));
+  if (!missing.length || hidden[hide]) return null;
+  return { hide, items: missing, action: "Add info", text: `Not counted: ${names.slice(0, 3).join(", ")}${names.length > 3 ? ` and ${names.length - 3} more` : ""}` };
+}
+
 function fmtN(n) { return n == null || isNaN(n) ? "–" : Math.round(n); }
 
 export function recipeView(id) {
@@ -93,6 +115,7 @@ export function recipeView(id) {
     const base = servingsOf(r);
     const mult = P.servings / base;
     const nu = nutritionFor(r);
+    const nudge = nuNudge(r, nu);
     const cost = recipeCost(r);
     const est = nu.source === "estimate";
 
@@ -188,6 +211,7 @@ export function recipeView(id) {
           <p class="muted" style="font-size:14px;margin:0 0 6px">${est
             ? `Estimated from ingredients (${Math.round(nu.coverage * 100)}% recognized)${nu.assumedServings ? ", assuming 4 servings — set servings in Edit" : ` for ${nu.servings} servings`}.`
             : `From ${esc(r.site || "the recipe")}${nu.serving ? ` · serving: ${esc(nu.serving)}` : ""}.`}</p>
+          ${nudge ? `<p class="nunote" id="nunote"><span>${esc(nudge.text)} · <button class="linkbtn" id="nuAct">${nudge.action}</button></span><button class="nux" id="nuHide" aria-label="Hide this note">×</button></p>` : ""}
           ${nu.rows && nu.rows.length ? `<details class="breakdown nubd" ${P.nubd ? "open" : ""}><summary>Nutrition by ingredient <span class="nuhint">· tap one to add its label</span></summary>
             <ul class="nurows">${nuRowsHTML(nu.rows)}</ul>
           </details>` : ""}
@@ -248,6 +272,13 @@ export function recipeView(id) {
     document.getElementById("ingInfo")?.addEventListener("click", () => openInfo(r, infoItems(r, true)));
     root.querySelector(".nubd")?.addEventListener("toggle", e => { P.nubd = e.target.open; });
     root.querySelectorAll("[data-food]").forEach(b => b.onclick = () => openFoodSheet(r, b.dataset.food));
+    const note = () => nuNudge(r, nutritionFor(r));
+    document.getElementById("nuAct")?.addEventListener("click", () => { const n = note(); if (n) n.key ? openFoodSheet(r, n.key) : openInfo(r, n.items); });
+    document.getElementById("nuHide")?.addEventListener("click", () => {
+      const n = note();
+      if (n) try { localStorage.setItem(NUDGE_KEY, JSON.stringify({ ...nudgeHidden(), [n.hide]: 1 })); } catch {}
+      document.getElementById("nunote")?.remove();
+    });
     if (P.editIngs) {
       const saveIngs = () => { store.putRecipe(r); };
       root.querySelectorAll("[data-ingtext]").forEach(inp => inp.addEventListener("change", () => {

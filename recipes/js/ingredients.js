@@ -1,6 +1,7 @@
 // Ingredient line parsing, unit conversion and friendly formatting.
 import { matchFood } from "./fooddb.js";
-import { usdaFood, noteUnknown, customFood } from "./data.js";
+import { usdaFood, noteUnknown, customFood, dataVersion } from "./data.js";
+import { foodsVersion } from "./store.js";
 import { nutritionVariant } from "./variants.js";
 
 // ---- Units ----
@@ -111,7 +112,7 @@ function readUnit(rest) {
 }
 
 // Words that describe prep, not the ingredient; stripped for matching & grocery naming.
-const PREP_WORDS = /\b(freshly|fresh|finely|roughly|coarsely|thinly|thickly|chopped|diced|minced|sliced|grated|shredded|crumbled|cubed|halved|quartered|peeled|seeded|deseeded|trimmed|rinsed|drained|packed|softened|melted|cooled|beaten|lightly|divided|optional|about|approximately|plus more|more for serving|for serving|for garnish|to taste|or to taste|at room temperature|room temperature|cold|warm|hot|toasted|juiced|zested|julienned|smashed|crushed|torn|cut into[^,]*|into [^,]*pieces|bite[- ]sized|boneless|skinless|organic|large|medium|small|extra[- ]large|jumbo|heaping|scant|good quality|high quality|store[- ]bought|homemade|uncooked|dry|dried)\b/gi;
+const PREP_WORDS = /\b(freshly|fresh|finely|roughly|coarsely|thinly|thickly|chopped|diced|minced|sliced|grated|shredded|crumbled|cubed|halved|quartered|peeled|seeded|deseeded|trimmed|rinsed|drained|packed|softened|melted|cooled|beaten|lightly|divided|optional|about|approximately|plus more|more for serving|for serving|for garnish|to taste|or to taste|at room temperature|room temperature|cold|warm|hot(?!\s+(?:dogs?|sauce|peppers?|chil(?:e|i|ies|es)|chocolate|cocoa|italian|sausages?|links?|wings?|honey))|toasted|juiced|zested|julienned|smashed|crushed|torn|cut into[^,]*|into [^,]*pieces|bite[- ]sized|boneless|skinless|organic|large|medium|small|extra[- ]large|jumbo|heaping|scant|good quality|high quality|store[- ]bought|homemade|uncooked|dry|dried)\b/gi;
 
 export function cleanName(name) {
   let n = name.toLowerCase()
@@ -127,6 +128,19 @@ export function cleanName(name) {
  * Parse one ingredient line.
  * Returns { raw, qty, qtyMax, unit, size: {qty, unit}|null, name, note, food, header }
  */
+// One parse of a recipe's lines, shared by nutrition, cost, the book's filters and tags, and the grocery list.
+// Kept per recipe until it's edited (a new ingredients list or `updated`) or ingredient data changes (your
+// labels and numbers, USDA lookups: dataVersion). One entry per recipe, so it never grows past the book.
+const parsed = new Map();
+export function parseRecipe(recipe) {
+  const list = recipe.ingredients || [], key = `${recipe.updated || 0}:${dataVersion()}:${foodsVersion()}`;
+  const hit = parsed.get(recipe.id);
+  if (hit && hit.list === list && hit.key === key) return hit.lines;
+  const lines = list.map(line => ({ line, ing: parseIngredient(line) }));
+  if (recipe.id) parsed.set(recipe.id, { list, key, lines });
+  return lines;
+}
+
 export function parseIngredient(line) {
   const raw = String(line).trim();
   if (!raw) return null;

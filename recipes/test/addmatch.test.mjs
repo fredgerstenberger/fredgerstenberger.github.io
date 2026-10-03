@@ -32,15 +32,22 @@ const CASES = [
   ["egg rolls", "Egg rolls", "", "frozen", "egg rolls"],
   ["coconut water", "Coconut water", "", "drinks", "coconut water"],
   ["sparkling water", "Sparkling water", "", "drinks", "seltzer"],
-  ["chocolate milk", "Chocolate milk", "", "dairy", "chocolate milk"],
+  ["chocolate milk", "Chocolate milk", "", "dairy", "milk (chocolate)"],     // its own product of milk, like the recipe lines
   ["rose water", "Rose water", "", null, "rose water"],
   ["paper towels", "Paper towels", "", null, "paper towel"],
   // good matches keep working
   ["2 lb chicken thighs", "Chicken thighs", "2 lb", "meat", "chicken thighs"],
   ["3 avocados", "Avocados", "3", "produce", "avocado"],
-  ["organic whole milk", "Organic whole milk", "", "dairy", "milk (whole)"],
+  ["organic whole milk", "Organic whole milk", "", "dairy", "milk"],         // whole is the default milk
   ["large brown eggs", "Large brown eggs", "", "dairy", "eggs (brown)"],
-  ["heavy cream", "Heavy cream", "", "dairy", "heavy cream"]
+  ["heavy cream", "Heavy cream", "", "dairy", "heavy cream"],
+  // a food plus variety words is that food (keyed like recipe lines)
+  ["protein pasta", "Protein pasta", "", "dry", "pasta (protein)"],
+  // "hot" is a prep word ("hot water") except in names
+  ["hot dogs", "Hot dogs", "", "meat", "hot dogs"],
+  ["2 hot dogs", "Hot dogs", "2", "meat", "hot dogs"],
+  ["hot dog buns", "Hot dog buns", "", "bakery", "burger buns"],
+  ["8 oz Barilla protein pasta", "Barilla protein pasta", "8 oz", "dry", "pasta (barilla protein)"]
 ];
 for (const [typed, name, amount, aisle, key] of CASES) {
   test(`add box: "${typed}"`, () => {

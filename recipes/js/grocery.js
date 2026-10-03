@@ -1,9 +1,10 @@
 // Build a merged grocery list from a week's meal plan.
-import { parseIngredient, toGrams, UNITS, usMass, usVolume, fmtQty, unitLabel, cleanName } from "./ingredients.js";
+import { parseIngredient, toGrams, UNITS, usMass, usVolume, fmtQty, unitLabel, cleanName, parseRecipe } from "./ingredients.js";
 import { servingsOf } from "./nutrition.js";
 import * as store from "./store.js";
 import { FOOD_BY_NAME } from "./fooddb.js";
 import { perGram, packagePrice, eachPrice } from "./prices.js";
+import { varietyOf, varietyName, shoppingOnly } from "./variants.js";
 
 export function singular(w) {
   if (/(ss|us|is)$/.test(w) || w.length <= 3) return w;
@@ -35,10 +36,12 @@ function sizeGrams(size) {
   return size.qty * u.f;
 }
 
-function addLine(acc, f, key, title, line, mult) {
+function addLine(acc, f, key, title, line, mult, name = f ? f.name : key, variety = []) {
   let a = acc.get(key);
   if (!a) {
-    a = { key, food: f, name: f ? f.name : key, grams: 0, mass: 0, vol: 0, pkgCount: 0, counts: {}, untracked: false, sources: new Set(), lines: [] };
+    // food: the table food, for aisle, package size and price. pantryKey: pantry answers are per food, so
+    // having soy sauce covers a "low-sodium soy sauce" line too.
+    a = { key, food: f, name, variety, pantryKey: f ? f.name : key, grams: 0, mass: 0, vol: 0, pkgCount: 0, counts: {}, untracked: false, sources: new Set(), lines: [] };
     acc.set(key, a);
   }
   a.sources.add(title);
@@ -54,8 +57,7 @@ export function buildList(weekKey) {
     const r = store.recipe(meal.rid);
     if (!r) continue;
     const mult = (meal.servings || servingsOf(r)) / servingsOf(r);
-    for (const line of r.ingredients || []) {
-      const ing = parseIngredient(line);
+    for (const { line, ing } of parseRecipe(r)) {
       if (!ing || ing.header) continue;
       let f = ing.food;
       if (f && f.kind === "X") continue;
@@ -69,9 +71,11 @@ export function buildList(weekKey) {
           continue;
         }
       }
-      const key = f ? f.name : singular(cleanName(ing.name) || ing.name.toLowerCase());
+      // A specific product gets its own line, keyed like the add box does: "pasta (protein)", "milk (skim)".
+      const variety = f ? varietyOf(ing.name, f) : [];
+      const key = f ? (variety.length ? `${f.name} (${variety.join(" ")})` : f.name) : singular(cleanName(ing.name) || ing.name.toLowerCase());
       if (!key) continue;
-      const a = addLine(acc, f, key, r.title, line, mult);
+      const a = addLine(acc, f, key, r.title, line, mult, f ? varietyName(ing.name, f, variety) : key, variety);
 
       if (ing.qty == null) { a.untracked = true; continue; }
       const q = (ing.qtyMax != null ? ing.qtyMax : ing.qty) * mult; // shop for the high end of a range
@@ -100,7 +104,28 @@ export function buildList(weekKey) {
     }
   }
 
+  foldGeneric(acc);
   return [...acc.values()].map(a => { const amount = amountText(a); return { ...a, sources: [...a.sources], amount }; });
+}
+
+// A recipe that just says "butter" is happy with the "unsalted butter" another recipe wants, so a generic line
+// joins the food's one specific line when that line differs only in what-to-buy words (salted, a color, a
+// flavor). It stays separate from a different product (protein pasta, skim milk, a brand, 2% milk) and when
+// there are several varieties to choose from (red and green bell peppers).
+function foldGeneric(acc) {
+  const byFood = new Map();
+  for (const a of acc.values()) if (a.food) (byFood.get(a.food.name) || byFood.set(a.food.name, []).get(a.food.name)).push(a);
+  for (const lines of byFood.values()) {
+    const generic = lines.find(a => !a.variety.length), specific = lines.filter(a => a.variety.length);
+    if (!generic || specific.length !== 1 || !shoppingOnly(specific[0].variety)) continue;
+    const s = specific[0];
+    s.grams += generic.grams; s.mass += generic.mass; s.vol += generic.vol; s.pkgCount += generic.pkgCount;
+    for (const [u, n] of Object.entries(generic.counts)) s.counts[u] = (s.counts[u] || 0) + n;
+    s.untracked ||= generic.untracked;
+    for (const t of generic.sources) s.sources.add(t);
+    s.lines.push(...generic.lines);
+    acc.delete(generic.key);
+  }
 }
 
 // "12 eggs" describes what's in one package, so 2 cartons hold "24 eggs". A size like "14.5 oz" is
@@ -179,7 +204,7 @@ export function sectionize(weekKey) {
       it.edited = true;
     }
     const kind = it.food ? it.food.kind : "F";
-    const p = s.pantry[it.key];
+    const p = s.pantry[it.pantryKey ?? it.key];
     it.checked = !!g.checked[it.key];
     it.kind = kind;
     it.aisle = it.food ? it.food.aisle : "other";

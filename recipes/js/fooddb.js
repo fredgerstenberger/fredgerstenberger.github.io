@@ -106,6 +106,7 @@ pork tenderloin|pork loin|meat|F|120,21,0,3.5,0||500||
 pork shoulder|pork butt,boston butt,pulled pork|meat|F|200,17,0,14,0||||
 ground pork||meat|F|263,17,0,21,0|225||package:454:1 lb|
 bacon|bacon slices,slices bacon,strips bacon,thick-cut bacon,thick cut bacon|meat|F|417,13,1.4,40,0||25|package:340:12 oz|
+hot dogs|hot dog,frankfurters,frankfurter,franks,wieners,beef franks,beef hot dogs|meat|F|290,10,4,26,0||45|package:340:8 franks|
 sausage|italian sausage,sausages,pork sausage,breakfast sausage,chorizo,kielbasa,andouille sausage,andouille,sweet italian sausage,hot italian sausage,chicken sausage|meat|F|300,14,2,26,0||85|package:454:1 lb|
 ham|diced ham,deli ham,cooked ham|meat|F|145,21,1.5,6,0|135|28||
 prosciutto|pancetta|meat|F|250,26,0,16,0||15|package:113:4 oz|

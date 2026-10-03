@@ -3,7 +3,7 @@
 import * as store from "./store.js";
 import { esc } from "./util.js";
 import { modal, toast } from "./ui.js";
-import { parseIngredient, cleanName, toGrams, UNITS } from "./ingredients.js";
+import { parseIngredient, cleanName, toGrams, UNITS, parseRecipe } from "./ingredients.js";
 import { perGram } from "./prices.js";
 import { bump, waitForLookups } from "./data.js";
 import { estimate } from "./nutrition.js";
@@ -15,8 +15,7 @@ const ML_PER_CUP = 236.588;
 // all = true also lists ones you've already filled in, so you can change them.
 export function infoItems(recipe, all = false) {
   const items = new Map();
-  for (const line of recipe.ingredients || []) {
-    const ing = parseIngredient(line);
+  for (const { line, ing } of parseRecipe(recipe)) {
     if (!ing || ing.header || ing.qty == null) continue;
     const food = ing.food;
     if (food?.kind === "X") continue; // water
@@ -135,7 +134,7 @@ export function openInfo(recipe, items, { first = false, onDone } = {}) {
       : "Your numbers for these ingredients. They're used in every recipe that has them."}</p>
     <form id="fillForm">${items.map(itemHTML).join("")}
       <div class="btnrow"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" id="fillSkip">${first ? "Skip" : "Cancel"}</button></div>
-      ${first ? `<p class="muted" style="font-size:14px">You won't be asked about these again. Change them anytime with <b>Ingredient info</b> on the recipe.</p>` : ""}
+      ${first ? `<p class="muted" style="font-size:14px">You won't be asked again. To add them later, use the note under <b>Nutrition</b> on the recipe, or <b>Ingredient info</b>.</p>` : ""}
     </form>`, { onClose: () => onDone?.() });
   el.querySelector("#fillSkip").onclick = close;
   // A label is quicker than typing: open that ingredient's label sheet.

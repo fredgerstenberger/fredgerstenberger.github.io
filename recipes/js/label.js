@@ -31,7 +31,8 @@ function amount(text, label) {
 /**
  * Read a Nutrition Facts label from text. Forgiving: any order, labels split across lines, OCR's "O" for
  * zero, "<1g", "Includes 2g Added Sugars" and % Daily Values are fine.
- * Returns { servingText, grams, ml, household, servings, kcal, protein, carbs, fat, fiber } (null = not shown).
+ * Returns { servingText, grams, ml, household, servings, kcal, protein, carbs, fat, fiber } (null = not shown),
+ * plus gramsFrom: "oz" when the label gave only ounces and grams were worked out from them.
  */
 export function parseLabelText(input) {
   const text = String(input || "")
@@ -49,10 +50,14 @@ export function parseLabelText(input) {
   if (m) {
     const s = m[1].trim().replace(/\s+/g, " ").replace(/[.,;]+$/, "");
     out.servingText = s;
-    const g = s.match(/(\d+(?:[.,]\d+)?)\s*g\b/i), ml = s.match(/(\d+(?:[.,]\d+)?)\s*m[lL]\b/);
+    // "56g", "56 g", "56 Gram", "56 grams", "56 gr"
+    const g = s.match(/(\d+(?:[.,]\d+)?)\s*(?:g|grams?|gr|gm)\b/i), ml = s.match(/(\d+(?:[.,]\d+)?)\s*m[lL]\b/);
     if (g) out.grams = num(g[1]);
     if (ml) out.ml = num(ml[1]);
-    const house = s.replace(/\([^)]*\)/g, "").replace(/\b\d+(?:[.,]\d+)?\s*(?:g|ml)\b/gi, "").replace(/[()\/]+$/g, "").trim();
+    // Only ounces ("2 oz", not "fl oz"): converted, and the confirmation says so (gramsFrom: "oz").
+    const oz = !g && !ml && s.match(/(?<!fl\.?\s*)\b(\d+(?:[.,]\d+)?)\s*oz\b/i);
+    if (oz) { out.grams = Math.round(num(oz[1]) * 28.3495); out.gramsFrom = "oz"; }
+    const house = s.replace(/\([^)]*\)/g, "").replace(/\b\d+(?:[.,]\d+)?\s*(?:g|grams?|gr|gm|ml)\b/gi, "").replace(/[()\/]+$/g, "").trim();
     if (house && /[a-z]/i.test(house)) out.household = house;
   }
 
@@ -84,6 +89,7 @@ export function normalizeLabel(raw) {
   const t = v => (v == null || v === "" ? null : String(v).trim().slice(0, 80) || null);
   return {
     servingText: t(f.servingText ?? f.serving_size ?? f.servingSize),
+    ...(f.gramsFrom === "oz" ? { gramsFrom: "oz" } : {}),
     grams: n(f.grams ?? f.serving_grams ?? f.servingGrams, 5000),
     ml: n(f.ml ?? f.serving_ml ?? f.servingMl, 5000),
     household: t(f.household ?? f.household_measure ?? f.householdMeasure),

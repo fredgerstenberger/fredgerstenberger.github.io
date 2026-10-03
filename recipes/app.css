@@ -46,7 +46,8 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
-/* Like a native app: no double-tap zoom (taps also respond without the 300 ms wait). Pinch is stopped in app.js. */
+/* No double-tap zoom: quick taps on the list or the stars never zoom by accident (and respond without the
+   300 ms wait). Pinch zoom stays on for anyone who needs things bigger. */
 html { -webkit-text-size-adjust: 100%; touch-action: manipulation; }
 body {
   background-color: var(--paper);
@@ -349,7 +350,7 @@ h2.sect:first-child, h3.sect:first-child { margin-top: 0; }
 .rtitle { font-family: var(--pixel); font-weight: var(--pxw); font-size: clamp(28px, 7vw, 38px); line-height: 1.12; margin: 0 0 6px; }
 .rsource { font-size: 15px; color: var(--muted); margin: 0 0 12px; }
 .stars { display: inline-flex; gap: 2px; margin: 0 0 14px -4px; }
-.stars button { border: 0; background: none; padding: 4px; cursor: pointer; line-height: 0; }
+.stars button { border: 0; background: none; padding: 4px; cursor: pointer; line-height: 0; min-width: 44px; min-height: 44px; display: inline-grid; place-items: center; } /* 44 pt tap targets */
 .stars svg { width: 28px; height: auto; }
 .stars .off svg { opacity: 0.22; filter: grayscale(1); }
 .stars.show { margin: 0; }
@@ -710,7 +711,7 @@ body.has-timers .toast { bottom: calc(92px + var(--safe-b)); }
    one type scale, 44 px+ tap targets, short purposeful motion.
    ===================================================================== */
 :root {
-  --c-bg: #F5F3EE; --c-card: #FFFFFF; --c-line: #E7E3DA; --c-ink: #1C222B; --c-muted: #626B77; --c-faint: #8E97A2;
+  --c-bg: #F5F3EE; --c-card: #FFFFFF; --c-line: #E7E3DA; --c-ink: #1C222B; --c-muted: #505965; --c-faint: #5F6874;
   --c-accent: #2448CC; --c-accent-ink: #FFFFFF; --c-check: #2E8F52; --c-chip: #ECE8E0; --c-danger: #B3261E;
   --c-toast: #1C222B; --c-toast-ink: #F5F3EE; --c-shade: rgba(28, 34, 43, .38);
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
@@ -721,13 +722,13 @@ body.has-timers .toast { bottom: calc(92px + var(--safe-b)); }
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --c-bg: #12161B; --c-card: #1B2128; --c-line: #2A323C; --c-ink: #E9EDF2; --c-muted: #A3ADB8; --c-faint: #7C8794;
+    --c-bg: #12161B; --c-card: #1B2128; --c-line: #2A323C; --c-ink: #E9EDF2; --c-muted: #ADB6C1; --c-faint: #8D97A3;
     --c-accent: #7C95FF; --c-accent-ink: #0B1020; --c-check: #4CC27A; --c-chip: #232A33; --c-danger: #FF8A80;
     --c-toast: #E9EDF2; --c-toast-ink: #12161B; --c-shade: rgba(0, 0, 0, .55);
   }
 }
 :root[data-theme="dark"] {
-  --c-bg: #12161B; --c-card: #1B2128; --c-line: #2A323C; --c-ink: #E9EDF2; --c-muted: #A3ADB8; --c-faint: #7C8794;
+  --c-bg: #12161B; --c-card: #1B2128; --c-line: #2A323C; --c-ink: #E9EDF2; --c-muted: #ADB6C1; --c-faint: #8D97A3;
   --c-accent: #7C95FF; --c-accent-ink: #0B1020; --c-check: #4CC27A; --c-chip: #232A33; --c-danger: #FF8A80;
   --c-toast: #E9EDF2; --c-toast-ink: #12161B; --c-shade: rgba(0, 0, 0, .55);
 }
@@ -798,7 +799,7 @@ body:has(.page.calm) { background: var(--c-bg); }
 .gamt { flex: none; max-width: 45%; text-align: right; color: var(--c-muted); font: 400 15px/1.3 var(--body); font-variant-numeric: tabular-nums; }
 .got .gname { color: var(--c-faint); text-decoration: line-through; text-decoration-thickness: 1.5px; }
 .got .gamt { color: var(--c-faint); }
-.gby { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-left: 6px; border-radius: 50%; background: #E9A23B; color: #fff; font: 700 11px/1 var(--body); vertical-align: 2px; }
+.gby { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-left: 6px; border-radius: 50%; background: #E9A23B; color: #1C222B; font: 700 11px/1 var(--body); vertical-align: 2px; }
 .grow-actions { position: absolute; inset: 0 0 0 auto; display: flex; }
 .grow-actions button { width: 76px; border: 0; font: var(--t-small); font-weight: 700; color: #fff; cursor: pointer; }
 .grow-actions .more { background: #6B7480; }
@@ -1098,3 +1099,19 @@ body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
 .lcwarn { margin: 0; padding: var(--s2) var(--s3); border-radius: var(--r-sm); background: color-mix(in srgb, #E9A23B 18%, transparent); color: var(--c-ink); font: 400 14px/1.4 var(--body); }
 .lcwarn[hidden] { display: none; }
 .fillscan { margin: 6px 0 2px; }
+
+/* A quiet note under a recipe's Nutrition: stand-in values or ingredients not counted. */
+.nunote { display: flex; align-items: center; gap: var(--s2); margin: 0 0 var(--s2); padding: var(--s2) var(--s3); border-radius: var(--r-sm); background: var(--c-chip); color: var(--c-muted); font: var(--t-small); }
+.nunote > span { flex: 1; }
+.nunote .linkbtn { border: 0; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--c-accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.nunote .nux { flex: none; width: 44px; height: 44px; margin: -12px -8px -12px 0; border: 0; background: none; color: var(--c-muted); font-size: 20px; cursor: pointer; }
+/* Pinch zoom over the grocery list too (its rows keep vertical scrolling and their own swipe). */
+@supports (touch-action: pinch-zoom) { .grow-main { touch-action: pan-y pinch-zoom; } }
+
+/* Pages laid out like the grocery list */
+.titlebar.inline .tb-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; }
+.calm .csub .wkjump { margin-left: auto; font-weight: 700; color: var(--c-accent); text-decoration: none; white-space: nowrap; }
+.prows .prow { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); min-height: 44px; padding: 4px 6px 4px var(--s4); }
+.prows .prow + .prow { border-top: 1px solid var(--c-line); }
+.prows .prow > span:first-child { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.prows .btn.small { min-height: 36px; }
