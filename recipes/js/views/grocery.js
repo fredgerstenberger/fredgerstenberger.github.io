@@ -204,7 +204,7 @@ export function groceryView(key) {
         ${done ? `<button class="cbtn ghost" id="uncheck">Uncheck all</button>` : ""}
         ${Object.keys(g.hidden).length ? `<button class="cbtn ghost" id="unhide">Restore removed (${Object.keys(g.hidden).length})</button>` : ""}
       </div>` : ""}
-      ${shop ? `<div class="gshopbar"><button class="cbtn" id="shopExit">Exit</button><button class="cbtn primary" id="shopDone">${pix("check", 18)} Done shopping</button></div>`
+      ${shop ? `<div class="gshopbar"><button class="cbtn primary" id="shopDone">${pix("check", 18)} Stop shopping</button></div>`
         : total > done ? `<div class="gshopbar"><button class="cbtn primary" id="shopStart">${pix("cart", 18)} Start shopping</button></div>` : ""}`;
     document.querySelector(".page")?.classList.toggle("shopping", shop);
     document.querySelector(".page")?.classList.toggle("hasbar", shop || total > done);
@@ -339,11 +339,13 @@ export function groceryView(key) {
     input.focus();
   };
 
-  // Done shopping: things you added and checked leave the list (recipe items stay checked for the
-  // week), purchases are noted in history, and pantry foods can be marked as stocked.
+  // Stop shopping: finish the trip (bought things you added leave the list, purchases are noted, pantry
+  // can be marked stocked; recipe items stay checked for the week; with Undo) or pause it (everything stays as it is). Asks only when it matters.
+  const pause = () => { setShopping(false); keepAwake(false); paint(); };
   function doneShopping() {
     const got = manual().filter(e => e.checked).map(e => ({ e, p: parseAdd(e.text) }));
     const gotItems = sec.buy.filter(i => i.checked);
+    if (!got.length && !gotItems.length) return pause(); // nothing in the cart yet
     const stock = got.filter(({ p }) => p && "PS".includes(FOOD_BY_NAME[p.key]?.kind || "F") && pantry[p.key] !== true);
     const finish = markStocked => {
       const now = Date.now();
@@ -357,7 +359,7 @@ export function groceryView(key) {
       setShopping(false); keepAwake(false);
       store.save(); paint();
       const n = goneHouse.length + goneExtras.length;
-      toast(n ? `Done shopping · cleared ${n} item${n > 1 ? "s" : ""}` : "Done shopping", n || markStocked && stock.length ? { label: "Undo", run: () => {
+      toast(n ? `Trip finished · cleared ${n} item${n > 1 ? "s" : ""}` : "Trip finished", n || markStocked && stock.length ? { label: "Undo", run: () => {
         house.restore(goneHouse);
         g.extras = [...g.extras, ...goneExtras].sort((a, b) => (a.at || 0) - (b.at || 0));
         for (const [k, v] of Object.entries(pWas)) { if (v === undefined) delete pantry[k]; else pantry[k] = v; }
@@ -366,18 +368,18 @@ export function groceryView(key) {
     };
     if (!got.length && !stock.length) return finish(false);
     const names = list => list.map(({ p }) => p.name.toLowerCase()).join(", ");
-    const { el, close } = modal("Done shopping?", `
-      <p style="margin-top:0">${got.length} thing${got.length > 1 ? "s" : ""} you added ${got.length > 1 ? "leave" : "leaves"} the list: ${esc(names(got))}.${gotItems.length ? " Items from your recipes stay checked for this week." : ""}</p>
+    const { el, close } = modal("Stop shopping", `
+      <p style="margin-top:0"><b>Finish the trip:</b> ${got.length ? `${got.length} thing${got.length > 1 ? "s" : ""} you added and checked off ${got.length > 1 ? "leave" : "leaves"} the list (${esc(names(got))}).` : "what's checked off is noted as bought."}${gotItems.length ? " Items from your recipes stay checked for this week." : ""}</p>
       ${stock.length ? `<label class="gopt"><input type="checkbox" id="dsStock" checked><span>Mark as in your pantry<small>${esc(names(stock))}</small></span></label>` : ""}
-      <div class="btnrow"><button class="btn primary" id="dsOk">Done shopping</button><button class="btn" id="dsNo">Keep shopping</button></div>`);
+      <p><b>Pause:</b> leave shopping mode and keep everything as it is.</p>
+      <div class="btnrow"><button class="btn primary" id="dsOk">Finish trip</button><button class="btn" id="dsNo">Pause</button></div>`);
     el.querySelector("#dsOk").onclick = () => { const m = !!el.querySelector("#dsStock")?.checked; close(); finish(m); };
-    el.querySelector("#dsNo").onclick = () => close();
+    el.querySelector("#dsNo").onclick = () => { close(); pause(); };
   }
 
   function bindBody() {
     const root = document.getElementById("gbody");
     document.getElementById("shopStart")?.addEventListener("click", () => { setShopping(true); keepAwake(true); paint(); window.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" }); });
-    document.getElementById("shopExit")?.addEventListener("click", () => { setShopping(false); keepAwake(false); paint(); });
     document.getElementById("shopDone")?.addEventListener("click", doneShopping);
     root.querySelectorAll(".grow[data-id]").forEach(li => bindRow(li, {
       tap: () => toggle(li.dataset.id, li.dataset.kind, li),
