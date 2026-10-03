@@ -716,7 +716,7 @@ body.has-timers .toast { bottom: calc(92px + var(--safe-b)); }
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
   --r: 14px; --r-sm: 10px;
   --t-title: 700 30px/1.12 var(--body); --t-head: 700 13px/1.2 var(--body); --t-row: 700 17px/1.3 var(--body);
-  --t-small: 500 14px/1.35 var(--body);
+  --t-small: 400 14px/1.35 var(--body);
   --ease: cubic-bezier(.2, .8, .2, 1); --quick: 180ms;
 }
 @media (prefers-color-scheme: dark) {
@@ -775,7 +775,7 @@ body:has(.page.calm) { background: var(--c-bg); }
 .gbar.solid i { display: block; height: 100%; background: var(--c-check); border-radius: 0; transition: width var(--quick) var(--ease); }
 .gadd { display: flex; align-items: center; gap: var(--s2); min-height: 52px; padding: 0 var(--s2) 0 var(--s4); background: var(--c-card); border: 1px solid var(--c-line); border-radius: var(--r); }
 .gadd:focus-within { border-color: var(--c-accent); }
-.gadd input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: 500 17px var(--body); color: var(--c-ink); padding: var(--s3) 0; }
+.gadd input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: 400 17px var(--body); color: var(--c-ink); padding: var(--s3) 0; }
 .gadd input::placeholder { color: var(--c-faint); }
 .gadd .plus { width: 40px; height: 40px; flex: none; border: 0; border-radius: var(--r-sm); background: var(--c-accent); color: var(--c-accent-ink); font: 700 22px/1 var(--body); cursor: pointer; }
 .gchips { display: flex; gap: var(--s2); overflow-x: auto; scrollbar-width: none; margin: var(--s3) calc(-1 * var(--s4)) 0; padding: 0 var(--s4); }
@@ -793,7 +793,7 @@ body:has(.page.calm) { background: var(--c-bg); }
 .got .gbox { background: var(--c-check); border-color: var(--c-check); }
 .gname { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .gname small { display: block; font: var(--t-small); color: var(--c-faint); margin-top: 1px; }
-.gamt { flex: none; max-width: 45%; text-align: right; color: var(--c-muted); font: 500 15px/1.3 var(--body); font-variant-numeric: tabular-nums; }
+.gamt { flex: none; max-width: 45%; text-align: right; color: var(--c-muted); font: 400 15px/1.3 var(--body); font-variant-numeric: tabular-nums; }
 .got .gname { color: var(--c-faint); text-decoration: line-through; text-decoration-thickness: 1.5px; }
 .got .gamt { color: var(--c-faint); }
 .gby { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-left: 6px; border-radius: 50%; background: #E9A23B; color: #fff; font: 700 11px/1 var(--body); vertical-align: 2px; }
@@ -861,7 +861,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--c-accent); outli
 
 /* Headings */
 h2.sect, h3.sect { font-family: var(--body); font-weight: 700; font-size: 20px; border: 0; padding: 0; margin: var(--s6) 0 var(--s3); letter-spacing: -.01em; }
-h2.sect small, h3.sect small { font-weight: 500; }
+h2.sect small, h3.sect small { font-weight: 400; }
 .wintitle { font-family: var(--body); font-weight: 700; }
 
 /* Recipe book */
@@ -1022,14 +1022,14 @@ body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
 
 /* The add box is one field: the input inside draws no border, fill or focus ring of its own (the box shows focus) */
 .gadd input[type="text"], .gadd input[type="text"]:focus { flex: 1; min-width: 0; height: auto; min-height: 0; margin: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; outline: none;
-  -webkit-appearance: none; appearance: none; font: 500 17px var(--body); color: var(--c-ink); padding: var(--s3) 0; }
+  -webkit-appearance: none; appearance: none; font: 400 17px var(--body); color: var(--c-ink); padding: var(--s3) 0; }
 .gadd input[type="text"]:focus-visible { outline: none; }
 .gadd:focus-within { border-color: var(--c-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 18%, transparent); }
 
 /* Amounts: "1 pint" with the package size as a small second line; the name gets priority for width */
 .gamt { max-width: 40%; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
 .gamt .gq { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; line-height: 1.2; }
-.gamt .gq small { font: 500 12px/1.2 var(--body); color: var(--c-faint); }
+.gamt .gq small { font: 400 12px/1.2 var(--body); color: var(--c-faint); }
 .gamt .gplus { font-size: 12px; line-height: 1; color: var(--c-faint); }
 .got .gamt .gq small { color: inherit; }
 .gname { hyphens: none; overflow-wrap: break-word; }
@@ -1054,16 +1054,16 @@ body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
 .ratingbox .stars { margin: 0 0 0 -6px; }
 .ratingbox .stars button { padding: 6px; min-width: 44px; min-height: 44px; display: grid; place-items: center; }
 .ratingbox .stars svg { width: 30px; }
-.ratingbox .rhint { font: 500 14px var(--body); color: var(--c-faint); }
-.ratingbox .ravg { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; font: 500 14px var(--body); color: var(--c-muted); }
+.ratingbox .rhint { font: 400 14px var(--body); color: var(--c-faint); }
+.ratingbox .ravg { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; font: 400 14px var(--body); color: var(--c-muted); }
 .ratingbox .ravg svg { width: 14px; height: auto; }
 .ratingbox .ravg b { color: var(--c-ink); }
 
 /* Nutrition by ingredient: tap one to see where its numbers come from and add its label */
-.nubd summary .nuhint { font-weight: 500; color: var(--c-faint); }
+.nubd summary .nuhint { font-weight: 400; color: var(--c-faint); }
 .nurows { list-style: none; margin: 6px 0 0; padding: 0; }
 .nurow { display: flex; align-items: center; gap: var(--s3); width: 100%; min-height: 48px; padding: var(--s2) 0; border: 0; border-bottom: 1px solid var(--c-line);
-  background: none; color: var(--c-ink); text-align: left; font: 500 14px/1.35 var(--body); cursor: pointer; }
+  background: none; color: var(--c-ink); text-align: left; font: 400 14px/1.35 var(--body); cursor: pointer; }
 .nurow:active { background: var(--c-bg); }
 .nurow .nuname { flex: 1; min-width: 0; }
 .nurow .nuval { text-align: right; white-space: nowrap; color: var(--c-muted); font-variant-numeric: tabular-nums; }
@@ -1083,7 +1083,7 @@ body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
 .lcform label.wide, .lcform .btnrow, .lcform .lcwarn { grid-column: 1 / -1; }
 .lcform .lin { display: flex; align-items: center; gap: 6px; }
 .lcform .lin input { flex: 1; min-width: 0; }
-.lcform .lin small { color: var(--c-faint); font-weight: 500; }
-.lcwarn { margin: 0; padding: var(--s2) var(--s3); border-radius: var(--r-sm); background: color-mix(in srgb, #E9A23B 18%, transparent); color: var(--c-ink); font: 500 14px/1.4 var(--body); }
+.lcform .lin small { color: var(--c-faint); font-weight: 400; }
+.lcwarn { margin: 0; padding: var(--s2) var(--s3); border-radius: var(--r-sm); background: color-mix(in srgb, #E9A23B 18%, transparent); color: var(--c-ink); font: 400 14px/1.4 var(--body); }
 .lcwarn[hidden] { display: none; }
 .fillscan { margin: 6px 0 2px; }
