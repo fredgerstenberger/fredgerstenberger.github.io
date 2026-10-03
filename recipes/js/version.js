@@ -3,6 +3,7 @@ export const APP_VERSION = 25;
 export const RELEASED = "2026-10-03";
 export const WHATS_NEW = [
   "Grocery list: about twice as many items fit on screen. Groceries and the store button share the top line, the item count sits beside the week, and rows (and the add box) are a little shorter. Your usual-item chips appear when you tap into the add box.",
+  "Shopping mode goes full screen: same-size rows as the list, with a progress bar and \"X of Y\" pinned at the top.",
   "New font: IBM Plex Sans.",
   "The app no longer zooms when you pinch or double-tap, like a regular iPhone app.",
   "Specific products (protein pasta, chickpea pasta, a brand) are their own ingredient instead of silently using regular pasta's numbers.",

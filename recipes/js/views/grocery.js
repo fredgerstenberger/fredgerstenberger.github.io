@@ -71,6 +71,14 @@ function amountHTML(amount) {
   }).join(`<span class="gplus">+</span>`);
 }
 
+// Shopping mode's top bar: progress and "X of Y", pinned while you scroll.
+function shopTopHTML(done, total) {
+  const bar = total <= 30
+    ? `<span class="gbar" aria-hidden="true">${Array.from({ length: total }, (_, i) => `<i class="${i < done ? "on" : ""}"></i>`).join("")}</span>`
+    : `<span class="gbar solid" aria-hidden="true"><i style="width:${Math.round(done / total * 100)}%"></i></span>`;
+  return `${bar}<b>${done} of ${total}</b>`;
+}
+
 function rowHTML({ id, kind, name, amount, sub, checked, who }) {
   return `<li class="grow ${checked ? "got" : ""}" data-id="${esc(id)}" data-kind="${kind}">
     <button class="grow-main" aria-pressed="${checked}">
@@ -98,6 +106,7 @@ export function groceryView(key) {
     inlineTitle: true,
     actions: `<button class="chip gstore" id="storeBtn" type="button"></button>`,
     body: `
+      <div class="gshoptop" id="gshoptop" role="status"></div>
       <div class="csub">
         <span class="wknav"><a href="#/grocery/${prev}" aria-label="Previous week">◀</a><span>${weekLabel(key)}${rel ? ` · ${rel}` : ""}</span><a href="#/grocery/${next}" aria-label="Next week">▶</a></span>
         <b class="gcount" id="gcount" role="status"></b>
@@ -137,6 +146,7 @@ export function groceryView(key) {
     const shop = shopping();
     document.getElementById("storeBtn").innerHTML = `${pix("cart", 14)} <span class="sname">${esc(st ? st.name : "Any store")}</span> ▾`;
     document.getElementById("gcount").textContent = total ? `${done} of ${total}` : "";
+    document.getElementById("gshoptop").innerHTML = total ? shopTopHTML(done, total) : "";
     document.getElementById("gchips").innerHTML = frequentItems(history(), onList()).map(n => `<button class="chip quiet" type="button" data-quick="${esc(n)}">+ ${esc(n)}</button>`).join("");
 
     // A partner's initial: on things they added, and in the cart on things they checked.
