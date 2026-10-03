@@ -3,12 +3,12 @@
 import * as store from "../store.js";
 import { esc, uid, addDays, parseWeekKey, weekKey, weekRelation } from "../util.js";
 import { shell, render, toast, modal } from "../ui.js";
-import { AISLES, FOOD_BY_NAME } from "../fooddb.js";
+import { AISLES } from "../fooddb.js";
 import { sectionize, listAsText } from "../grocery.js";
 import { weekLabel, currentWeek, setWeek } from "./plan.js";
 import { money } from "../prices.js";
 import { pix } from "../pixicons.js";
-import { parseAdd, noteBought, suggest, frequentItems } from "../quickadd.js";
+import { parseAdd, suggest, frequentItems } from "../quickadd.js";
 import { me } from "../ratings.js";
 import * as stores from "../stores.js";
 import * as house from "../household.js";
@@ -339,48 +339,13 @@ export function groceryView(key) {
     input.focus();
   };
 
-  // Stop shopping: finish the trip (bought things you added leave the list, purchases are noted, pantry
-  // can be marked stocked; recipe items stay checked for the week; with Undo) or pause it (everything stays as it is). Asks only when it matters.
-  const pause = () => { setShopping(false); keepAwake(false); paint(); };
-  function doneShopping() {
-    const got = manual().filter(e => e.checked).map(e => ({ e, p: parseAdd(e.text) }));
-    const gotItems = sec.buy.filter(i => i.checked);
-    if (!got.length && !gotItems.length) return pause(); // nothing in the cart yet
-    const stock = got.filter(({ p }) => p && "PS".includes(FOOD_BY_NAME[p.key]?.kind || "F") && pantry[p.key] !== true);
-    const finish = markStocked => {
-      const now = Date.now();
-      for (const i of gotItems) noteBought(history(), { key: i.key, name: i.name, aisle: i.aisle }, now);
-      for (const { p } of got) if (p) noteBought(history(), p, now);
-      const pWas = {};
-      if (markStocked) for (const { p } of stock) { pWas[p.key] = pantry[p.key]; pantry[p.key] = true; }
-      const goneHouse = house.clearChecked();
-      const goneExtras = g.extras.filter(e => e.checked);
-      g.extras = g.extras.filter(e => !e.checked);
-      setShopping(false); keepAwake(false);
-      store.save(); paint();
-      const n = goneHouse.length + goneExtras.length;
-      toast(n ? `Trip finished · cleared ${n} item${n > 1 ? "s" : ""}` : "Trip finished", n || markStocked && stock.length ? { label: "Undo", run: () => {
-        house.restore(goneHouse);
-        g.extras = [...g.extras, ...goneExtras].sort((a, b) => (a.at || 0) - (b.at || 0));
-        for (const [k, v] of Object.entries(pWas)) { if (v === undefined) delete pantry[k]; else pantry[k] = v; }
-        store.save(); paint();
-      } } : null);
-    };
-    if (!got.length && !stock.length) return finish(false);
-    const names = list => list.map(({ p }) => p.name.toLowerCase()).join(", ");
-    const { el, close } = modal("Stop shopping", `
-      <p style="margin-top:0"><b>Finish the trip:</b> ${got.length ? `${got.length} thing${got.length > 1 ? "s" : ""} you added and checked off ${got.length > 1 ? "leave" : "leaves"} the list (${esc(names(got))}).` : "what's checked off is noted as bought."}${gotItems.length ? " Items from your recipes stay checked for this week." : ""}</p>
-      ${stock.length ? `<label class="gopt"><input type="checkbox" id="dsStock" checked><span>Mark as in your pantry<small>${esc(names(stock))}</small></span></label>` : ""}
-      <p><b>Pause:</b> leave shopping mode and keep everything as it is.</p>
-      <div class="btnrow"><button class="btn primary" id="dsOk">Finish trip</button><button class="btn" id="dsNo">Pause</button></div>`);
-    el.querySelector("#dsOk").onclick = () => { const m = !!el.querySelector("#dsStock")?.checked; close(); finish(m); };
-    el.querySelector("#dsNo").onclick = () => { close(); pause(); };
-  }
+  // Stop shopping: back to the full list. What you checked off stays in "In cart" (tap one to bring it back).
+  const stopShopping = () => { setShopping(false); keepAwake(false); paint(); window.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" }); };
 
   function bindBody() {
     const root = document.getElementById("gbody");
     document.getElementById("shopStart")?.addEventListener("click", () => { setShopping(true); keepAwake(true); paint(); window.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" }); });
-    document.getElementById("shopDone")?.addEventListener("click", doneShopping);
+    document.getElementById("shopDone")?.addEventListener("click", stopShopping);
     root.querySelectorAll(".grow[data-id]").forEach(li => bindRow(li, {
       tap: () => toggle(li.dataset.id, li.dataset.kind, li),
       more: () => details(li.dataset.id, li.dataset.kind),
