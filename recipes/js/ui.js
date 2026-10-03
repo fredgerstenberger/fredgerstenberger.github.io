@@ -17,12 +17,13 @@ export const app = () => document.getElementById("app");
 export function go(hash) { location.hash = hash; }
 
 /** A full page in the Calm Pixel style: a quiet top bar (back arrow, title once you scroll, actions) and
- * a large title. bigTitle: false for screens that draw their own title. */
-export function shell({ title, body, status = "", actions = "", back = "#/", calm = true, bigTitle = true }) {
-  if (calm && bigTitle) body = `<h1 class="ctitle">${esc(title)}</h1>` + body;
+ * a large title. bigTitle: false for screens that draw their own title. inlineTitle: the title sits in the
+ * top bar next to the back arrow (always shown), saving the big title's line. */
+export function shell({ title, body, status = "", actions = "", back = "#/", calm = true, bigTitle = true, inlineTitle = false }) {
+  if (calm && bigTitle && !inlineTitle) body = `<h1 class="ctitle">${esc(title)}</h1>` + body;
   return `<main class="page${calm ? " calm" : ""}">
     <section class="win screen">
-      <div class="titlebar">
+      <div class="titlebar${inlineTitle ? " inline" : ""}">
         <span class="tb-left"><a class="backbtn" href="${esc(back)}" aria-label="${back === "#/" ? "Home" : "Back"}">${sprite("back")}</a></span>
         <h1 class="wintitle">${esc(title)}</h1>
         <span class="tb-right">${actions}</span>

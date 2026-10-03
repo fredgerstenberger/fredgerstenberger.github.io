@@ -746,6 +746,14 @@ body:has(.page.calm) { background: var(--c-bg); }
 .calm h1.ctitle { font: var(--t-title); letter-spacing: -.01em; margin: 0 0 var(--s4); }
 .calm h1.ctitle:has(+ .csub) { margin-bottom: var(--s1); }
 .calm .csub { color: var(--c-muted); font: var(--t-small); display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; margin-bottom: var(--s3); }
+/* Title in the top bar, next to the back arrow (shell({ inlineTitle: true })). */
+.calm .screen > .titlebar.inline { display: flex; align-items: center; gap: var(--s1); min-height: 64px; padding-top: var(--s2); padding-bottom: var(--s1); }
+.calm .screen > .titlebar.inline .wintitle { flex: none; opacity: 1; text-align: left; font: 700 26px/1.15 var(--body); letter-spacing: -.01em; padding: 0; overflow: visible; }
+.titlebar.inline .tb-right { margin-left: auto; min-width: 0; padding: 0 var(--s2); }
+.gstore { min-width: 0; white-space: nowrap; }
+.gstore > :not(.sname) { flex: none; }
+.gstore .sname { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.calm .csub .gcount { margin-left: auto; color: var(--c-ink); font-weight: 700; white-space: nowrap; }
 .calm .csub .wknav { display: inline-flex; align-items: center; gap: 2px; }
 .calm .csub .wknav a { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; text-decoration: none; color: var(--c-muted); }
 .calm .csub .wknav a:active { background: var(--c-chip); }
@@ -753,7 +761,7 @@ body:has(.page.calm) { background: var(--c-bg); }
   background: var(--c-chip); color: var(--c-ink); font: var(--t-small); font-weight: 700; white-space: nowrap; cursor: pointer; text-decoration: none; }
 .calm .chip.quiet { color: var(--c-muted); }
 .calm .card { background: var(--c-card); border: 1px solid var(--c-line); border-radius: var(--r); overflow: hidden; }
-.calm .chead { display: flex; align-items: center; gap: var(--s2); margin: var(--s5) 0 var(--s2); padding-left: 2px;
+.calm .chead { display: flex; align-items: center; gap: var(--s2); margin: var(--s4) 0 6px; padding-left: 2px;
   font: var(--t-head); letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); }
 .calm .chead .n { margin-left: auto; letter-spacing: 0; color: var(--c-faint); font-weight: 700; }
 .calm .cbtn { display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); min-height: 44px; padding: 0 var(--s4);
@@ -766,24 +774,18 @@ body:has(.page.calm) { background: var(--c-bg); }
 .calm .cempty b { display: block; color: var(--c-ink); font: var(--t-row); margin: var(--s2) 0 var(--s1); }
 
 /* Grocery list */
-.gprog { display: flex; align-items: center; gap: var(--s3); margin: 0 0 var(--s4); font: var(--t-small); color: var(--c-muted); }
-.gprog b { color: var(--c-ink); font-weight: 700; white-space: nowrap; }
-.gbar { flex: 1; display: flex; gap: 2px; min-width: 60px; }
-.gbar i { flex: 1; height: 8px; border-radius: 1px; background: var(--c-line); transition: background var(--quick) var(--ease); }
-.gbar i.on { background: var(--c-check); }
-.gbar.solid { height: 8px; border-radius: 2px; background: var(--c-line); overflow: hidden; display: block; }
-.gbar.solid i { display: block; height: 100%; background: var(--c-check); border-radius: 0; transition: width var(--quick) var(--ease); }
-.gadd { display: flex; align-items: center; gap: var(--s2); min-height: 52px; padding: 0 var(--s2) 0 var(--s4); background: var(--c-card); border: 1px solid var(--c-line); border-radius: var(--r); }
+.gadd { display: flex; align-items: center; gap: var(--s2); height: 44px; padding: 0 6px 0 var(--s4); background: var(--c-card); border: 1px solid var(--c-line); border-radius: var(--r); }
 .gadd:focus-within { border-color: var(--c-accent); }
-.gadd input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: 400 17px var(--body); color: var(--c-ink); padding: var(--s3) 0; }
+.gadd input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: 400 17px var(--body); color: var(--c-ink); padding: 0; }
 .gadd input::placeholder { color: var(--c-faint); }
-.gadd .plus { width: 40px; height: 40px; flex: none; border: 0; border-radius: var(--r-sm); background: var(--c-accent); color: var(--c-accent-ink); font: 700 22px/1 var(--body); cursor: pointer; }
+.gadd .plus { width: 32px; height: 32px; flex: none; border: 0; border-radius: var(--r-sm); background: var(--c-accent); color: var(--c-accent-ink); font: 700 22px/1 var(--body); cursor: pointer; }
+.gchips[hidden] { display: none; }
 .gchips { display: flex; gap: var(--s2); overflow-x: auto; scrollbar-width: none; margin: var(--s3) calc(-1 * var(--s4)) 0; padding: 0 var(--s4); }
 .gchips::-webkit-scrollbar { display: none; }
 .glist { list-style: none; margin: 0; padding: 0; }
 .grow { position: relative; overflow: hidden; }
 .grow + .grow { border-top: 1px solid var(--c-line); }
-.grow-main { position: relative; z-index: 1; display: flex; align-items: center; gap: var(--s3); width: 100%; min-height: 52px; padding: var(--s2) var(--s4);
+.grow-main { position: relative; z-index: 1; display: flex; align-items: center; gap: var(--s3); width: 100%; min-height: 44px; padding: 6px var(--s4);
   border: 0; background: var(--c-card); color: var(--c-ink); text-align: left; cursor: pointer; font: var(--t-row);
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: pan-y; transition: transform var(--quick) var(--ease), background var(--quick); }
 .grow-main:active { background: var(--c-bg); }
@@ -1000,19 +1002,28 @@ body:has(.gshopbar) .toast { bottom: calc(92px + var(--safe-b)); }
 body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
 .gwake { display: flex; align-items: center; gap: var(--s2); margin: calc(var(--s2) * -1) 0 var(--s3); color: var(--c-check); font: 700 14px var(--body); }
 .gwake[hidden] { display: none; }
+.shopping .gwake { margin: 0 0 var(--s2); }
 .shopping #addForm, .shopping .gsug, .shopping .gchips, .shopping .gaskwrap, .shopping .ghave,
 .shopping .ghint, .shopping .gfoot, .shopping .cempty { display: none; }
-.shopping .ctitle { font-size: 26px; }
-.shopping .grow-main { min-height: 64px; font-size: 20px; gap: var(--s4); }
-.shopping .gname small { font-size: 15px; }
-.shopping .gamt { font-size: 18px; }
-.shopping .gbox { width: 30px; height: 30px; border-radius: 8px; }
-.shopping .gbox .pix { width: 20px; height: 20px; }
-.shopping .chead { font-size: 15px; margin-top: var(--s5); }
+/* Shopping mode is full screen: no title or week, just progress pinned at the top. */
+.calm.shopping .screen > .titlebar, .calm.shopping .csub { display: none; }
+.gshoptop { display: none; }
+.shopping .gshoptop { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: var(--s3);
+  margin: 0 calc(-1 * var(--s4)); padding: var(--s3) var(--s4); background: var(--c-bg); font: var(--t-small); }
+.gshoptop b { color: var(--c-ink); font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.gbar { flex: 1; display: flex; gap: 2px; min-width: 60px; }
+.gbar i { flex: 1; height: 8px; border-radius: 1px; background: var(--c-line); transition: background var(--quick) var(--ease); }
+.gbar i.on { background: var(--c-check); }
+.gbar.solid { height: 8px; border-radius: 2px; background: var(--c-line); overflow: hidden; display: block; }
+.gbar.solid i { display: block; height: 100%; background: var(--c-check); border-radius: 0; transition: width var(--quick) var(--ease); }
 .gopt { display: flex; align-items: flex-start; gap: var(--s3); padding: var(--s3) var(--s4); margin: 0 0 var(--s3); border: 1px solid var(--c-line); border-radius: var(--r-sm); background: var(--c-bg); cursor: pointer; }
 .gopt input { width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--c-check); flex: none; }
 .gopt span { font: var(--t-row); }
 .gopt small { display: block; font: var(--t-small); color: var(--c-muted); margin-top: 2px; }
+.gcarry .gopt { margin: 0; align-items: center; padding: 10px var(--s4); border: 0; border-top: 1px solid var(--c-line); border-radius: 0; background: none; }
+.gcarry .gopt small { display: inline; margin: 0 0 0 var(--s2); }
+.gcarry .btnrow { display: flex; gap: var(--s2); margin: 0; padding: var(--s3) var(--s4); border-top: 1px solid var(--c-line); }
+.gcarry .btnrow .primary { flex: 1; }
 
 /* A partner's change note: their initial, then what they did */
 .toast.who { display: flex; align-items: center; gap: var(--s2); padding-left: 8px; }
@@ -1022,20 +1033,17 @@ body.has-timers:has(.gshopbar) .toast { bottom: calc(160px + var(--safe-b)); }
 
 /* The add box is one field: the input inside draws no border, fill or focus ring of its own (the box shows focus) */
 .gadd input[type="text"], .gadd input[type="text"]:focus { flex: 1; min-width: 0; height: auto; min-height: 0; margin: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; outline: none;
-  -webkit-appearance: none; appearance: none; font: 400 17px var(--body); color: var(--c-ink); padding: var(--s3) 0; }
+  -webkit-appearance: none; appearance: none; font: 400 17px var(--body); color: var(--c-ink); padding: 0; height: 100%; }
 .gadd input[type="text"]:focus-visible { outline: none; }
 .gadd:focus-within { border-color: var(--c-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 18%, transparent); }
 
 /* Amounts: "1 pint" with the package size as a small second line; the name gets priority for width */
 .gamt { max-width: 40%; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-.gamt .gq { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; line-height: 1.2; }
+.gamt .gq { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; line-height: 1.15; }
 .gamt .gq small { font: 400 12px/1.2 var(--body); color: var(--c-faint); }
 .gamt .gplus { font-size: 12px; line-height: 1; color: var(--c-faint); }
 .got .gamt .gq small { color: inherit; }
 .gname { hyphens: none; overflow-wrap: break-word; }
-.shopping .gamt { max-width: 38%; }
-.shopping .gamt .gq { font-size: 17px; }
-.shopping .gamt .gq small { font-size: 13px; }
 @media (max-width: 360px) { .shopping .grow-main { font-size: 18px; gap: var(--s3); } .shopping .gamt .gq { font-size: 16px; } }
 .gshopbar .cbtn { white-space: nowrap; }
 @media (max-width: 360px) { .gshopbar .cbtn:not(.primary) { padding: 0 var(--s4); } .gshopbar .cbtn { font-size: 16px; } }

@@ -1,7 +1,8 @@
 // Recipe Box — entry point: theme, routing, home screen.
 import * as store from "./store.js";
-import { items as houseItems } from "./household.js";
-import { esc, planningWeekKey, weekKey, DAYS, MEALS, cap, plural } from "./util.js";
+import { inWeek as houseItems } from "./household.js";
+import { esc, planningWeekKey, weekKey, DAYS, MEALS, cap, plural, setPrepDay } from "./util.js";
+import { alignWeeks } from "./weeks.js";
 import { sprite } from "./sprites.js";
 import { render, initModal, closeModal, applyTheme } from "./ui.js";
 import { watchForUpdates } from "./updates.js";
@@ -27,7 +28,7 @@ function homeView() {
   const wk = planningWeekKey();
   const meals = store.week(wk).meals || [];
   let toBuy = 0;
-  try { const sec = sectionize(wk); toBuy = sec.buy.filter(i => !i.checked).length + sec.extras.filter(e => !e.checked).length + houseItems().filter(h => !h.checked).length; } catch {}
+  try { const sec = sectionize(wk); toBuy = sec.buy.filter(i => !i.checked).length + sec.extras.filter(e => !e.checked).length + houseItems(wk).filter(h => !h.checked).length; } catch {}
 
   // Today's plan
   const now = new Date();
@@ -162,8 +163,16 @@ function noPinchZoom() {
   for (const t of ["gesturestart", "gesturechange"]) document.addEventListener(t, e => e.preventDefault(), { passive: false });
 }
 
+// Weeks start the day after the household's shopping & prep day (a synced setting). If it changed, on
+// this phone or the other, what's stored under the old weeks moves to the new ones.
+function applyWeekSetting() {
+  setPrepDay(store.settings().prepDay ?? 0);
+  if (alignWeeks()) store.save();
+}
+
 function init() {
   noPinchZoom();
+  applyWeekSetting();
   applyTheme();
   initModal();
   initTimers(document.getElementById("timers"));
@@ -181,6 +190,7 @@ function init() {
     const safe = /^#\/?$|^#\/(plan|grocery|pantry|prices|book)/.test(h) && !(h === "#/book" && window.scrollY > 80);
     if (safe) route();
   };
+  window.addEventListener("rb:synced", applyWeekSetting);
   window.addEventListener("rb:synced", refresh);
   window.addEventListener("rb:data", refresh); // new official prices / USDA nutrition arrived
   refreshPrices();

@@ -20,8 +20,10 @@ Before you start: both phones are on the new version (**Settings** shows "Recipe
 
 - [ ] Type in the add box: `ice cream` adds Ice cream (not cream). `2% milk` and `oat milk` are separate lines. `half and half` is one item. `1,000 g flour` reads as a thousand grams.
 - [ ] On an item that's a variety of something a recipe needs, **Use for recipe** works.
-- [ ] Tap **Start shopping** and leave the phone untouched for 2 minutes: the screen stays on. (Needs iOS 18.4 or later for the home-screen app; on older iOS it just dims as usual.) Leave shopping mode; the screen dims normally again.
+- [ ] Tap **Start shopping** and leave the phone untouched for 2 minutes: the screen stays on. (Needs iOS 18.4 or later for the home-screen app; on older iOS it just dims as usual.) Tap **Stop shopping**: you're back on the list with what you got under In cart, and the screen dims normally again.
 - [ ] Emma adds an item and checks one off on her phone while your list is open: within a few seconds yours updates and shows a note like "Emma checked eggs".
+- [ ] **Weekly list** (on a Monday, or any day after a week with unchecked items): this week's list starts fresh and asks **Still need these?** with last week's leftovers. Untick one, tap **Add to this week**: the rest appear on both phones, and neither phone asks again.
+- [ ] **Shopping day**: in Settings → Cooking & planning, set **Shopping & prep day** to another day. The meal plan starts the day after it and its meals stay on the same dates, on both phones. Set it back to Sunday afterwards.
 - [ ] **Stores**: pick a store, open its aisles. Drag an aisle by its **≡** handle to a new spot; the order sticks after leaving and coming back. Scroll the aisle list by swiping anywhere **except** the handle: it scrolls without moving aisles.
 
 ## 4. Recipes (2 min)

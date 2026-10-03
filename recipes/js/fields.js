@@ -89,6 +89,8 @@ export function toFields(k, v) {
     for (const [i, on] of Object.entries(v.hidden || {})) if (on) out["h|" + i] = true;
     for (const [i, e] of Object.entries(v.edits || {})) if (e) out["e|" + i] = e;
     (v.extras || []).forEach((e, n) => { if (e?.id) out["x|" + e.id] = { text: e.text, checked: !!e.checked, at: e.at ?? n, ...(e.by ? { by: e.by } : {}) }; });
+    // Answered "Still need these from last week?" for this week's leftovers (v25+), so it's asked once.
+    if (v.carry) out["o|carry"] = v.carry;
     return out;
   }
   for (const [f, x] of Object.entries(v)) if (f !== FT && x != null) out[f] = x;
@@ -114,6 +116,7 @@ export function fromFields(k, fields) {
     else if (kind === "e") g.edits[id] = x;
     else if (kind === "x") g.extras.push({ id, ...x });
     else if (kind === "b") (g.checkedBy ||= {})[id] = x;
+    else if (kind === "o" && id === "carry") g.carry = x;
   }
   g.extras.sort((a, b) => (a.at - b.at) || (a.id < b.id ? -1 : 1));
   return g;

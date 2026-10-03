@@ -16,15 +16,29 @@ const DAY = 86400000;
 
 export function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
 
-export function mondayOf(d) {
+// A week is the 7 days after your shopping & prep day (Settings → Cooking & planning; Sunday by default,
+// so weeks run Monday–Sunday). A week's key is the date of its first day.
+const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]; // Date.getDay() order
+let START = 1; // the weekday weeks start on (0 = Sunday)
+/** Set the shopping & prep day (0 = Sunday … 6 = Saturday); the week starts the day after. */
+export function setPrepDay(dow) { START = ((Math.trunc(Number(dow)) || 0) % 7 + 8) % 7; }
+export const prepDay = () => (START + 6) % 7;
+/** The week's days in order, as slot day names: ["mon", …, "sun"] by default. */
+export const weekDays = () => Array.from({ length: 7 }, (_, i) => WEEKDAYS[(START + i) % 7]);
+/** The date of a day ("tue") in the week with this key (whichever weekday the key falls on). */
+export function dayDate(key, day) {
+  const s = parseWeekKey(key);
+  return addDays(s, (WEEKDAYS.indexOf(day) - s.getDay() + 7) % 7);
+}
+
+export function startOfWeek(d) {
   const x = startOfDay(d);
-  const dow = (x.getDay() + 6) % 7; // Mon = 0
-  x.setDate(x.getDate() - dow);
+  x.setDate(x.getDate() - (x.getDay() - START + 7) % 7);
   return x;
 }
 
-export function weekKey(monday) {
-  const m = mondayOf(monday);
+export function weekKey(date) {
+  const m = startOfWeek(date);
   return `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, "0")}-${String(m.getDate()).padStart(2, "0")}`;
 }
 
@@ -35,20 +49,20 @@ export function parseWeekKey(key) {
 
 export function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
 
-// Sunday is meal-prep + shopping day, so from Sunday on we look at the week that starts tomorrow.
+// From your shopping & prep day on, we look at the week that starts tomorrow.
 export function planningWeekKey(now = new Date()) {
   const d = startOfDay(now);
-  if (d.getDay() === 0) return weekKey(addDays(d, 1));
+  if (d.getDay() === prepDay()) return weekKey(addDays(d, 1));
   return weekKey(d);
 }
 
 // "This week" / "Next week" / "Last week" for a week key, relative to today.
 export function weekRelation(key, now = new Date()) {
-  const diff = Math.round((parseWeekKey(key) - mondayOf(now)) / (7 * DAY));
+  const diff = Math.round((parseWeekKey(key) - startOfWeek(now)) / (7 * DAY));
   return { 0: "This week", 1: "Next week", "-1": "Last week" }[diff] || "";
 }
 
-// The shop & prep day (the Sunday before the week), said honestly relative to today.
+// The shop & prep day (the day before the week), said honestly relative to today.
 export function prepLabel(key, now = new Date()) {
   const prep = addDays(parseWeekKey(key), -1), today = startOfDay(now);
   const date = fmtDate(prep, { weekday: "short", month: "short", day: "numeric" });

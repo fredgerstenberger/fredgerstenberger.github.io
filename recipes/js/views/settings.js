@@ -1,7 +1,8 @@
 // Settings: theme, filter thresholds, planning, units, import proxy, backups.
 import { me, setMyName } from "../ratings.js";
 import * as store from "../store.js";
-import { esc } from "../util.js";
+import { esc, setPrepDay } from "../util.js";
+import { alignWeeks } from "../weeks.js";
 import { shell, render, toast, confirmBox, applyTheme } from "../ui.js";
 import { REGIONS } from "../prices.js";
 import { SCAN_MODELS } from "../scan.js";
@@ -124,6 +125,8 @@ function askRestore(data) {
   });
 }
 
+const DAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
 export function settingsView() {
   const s = store.settings();
   const st = store.get();
@@ -152,6 +155,8 @@ export function settingsView() {
       <p class="muted" style="font-size:14px;margin:4px 0 0">Regional levels are rough estimates. For real accuracy, enter what your store charges on the <a href="#/prices">Prices</a> screen; your prices are used as-is.</p>
 
       <h2 class="sect">Cooking &amp; planning</h2>
+      <div class="setrow"><span>Shopping &amp; prep day<small>Your week runs from the next day, and the grocery list starts fresh</small></span>
+        <select id="prepDay" class="setsel">${DAY_LONG.map((d, i) => `<option value="${i}" ${(s.prepDay ?? 0) === i ? "selected" : ""}>${d}</option>`).join("")}</select></div>
       <div class="setrow"><span>People per meal<small>Sets suggested servings in the meal plan</small></span>${num("people", 1, 12)}</div>
       <div class="setrow"><span>Default units</span>${seg("units", [["original", "Original"], ["us", "US"], ["metric", "Metric"]])}</div>
       <div class="setrow"><span>Keep screen on in cook mode</span>${seg("wakeLock", [[true, "On"], [false, "Off"]])}</div>
@@ -236,6 +241,17 @@ export function settingsView() {
     inp.addEventListener("input", saveNum);
     inp.addEventListener("change", saveNum);
     inp.addEventListener("blur", () => { if (isNaN(parseFloat(inp.value))) inp.value = store.settings()[inp.dataset.num]; });
+  });
+  const prep = document.getElementById("prepDay");
+  prep.addEventListener("change", () => {
+    const d = Number(prep.value);
+    store.setSetting("prepDay", d);
+    setPrepDay(d);
+    alignWeeks(); // meals, checked items and added items move to the new weeks
+    store.save();
+    try { sessionStorage.removeItem("rb.week"); } catch {} // open the plan and list on the current week
+    flash(prep);
+    toast(`Weeks now run ${DAY_LONG[(d + 1) % 7]} to ${DAY_LONG[(d + 7) % 7]}`);
   });
   const region = document.getElementById("region");
   region.addEventListener("change", () => {
