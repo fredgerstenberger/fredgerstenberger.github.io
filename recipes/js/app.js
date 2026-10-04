@@ -115,7 +115,17 @@ function applyWeekSetting() {
   if (alignWeeks()) store.save();
 }
 
+// While the keyboard is up (typing in a field), the bottom bars step aside: on iPhone, fixed bars stay put while
+// the keyboard covers the bottom of the screen, so they'd float over the middle of the page.
+const TYPING = 'input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]):not([type=file]):not([type=range]), textarea, select, [contenteditable="true"]';
+function watchKeyboard() {
+  const set = () => { const a = document.activeElement; document.body.classList.toggle("kb-open", !!a?.matches?.(TYPING) && !a.closest("dialog")); };
+  document.addEventListener("focusin", set);
+  document.addEventListener("focusout", () => setTimeout(set, 0));
+}
+
 function init() {
+  watchKeyboard();
   applyWeekSetting();
   applyTheme();
   initModal();

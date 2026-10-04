@@ -1207,3 +1207,9 @@ li + li > .morerow { border-top: 1px solid var(--c-line); }
 .fillmsg { flex-basis: 100%; margin: 0; font-size: 14px; min-height: 0; }
 .fillmsg:empty { display: none; }
 .filllabel .btn { width: auto; margin: 0; }
+/* A sheet scrolls by itself; it never scrolls the page behind it. */
+html.modal-open { overflow: hidden; }
+dialog .wbody { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+/* Typing: the keyboard covers the bottom of the screen, so the tab bar and the shopping bar step aside. */
+body.kb-open .tabbar, body.kb-open .gshopbar { display: none; }
+body.kb-open.has-tabs:not(.shopping-mode) .page { padding-bottom: 24px; }
