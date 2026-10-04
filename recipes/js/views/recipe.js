@@ -170,7 +170,7 @@ export function recipeView(id) {
       actions: P.cook ? `<button class="tb-btn" id="cookBtn" aria-pressed="true">Exit cook</button>`
         : `<button class="tb-btn tb-more" id="moreBtn" aria-label="More actions" aria-haspopup="dialog">⋯</button>`,
       body: `
-        ${photo ? `<img class="rphoto hide-cook" src="${esc(photo)}" alt="" referrerpolicy="no-referrer">` : ""}
+        ${photo ? `<img class="rphoto hide-cook" data-photo src="${esc(photo)}" alt="" decoding="sync" referrerpolicy="no-referrer">` : ""}
         <h2 class="rtitle">${esc(r.title)}</h2>
         <p class="rsource">${r.url ? `from <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.site || domainOf(r.url))} ↗</a>` : "Your recipe"}${r.author ? ` · ${esc(r.author)}` : ""}</p>
         <div class="hide-cook">${ratingHTML(r)}</div>

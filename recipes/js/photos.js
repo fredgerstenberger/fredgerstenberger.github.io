@@ -41,3 +41,25 @@ export async function fillPhotos(recipes, st, onFound, max = 4) {
     }
   } finally { filling = false; }
 }
+
+// Pages are redrawn from HTML, so every photo would be a new <img> that loads and decodes again: a blink on each
+// page change. Instead the drawn photo elements are kept and moved into the new page (an element that has already
+// decoded its picture paints at once). Called after every render; only https photos marked data-photo.
+const held = new Map();
+export function adoptPhotos(root) {
+  if (!root?.querySelectorAll) return;
+  const used = new Set();
+  for (const img of root.querySelectorAll("img[data-photo]")) {
+    const u = img.getAttribute("src");
+    const old = held.get(u);
+    if (old && old !== img && !used.has(u) && old.complete && old.naturalWidth) {
+      old.className = img.className;
+      img.replaceWith(old);
+      used.add(u);
+    } else {
+      held.set(u, img);
+      used.add(u);
+    }
+  }
+  if (held.size > 200) for (const k of [...held.keys()].slice(0, held.size - 200)) held.delete(k);
+}

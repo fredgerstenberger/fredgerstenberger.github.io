@@ -6,7 +6,7 @@ import { shell, render, metaLine, modal, closeModal } from "../ui.js";
 import { nutritionFor } from "../nutrition.js";
 import { MEAL_TAGS } from "../tags.js";
 import { recipeCost } from "../prices.js";
-import { allPhotos, okImage, fillPhotos } from "../photos.js";
+import { allPhotos, okImage, fillPhotos, adoptPhotos } from "../photos.js";
 import { sprite } from "../sprites.js";
 
 // Filter state survives navigating into a recipe and back. on: chips (quick filters, meals, keywords);
@@ -152,11 +152,12 @@ export function bookView() {
       const ph = okImage(photos[r.id]) ? photos[r.id] : "";
       return `
       <li class="card"><a href="#/r/${r.id}" class="${ph ? "hasphoto" : ""}">
-        ${ph ? `<img class="cthumb" src="${esc(ph)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ""}
+        ${ph ? `<img class="cthumb" data-photo src="${esc(ph)}" alt="" decoding="sync" referrerpolicy="no-referrer">` : ""}
         <span class="cbody"><span class="ctitle">${esc(r.title)}</span>
         <div class="cmeta">${metaLine(r)}</div></span>
       </a></li>`;
     }).join("");
+    adoptPhotos(listEl);
   }
 
   document.getElementById("q").addEventListener("input", e => { F.q = e.target.value; saveF(); update(); });

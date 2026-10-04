@@ -1,4 +1,4 @@
-// Today: one tap from the week's plan (the Plan tab's Week | Today switch). Tonight's dinner with its photo, the day's other meals, the
+// Today: the app's first screen (the Plan tab), with the week's plan beside it (Today | Week). Tonight's dinner with its photo, the day's other meals, the
 // grocery list and tomorrow, with Week one tap away.
 import * as store from "../store.js";
 import { esc, weekKey, planningWeekKey, addDays, prepDay, MEALS, cap, plural, fmtDate } from "../util.js";
@@ -20,7 +20,7 @@ function mealsOn(date) {
 
 /** The Today | Week switch shared by Today and the meal plan. */
 export const planSwitch = on => `<div class="seg planseg" role="group" aria-label="Plan view">
-  <a href="#/" ${on === "week" ? 'aria-current="page"' : ""}>Week</a><a href="#/today" ${on === "today" ? 'aria-current="page"' : ""}>Today</a></div>`;
+  <a href="#/" ${on === "today" ? 'aria-current="page"' : ""}>Today</a><a href="#/plan" ${on === "week" ? 'aria-current="page"' : ""}>Week</a></div>`;
 
 export function todayView({ backupNag = "" } = {}) {
   const now = new Date();
@@ -52,7 +52,7 @@ export function todayView({ backupNag = "" } = {}) {
     body: `
       <div class="csub"><span>${esc(fmtDate(now, { weekday: "long", month: "long", day: "numeric" }))}</span></div>
       ${hero ? `<section class="card tdhero" aria-label="${cap(hero.m)} today">
-        ${heroPhoto ? `<img class="tdphoto" src="${esc(heroPhoto)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ""}
+        ${heroPhoto ? `<img class="tdphoto" data-photo src="${esc(heroPhoto)}" alt="" decoding="sync" referrerpolicy="no-referrer">` : ""}
         <div class="tdbody">
           <div class="tdkind">${hero.m === "dinner" ? "Dinner tonight" : `${cap(hero.m)} today`}${hero.leftover ? " · leftovers" : ""}</div>
           <a class="tdtitle" href="#/r/${hero.r.id}">${esc(hero.r.title)}</a>

@@ -44,7 +44,7 @@ const sortSlots = arr => [...new Set(arr)].sort((a, b) => slotIdx(a) - slotIdx(b
 let moving = null;
 window.addEventListener("hashchange", () => { if (!location.hash.startsWith("#/plan")) moving = null; });
 
-export function planView(key, { nag = "" } = {}) {
+export function planView(key) {
   key = key ? weekKey(parseWeekKey(key)) : currentWeek();
   setWeek(key);
   if (moving && moving.key !== key) moving = null;
@@ -127,8 +127,7 @@ export function planView(key, { nag = "" } = {}) {
         return `<li><a href="#/r/${r.id}"><b>${esc(r.title)}</b></a><br>
           <span class="muted" style="font-size:15px">${x.servings} servings · eaten ${sl.length}× (${sl.map(slotName).join(", ")})</span></li>`;
       }).join("")}</ul>` : `<p class="muted">Tap + on any meal to add a recipe. Cook once and tick extra slots for leftovers; groceries only count it once.</p>`}
-      ${meals.length ? `<div class="btnrow"><button class="btn small danger" id="clearWeek">Clear this week</button></div>` : ""}
-      ${nag}`,
+      ${meals.length ? `<div class="btnrow"><button class="btn small danger" id="clearWeek">Clear this week</button></div>` : ""}`,
     status: `<span>${meals.length} meals planned</span><span>${people} ${people === 1 ? "person" : "people"} · <a href="#/settings">change</a></span>`
   }), { keepScroll: true });
 

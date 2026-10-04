@@ -1,7 +1,9 @@
 // App version shown in Settings. Bump together with VERSION in sw.js ("rb-v" + APP_VERSION).
-export const APP_VERSION = 29;
-export const RELEASED = "2026-10-04";
+export const APP_VERSION = 30;
+export const RELEASED = "2026-10-05";
 export const WHATS_NEW = [
+  "The app opens on Today again, with Today on the left of the Today | Week switch.",
+  "Recipe photos no longer blink when you switch pages.",
   "The week's meal plan is the first page again, and Plan is the first tab. Today is one tap away (Week | Today).",
   "Recipes: a Filters button next to search has everything you can filter by: meal, calories, protein, time and cost per serving, rating and keywords. The quick filters stay along the top.",
   "Recipes you saved before photos get theirs automatically, a few at a time while the recipe book is open.",
