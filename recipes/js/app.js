@@ -21,8 +21,8 @@ import * as sync from "./sync.js";
 import { refreshPrices } from "./data.js";
 import { refreshRecipe } from "./views/recipe.js";
 
-// ---- The week's meal plan (the first screen) ----
-function homeView() { planView(undefined, { nag: backupNag(store.get()) }); }
+// ---- Today (the first screen; the week's plan is beside it) ----
+function homeView() { todayView({ backupNag: backupNag(store.get()) }); }
 
 function backupNag(s) {
   if (sync.enabled()) return "";
@@ -46,7 +46,7 @@ const ROUTES = [
   [/^#\/settings$/, () => settingsView()],
   [/^#\/prices$/, () => pricesView()],
   [/^#\/more$/, () => moreView()],
-  [/^#\/today$/, () => todayView()]
+  [/^#\/today$/, () => homeView()]
 ];
 
 // The tab bar: on the main screens, with the current one marked. Not on a recipe, the editor or Add recipe
