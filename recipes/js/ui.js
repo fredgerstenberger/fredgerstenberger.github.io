@@ -47,6 +47,26 @@ export function render(html, { keepScroll = false } = {}) {
 }
 
 // ---- Modal ----
+// While a sheet is open the page behind it is pinned in place. On iPhone, touches on a sheet over a scrolled
+// page could otherwise go to the page (it scrolled instead of the sheet responding); pinning the page also
+// stops it scrolling underneath. The page returns to the same spot when the sheet closes.
+let lockedY = null;
+function lockPage() {
+  if (lockedY != null) return;
+  lockedY = window.scrollY;
+  const b = document.body.style;
+  b.position = "fixed"; b.top = `-${lockedY}px`; b.left = "0"; b.right = "0"; b.width = "100%";
+  document.documentElement.classList.add("modal-open");
+}
+function unlockPage() {
+  if (lockedY == null) return;
+  const y = lockedY; lockedY = null;
+  const b = document.body.style;
+  b.position = b.top = b.left = b.right = b.width = "";
+  document.documentElement.classList.remove("modal-open");
+  window.scrollTo(0, y);
+}
+
 let onModalClose = null;
 export function modal(title, html, { onClose } = {}) {
   const dlg = document.getElementById("modal");
@@ -54,13 +74,13 @@ export function modal(title, html, { onClose } = {}) {
   const body = document.getElementById("modal-body");
   body.innerHTML = html;
   onModalClose = onClose || null;
-  if (!dlg.open) dlg.showModal();
+  if (!dlg.open) { lockPage(); dlg.showModal(); }
   body.scrollTop = 0;
   return { el: body, close: closeModal };
 }
 export function closeModal() {
   const dlg = document.getElementById("modal");
-  if (dlg.open) dlg.close();
+  if (dlg.open) { unlockPage(); dlg.close(); }
 }
 export function initModal() {
   const dlg = document.getElementById("modal");
@@ -68,7 +88,7 @@ export function initModal() {
   x.innerHTML = sprite("close");
   x.addEventListener("click", closeModal);
   dlg.addEventListener("click", e => { if (e.target === dlg) closeModal(); });
-  dlg.addEventListener("close", () => { const f = onModalClose; onModalClose = null; f && f(); });
+  dlg.addEventListener("close", () => { unlockPage(); const f = onModalClose; onModalClose = null; f && f(); });
 }
 
 export function confirmBox(message, okLabel = "Delete", danger = true) {
