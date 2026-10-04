@@ -1,7 +1,9 @@
 // Single recipe: cooking-friendly view with scaling, unit conversion, timers, nutrition, tags, notes.
 import * as store from "../store.js";
 import { esc, fmtMinutes, debounce, domainOf } from "../util.js";
-import { shell, render, starsHTML, confirmBox, toast, go } from "../ui.js";
+import { shell, render, starsHTML, confirmBox, toast, go, modal } from "../ui.js";
+import { photoOf, setPhoto } from "../photos.js";
+import { importFromUrl } from "../parse.js";
 import { ratingOf, rate } from "../ratings.js";
 import * as sync from "../sync.js";
 import { parseIngredient, displayAmount, equivalents } from "../ingredients.js";
@@ -116,6 +118,7 @@ export function recipeView(id) {
     const mult = P.servings / base;
     const nu = nutritionFor(r);
     const nudge = nuNudge(r, nu);
+    const photo = photoOf(r.id);
     const cost = recipeCost(r);
     const est = nu.source === "estimate";
 
@@ -163,8 +166,11 @@ export function recipeView(id) {
       bigTitle: false,
       title: r.title,
       back: "#/book",
-      actions: `<button class="tb-btn" id="cookBtn" aria-pressed="${P.cook}">${P.cook ? "Exit cook" : "Cook mode"}</button>`,
+      // Cooking: Exit cook in the top bar. Otherwise the ⋯ menu (Edit, Share, photo, Delete).
+      actions: P.cook ? `<button class="tb-btn" id="cookBtn" aria-pressed="true">Exit cook</button>`
+        : `<button class="tb-btn tb-more" id="moreBtn" aria-label="More actions" aria-haspopup="dialog">⋯</button>`,
       body: `
+        ${photo ? `<img class="rphoto hide-cook" src="${esc(photo)}" alt="" referrerpolicy="no-referrer">` : ""}
         <h2 class="rtitle">${esc(r.title)}</h2>
         <p class="rsource">${r.url ? `from <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.site || domainOf(r.url))} ↗</a>` : "Your recipe"}${r.author ? ` · ${esc(r.author)}` : ""}</p>
         <div class="hide-cook">${ratingHTML(r)}</div>
@@ -177,10 +183,9 @@ export function recipeView(id) {
           ${cost.total > 0 ? `<div><dt>Cost</dt><dd>${money(cost.perServing)}/serving<br><span class="muted" style="font-size:14px">${money(cost.perServing * P.servings)} for ${P.servings}</span></dd></div>` : ""}
           ${nu.kcal ? `<div><dt>Per serving</dt><dd>${fmtN(nu.kcal)} kcal<br><span class="muted" style="font-size:14px">${fmtN(nu.protein)} g protein</span></dd></div>` : ""}
         </dl>
-        <div class="btnrow hide-cook">
+        <div class="btnrow hide-cook rbtns">
           <button class="btn primary" id="planBtn">+ Meal plan</button>
-          <a class="btn" href="#/edit/${r.id}">Edit</a>
-          <button class="btn danger" id="delBtn">Delete</button>
+          ${P.cook ? "" : `<button class="btn" id="cookBtn">Cook mode</button>`}
         </div>
 
         <h2 class="sect">Ingredients <small>${P.ings.size && !P.editIngs ? `${P.ings.size} checked · <button class="btn small" id="clearIngs" style="min-height:28px">Clear</button> ` : ""}<button class="btn small" id="editIngs" style="min-height:28px">${P.editIngs ? "Done" : "✎ Edit"}</button></small></h2>
@@ -320,11 +325,7 @@ export function recipeView(id) {
       toast(P.cook ? (s.wakeLock && "wakeLock" in navigator ? "Cook mode · screen stays on" : "Cook mode") : "Cook mode off");
     };
     document.getElementById("planBtn").onclick = () => openAddToPlan(r.id);
-    document.getElementById("delBtn").onclick = async () => {
-      if (await confirmBox(`Delete “${r.title}”? It will also be removed from your meal plans.`)) {
-        store.deleteRecipe(r.id); toast("Recipe deleted"); go("#/book");
-      }
-    };
+    document.getElementById("moreBtn")?.addEventListener("click", () => recipeMenu(r, () => draw()));
     root.querySelectorAll("[data-rmtag]").forEach(b => b.onclick = () => {
       r.tags = (r.tags || []).filter(x => x !== b.dataset.rmtag); store.putRecipe(r); draw();
     });
@@ -344,6 +345,47 @@ export function recipeView(id) {
 
   redrawCurrent = () => { if (location.hash === `#/r/${id}`) draw(true); };
   draw(false);
+  // From Today's Start cooking: straight into cook mode.
+  let cookNow = false;
+  try { cookNow = sessionStorage.getItem("rb.cookNow") === id; if (cookNow) sessionStorage.removeItem("rb.cookNow"); } catch {}
+  if (cookNow && !P.cook) document.getElementById("cookBtn")?.click();
+}
+
+// The recipe's ⋯ menu: things you do now and then, with Delete set apart at the bottom.
+function recipeMenu(r, redraw) {
+  const photo = photoOf(r.id);
+  const { el, close } = modal("Recipe", `
+    <div class="rmenu">
+      <a class="rmitem" href="#/edit/${r.id}">Edit recipe</a>
+      <button class="rmitem" id="rmShare">Share recipe</button>
+      ${photo ? `<button class="rmitem" id="rmNoPhoto">Remove photo</button>` : r.url ? `<button class="rmitem" id="rmPhoto">Get photo from ${esc(r.site || domainOf(r.url))}</button>` : ""}
+      <button class="rmitem danger" id="rmDelete">Delete recipe…</button>
+    </div>`);
+  el.querySelector("#rmShare").onclick = async () => {
+    const text = [r.title, "", ...(r.ingredients || []), "", ...(r.steps || []).map((x, i) => `${i + 1}. ${x}`), r.url ? `\n${r.url}` : ""].join("\n").trim();
+    close();
+    try {
+      if (navigator.share) await navigator.share({ title: r.title, text, ...(r.url ? { url: r.url } : {}) });
+      else { await navigator.clipboard.writeText(text); toast("Recipe copied"); }
+    } catch {}
+  };
+  el.querySelector("#rmNoPhoto")?.addEventListener("click", () => { setPhoto(r.id, null); close(); redraw(); toast("Photo removed from this phone"); });
+  el.querySelector("#rmPhoto")?.addEventListener("click", async e => {
+    e.currentTarget.disabled = true; e.currentTarget.textContent = "Getting the photo…";
+    const st = store.settings();
+    try {
+      const got = await importFromUrl(r.url, st.proxy, () => {}, st.proxy ? { worker: st.proxy, model: st.scanModel, key: st.scanKey } : null);
+      close();
+      if (got?.image) { setPhoto(r.id, got.image); redraw(); toast("Photo added (on this phone)"); }
+      else toast("That page doesn't list a photo");
+    } catch { close(); toast("Couldn't reach the page"); }
+  });
+  el.querySelector("#rmDelete").onclick = async () => {
+    close();
+    if (await confirmBox(`Delete “${r.title}”? It will also be removed from your meal plans.`)) {
+      store.deleteRecipe(r.id); setPhoto(r.id, null); toast("Recipe deleted"); go("#/book");
+    }
+  };
 }
 
 function showConversions(btn, ing, mult) {

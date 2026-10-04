@@ -1,10 +1,9 @@
 // Recipe Box — entry point: theme, routing, home screen.
 import * as store from "./store.js";
-import { inWeek as houseItems } from "./household.js";
-import { esc, planningWeekKey, weekKey, DAYS, MEALS, cap, plural, setPrepDay } from "./util.js";
+import { setPrepDay } from "./util.js";
 import { alignWeeks } from "./weeks.js";
 import { sprite } from "./sprites.js";
-import { render, initModal, closeModal, applyTheme } from "./ui.js";
+import { initModal, closeModal, applyTheme } from "./ui.js";
 import { watchForUpdates } from "./updates.js";
 import { initTimers } from "./timers.js";
 import { bookView } from "./views/book.js";
@@ -16,86 +15,14 @@ import { pantryView } from "./views/pantry.js";
 import { convertView } from "./views/convert.js";
 import { settingsView } from "./views/settings.js";
 import { pricesView } from "./views/prices.js";
-import { sectionize } from "./grocery.js";
+import { todayView } from "./views/today.js";
+import { moreView } from "./views/more.js";
 import * as sync from "./sync.js";
 import { refreshPrices } from "./data.js";
 import { refreshRecipe } from "./views/recipe.js";
 
-// ---- Home ----
-function homeView() {
-  const s = store.get();
-  const n = Object.keys(s.recipes).length;
-  const wk = planningWeekKey();
-  const meals = store.week(wk).meals || [];
-  let toBuy = 0;
-  try { const sec = sectionize(wk); toBuy = sec.buy.filter(i => !i.checked).length + sec.extras.filter(e => !e.checked).length + houseItems(wk).filter(h => !h.checked).length; } catch {}
-
-  // Today's plan
-  const now = new Date();
-  const todayKey = DAYS[(now.getDay() + 6) % 7];
-  const thisWeek = store.week(weekKey(now)).meals || [];
-  const today = MEALS.map(m => {
-    const hit = thisWeek.filter(x => x.slots.includes(`${todayKey}-${m}`)).map(x => store.recipe(x.rid)).filter(Boolean);
-    return { m, hit };
-  }).filter(x => x.hit.length);
-
-  const tiles = [
-    ["book", "Recipe book", "#/book", plural(n, "recipe")],
-    ["add", "Add recipe", "#/add", ""],
-    ["plan", "Meal plan", "#/plan", meals.length ? plural(meals.length, "meal") : ""],
-    ["list", "Grocery list", "#/grocery", toBuy ? `${toBuy} to buy` : ""],
-    ["pantry", "Pantry", "#/pantry", ""],
-    ["price", "Prices", "#/prices", ""],
-    ["convert", "Converter", "#/convert", ""],
-    ["settings", "Settings", "#/settings", ""]
-  ];
-
-  render(`<main class="page calm home">
-    <header class="hero">
-      <div>
-        <h1><span>Recipe</span><span>Box</span></h1>
-      </div>
-      <button class="btn small" id="themeBtn" aria-label="Toggle light or dark mode">${themeLabel()}</button>
-    </header>
-    <section class="win" aria-labelledby="k-title">
-      <div class="titlebar"><h2 class="wintitle" id="k-title">Kitchen</h2></div>
-      <nav class="icons">
-        ${tiles.map(([icon, label, href, badge]) => `
-          <a class="icon" href="${href}">
-            ${sprite(icon)}
-            <span class="label">${esc(label)}</span>
-            ${badge ? `<span class="badge">${esc(badge)}</span>` : ""}
-          </a>`).join("")}
-      </nav>
-      <div class="statusbar">
-        <span>${plural(n, "recipe")}</span>
-        <span>${sync.enabled() ? (sync.info().error ? "Sync paused" : "Synced") : "Saved on this device"}</span>
-      </div>
-    </section>
-    ${today.length ? `
-    <section class="win today">
-      <div class="titlebar"><h2 class="wintitle">Today</h2></div>
-      <div class="wbody"><ul>
-        ${today.map(t => `<li><span class="slot">${cap(t.m)}</span><span>${t.hit.map(r => `<a href="#/r/${r.id}">${esc(r.title)}</a>`).join(", ")}</span></li>`).join("")}
-      </ul></div>
-    </section>` : ""}
-    ${backupNag(s)}
-  </main>`);
-
-  document.getElementById("themeBtn").onclick = () => {
-    const cur = store.settings().theme;
-    const dark = cur === "dark" || (cur === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
-    store.setSetting("theme", dark ? "light" : "dark");
-    applyTheme();
-    homeView();
-  };
-}
-
-function themeLabel() {
-  const cur = store.settings().theme;
-  const dark = cur === "dark" || (cur === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
-  return dark ? "☀ Light" : "☾ Dark";
-}
+// ---- Today (the first screen) ----
+function homeView() { todayView({ backupNag: backupNag(store.get()) }); }
 
 function backupNag(s) {
   if (sync.enabled()) return "";
@@ -117,12 +44,35 @@ const ROUTES = [
   [/^#\/pantry$/, () => pantryView()],
   [/^#\/convert$/, () => convertView()],
   [/^#\/settings$/, () => settingsView()],
-  [/^#\/prices$/, () => pricesView()]
+  [/^#\/prices$/, () => pricesView()],
+  [/^#\/more$/, () => moreView()]
 ];
+
+// The tab bar: on the main screens, with the current one marked. Not on a recipe, the editor or Add recipe
+// (they have their own way back), and it steps aside in shopping mode (body.shopping-mode).
+const TABS = [["book", "Recipes", "#/book", "book"], ["plan", "Plan", "#/", "plan"], ["list", "List", "#/grocery", "list"], ["more", "More", "#/more", null]];
+function tabFor(h) {
+  if (/^#?\/?$|^#\/plan/.test(h)) return "plan";
+  if (/^#\/book/.test(h)) return "book";
+  if (/^#\/grocery/.test(h)) return "list";
+  if (/^#\/(more|pantry|prices|convert|settings)/.test(h)) return "more";
+  return null;
+}
+const DOTS = `<svg class="sprite" viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="7" width="3" height="3" fill="currentColor"/><rect x="6.5" y="7" width="3" height="3" fill="currentColor"/><rect x="12" y="7" width="3" height="3" fill="currentColor"/></svg>`;
+function updateTabs() {
+  const bar = document.getElementById("tabbar"), on = tabFor(location.hash || "#/");
+  if (!bar) return;
+  if (!bar.children.length) bar.innerHTML = TABS.map(([id, label, href, icon]) => `<a href="${href}" data-tab="${id}">${icon ? sprite(icon) : DOTS}<span>${label}</span></a>`).join("");
+  bar.hidden = !on;
+  document.body.classList.toggle("has-tabs", !!on);
+  if (!on) document.body.classList.remove("shopping-mode");
+  bar.querySelectorAll("[data-tab]").forEach(t => t.dataset.tab === on ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current"));
+}
 
 function route() {
   closeModal();
   leaveRecipe();
+  updateTabs();
   const h = location.hash || "#/";
   for (const [re, fn] of ROUTES) {
     const m = h.match(re);

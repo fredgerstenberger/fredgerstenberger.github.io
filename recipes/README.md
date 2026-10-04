@@ -5,9 +5,12 @@ A mobile-first recipe app: paste a recipe link, get a clean, cook-friendly page.
 Live at **https://fredgerstenberger.github.io/recipes/** (after this folder is on `main`).
 
 ## Features
+- **Tab bar:** Recipes, Plan, List and More along the bottom. The app opens on **Today** (in Plan, with **Week** beside it): tonight's dinner with its photo and **Start cooking** (opens cook mode), the day's other meals, the grocery list for the week you're shopping for and tomorrow's dinner. **More** holds Pantry, Prices, Stores & aisles, the converter, Sync, Settings and Backup.
 - **Import from any recipe site.** Reads the site's structured recipe data, so ads and life stories are stripped out. Falls back to typing a recipe in by hand.
 - **Import from cookbook photos.** **Scan photo** sends the page to an open-weight vision model (Qwen / Mistral / Gemma / Llama) on Cloudflare Workers AI through your Worker and returns the recipe. Or copy text from a photo with iPhone Live Text (or from an email or note) and paste it. Either way it's split into title, servings, times, ingredients and steps.
 - **Recipe book** with search, star ratings, notes and keywords. Keywords are suggested automatically (chicken, pasta, dinner, …). Quick filters: breakfast, lunch, dinner, low cal, high protein, quick, 4+ stars.
+- **Recipe photos:** a recipe added from a link gets the site's photo, shown on the recipe, in the book and on Today. For older recipes, use ⋯ → **Get photo from <site>**. Photos are links kept on each phone (not synced) and cached for offline use. Imports through the Worker include the photo once the Worker is redeployed with this version.
+- **Recipe menu (⋯):** Edit, Share, the photo, and Delete (asks first).
 - **Cooking view:** servings scaling, Original/US/Metric units, tap an amount for conversions (tsp ↔ tbsp ↔ cups ↔ grams), tap-to-start timers inside steps, and a cook mode that keeps the screen on.
 - **Nutrition:** uses the site's numbers when published. Otherwise it estimates from ingredients using a built-in table of about 250 foods. Foods outside the table are looked up in USDA FoodData Central through the Worker.
   - **Specific products** ("protein pasta", "chickpea pasta", "Barilla Protein+ penne", "skim milk") are their own ingredient: the table food (pasta, milk) is used for the aisle and price, and its nutrition stands in until you add the product's. On the grocery list a specific product is its own line ("Protein pasta", "Skim milk"); a recipe that just says "butter" joins the week's one "unsalted butter" line, since words like unsalted, a color or a flavor only change what to buy. When a big ingredient (15%+ of calories or protein) uses stand-in numbers, a note under the recipe's Nutrition says so.
@@ -58,6 +61,8 @@ Opening `https://fredgerstenberger.github.io/recipes/?add=milk, 2 lb chicken thi
 - `js/household.js`: things you add yourself, each on a week's list (leftovers, moving them to the next week, pruning old weeks)
 - `js/stores.js`, `js/views/stores.js`: stores and their aisle order
 - `js/live.js`: notes for a partner's grocery changes
+- `js/photos.js`: recipe photo links, kept on each phone
+- `js/views/today.js`, `js/views/more.js`: the Today and More tabs
 - `js/pixicons.js`: small pixel icons (aisles, cart, check)
 - `worker/`: Cloudflare Worker for reliable link imports and AI photo scanning (see its README for setup)
 

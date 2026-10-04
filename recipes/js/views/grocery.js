@@ -103,6 +103,7 @@ export function groceryView(key) {
   // them is repainted after every change.
   render(shell({
     title: "Groceries",
+    back: null,
     actions: `<button class="chip gstore" id="storeBtn" type="button"></button>`,
     body: `
       <div class="csub">
@@ -241,6 +242,7 @@ export function groceryView(key) {
       ${shop ? `<div class="gshopbar"><button class="cbtn primary" id="shopDone">${pix("check", 18)} Stop shopping</button></div>`
         : total > done ? `<div class="gshopbar"><button class="cbtn primary" id="shopStart">${pix("cart", 18)} Start shopping</button></div>` : ""}`;
     document.querySelector(".page")?.classList.toggle("shopping", shop);
+    document.body.classList.toggle("shopping-mode", shop); // the tab bar steps aside while you shop
     document.querySelector(".page")?.classList.toggle("hasbar", shop || total > done);
     bindBody();
     seen = { week: key, snap: live.snapshot(store.get(), key) };

@@ -9,6 +9,7 @@ import { shell, render, modal, closeModal, toast, go, metaLine } from "../ui.js"
 import { nutritionFor, servingsOf } from "../nutrition.js";
 import { matches, searchText } from "./book.js";
 import { recipeCost, money } from "../prices.js";
+import { planSwitch } from "./today.js";
 
 // Slots in the week's order (it starts the day after your shopping day).
 const slotIdx = s => { const [d, m] = s.split("-"); return weekDays().indexOf(d) * MEALS.length + MEALS.indexOf(m); };
@@ -103,6 +104,8 @@ export function planView(key) {
 
   render(shell({
     title: "Meal plan",
+    back: null,
+    actions: planSwitch("week"),
     body: `
       ${weekNav(key, "#/plan")}
       ${moving ? `<div class="movebar win" role="status">

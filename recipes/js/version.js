@@ -1,7 +1,11 @@
 // App version shown in Settings. Bump together with VERSION in sw.js ("rb-v" + APP_VERSION).
-export const APP_VERSION = 27;
-export const RELEASED = "2026-10-03";
+export const APP_VERSION = 28;
+export const RELEASED = "2026-10-04";
 export const WHATS_NEW = [
+  "A tab bar at the bottom: Recipes, Plan, List and More. The app opens on Today: tonight's dinner (Start cooking opens it in cook mode), the day's other meals, the grocery list and tomorrow. Week is one tap away.",
+  "More holds Pantry, Prices, Stores & aisles, the unit converter, Sync, Settings and Backup.",
+  "Recipe pages: Edit, Share and Delete live under the ⋯ button, so Delete is never one stray tap away.",
+  "Recipe photos: recipes added from a link get the site's photo on the recipe, the book and Today. Older recipes: ⋯ → Get photo. Photos stay on each phone (they aren't synced).",
   "Grocery list: specific products from recipes get their own line (protein pasta and pasta, skim and whole milk). A recipe that just says \"butter\" shares the \"unsalted butter\" line.",
   "Recipes: when protein pasta (or another big ingredient) is using regular pasta's numbers, a quiet note under Nutrition says so, with Add its label. Ingredients with no nutrition get the same note, so the fill-in form is always one tap away.",
   "Nutrition labels: \"56 Gram\" and ounce-only serving sizes are read.",

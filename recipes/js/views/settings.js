@@ -137,6 +137,7 @@ export function settingsView() {
 
   render(shell({
     title: "Settings",
+    back: "#/more",
     body: `
       <h2 class="sect">Appearance</h2>
       <div class="setrow"><span>Theme</span>${seg("theme", [["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]])}</div>
@@ -185,10 +186,10 @@ export function settingsView() {
         <div class="code">${esc(bookmarklet)}</div>
       </details>
 
-      <h2 class="sect">Sync</h2>
+      <h2 class="sect" id="set-sync">Sync</h2>
       <div id="syncBox">${syncHTML(s)}</div>
 
-      <h2 class="sect">Backup</h2>
+      <h2 class="sect" id="set-backup">Backup</h2>
       <p style="margin-top:0">${sync.enabled() ? "Sync keeps a copy in your Cloudflare account. A backup file is still handy as an extra safety net." : "Everything is saved on this device only. Export a backup now and then, especially before switching phones, or turn on sync above."}</p>
       <div class="btnrow">
         <button class="btn primary" id="export">Export backup</button>
@@ -212,6 +213,10 @@ export function settingsView() {
       <details class="breakdown"><summary>What's new</summary><ul class="howto">${WHATS_NEW.map(x => `<li>${esc(x)}</li>`).join("")}</ul></details>`,
     status: `<span>${Object.keys(st.recipes).length} recipes</span><span>Version ${APP_VERSION}</span>`
   }), { keepScroll: true });
+  // From More → Sync / Backup: open at that section.
+  let focus = null;
+  try { focus = sessionStorage.getItem("rb.setFocus"); sessionStorage.removeItem("rb.setFocus"); } catch {}
+  if (focus) document.getElementById(`set-${focus}`)?.scrollIntoView({ block: "start" });
 
   const root = document.getElementById("app");
   // Every control saves immediately (no need to leave the field), then flashes "Saved ✓".

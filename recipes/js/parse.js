@@ -1,6 +1,6 @@
 // Fetch a recipe page (through a CORS proxy) and pull the recipe out of it.
 import { domainOf } from "./util.js";
-import { recipeFromLdTexts, parseYield, isoMinutes, finishRecipe } from "./recipe-data.js";
+import { recipeFromLdTexts, parseYield, isoMinutes, finishRecipe, imageOf } from "./recipe-data.js";
 export { isoMinutes };
 
 // Public proxies, tried in order after your own Cloudflare Worker (if set in Settings).
@@ -84,7 +84,8 @@ function fromMicrodata(doc) {
     prepMin: isoMinutes(prop("prepTime")[0] && val(prop("prepTime")[0])),
     cookMin: isoMinutes(prop("cookTime")[0] && val(prop("cookTime")[0])),
     totalMin: isoMinutes(prop("totalTime")[0] && val(prop("totalTime")[0])),
-    ingredients: ings, steps, nutrition: null, siteKeywords: []
+    ingredients: ings, steps, nutrition: null, siteKeywords: [],
+    image: imageOf(prop("image").map(e => e.getAttribute("src") || e.getAttribute("content") || e.getAttribute("href")))
   };
 }
 

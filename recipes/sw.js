@@ -4,11 +4,11 @@
 // "Updated · Reload" (or switches on the next launch). A page only ever loads files from one release's
 // cache, so old and new modules can never mix.
 // Bump VERSION whenever app files change so phones pick up the update.
-const VERSION = "rb-v27"; // keep in step with APP_VERSION in js/version.js
+const VERSION = "rb-v28"; // keep in step with APP_VERSION in js/version.js
 const FILES = [
   "./", "index.html", "app.css", "manifest.webmanifest", "icons/icon.svg", "icons/icon-180.png",
   "js/app.js", "js/ui.js", "js/util.js", "js/store.js", "js/fooddb.js", "js/ingredients.js",
-  "js/nutrition.js", "js/prices.js", "js/parse.js", "js/recipe-data.js", "js/scan.js", "js/sync.js", "js/fields.js", "js/pixicons.js", "js/quickadd.js", "js/stores.js", "js/household.js", "js/live.js", "js/grocery-add.js", "js/updates.js", "js/label.js", "js/labelsheet.js", "js/variants.js", "js/weeks.js", "js/views/stores.js", "js/ratings.js", "js/data.js", "js/version.js", "js/fillin.js", "js/tags.js", "js/grocery.js", "js/sprites.js", "js/timers.js",
+  "js/nutrition.js", "js/prices.js", "js/parse.js", "js/recipe-data.js", "js/scan.js", "js/sync.js", "js/fields.js", "js/pixicons.js", "js/quickadd.js", "js/stores.js", "js/household.js", "js/live.js", "js/grocery-add.js", "js/updates.js", "js/label.js", "js/labelsheet.js", "js/variants.js", "js/weeks.js", "js/photos.js", "js/views/today.js", "js/views/more.js", "js/views/stores.js", "js/ratings.js", "js/data.js", "js/version.js", "js/fillin.js", "js/tags.js", "js/grocery.js", "js/sprites.js", "js/timers.js",
   "js/views/book.js", "js/views/recipe.js", "js/views/editor.js", "js/views/plan.js",
   "js/views/grocery.js", "js/views/pantry.js", "js/views/convert.js", "js/views/settings.js", "js/views/prices.js"
 ];
@@ -50,6 +50,20 @@ self.addEventListener("fetch", e => {
       } catch (err) {
         return (await c.match("index.html")) || Response.error();
       }
+    }));
+    return;
+  }
+  // Recipe photos (from recipe sites): kept for offline when the site allows it (a CORS response). Others
+  // just load from the network: an opaque copy can count as megabytes against the app's storage.
+  if (e.request.destination === "image") {
+    e.respondWith(caches.open("photos").then(async c => {
+      const hit = await c.match(e.request.url);
+      if (hit) return hit;
+      try {
+        const res = await fetch(new Request(e.request.url, { mode: "cors", credentials: "omit", referrerPolicy: "no-referrer" }));
+        if (res.ok) c.put(e.request.url, res.clone());
+        return res;
+      } catch { return fetch(e.request); }
     }));
     return;
   }

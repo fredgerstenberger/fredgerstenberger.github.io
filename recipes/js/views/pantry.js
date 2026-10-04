@@ -18,6 +18,7 @@ export function pantryView() {
 
   render(shell({
     title: "Pantry",
+    back: "#/more",
     body: `
       <p style="margin-top:0">Things you keep stocked. They skip the grocery list; spices, sauces and other pantry items you haven't answered yet get asked about once.</p>
       <form id="addForm">

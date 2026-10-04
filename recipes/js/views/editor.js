@@ -6,6 +6,7 @@ import { importFromUrl, parseRecipeText } from "../parse.js";
 import { scanPhotos } from "../scan.js";
 import { autoTags } from "../tags.js";
 import { askAfterSave } from "../fillin.js";
+import { photoOf, setPhoto } from "../photos.js";
 
 export function addView(params) {
   const s = store.settings();
@@ -231,6 +232,8 @@ function showEditor(el, r, isNew) {
     r.site = domainOf(r.url);
     if (form.dropNutri?.checked) r.nutrition = null;
     delete r.siteKeywords;
+    // The site's picture stays on this phone (photos.js); it isn't part of the synced recipe.
+    if (r.image) { if (!photoOf(r.id)) setPhoto(r.id, r.image); delete r.image; }
     store.putRecipe(r);
     toast(isNew ? "Saved to your recipe book" : "Saved");
     go(`#/r/${r.id}`);
