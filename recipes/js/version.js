@@ -1,7 +1,8 @@
 // App version shown in Settings. Bump together with VERSION in sw.js ("rb-v" + APP_VERSION).
-export const APP_VERSION = 30;
+export const APP_VERSION = 31;
 export const RELEASED = "2026-10-05";
 export const WHATS_NEW = [
+  "Nutrition labels: Paste label image reads a copied picture of the label (a screenshot, or Photos → Share → Copy Photo). In the \"Fill in missing info?\" prompt it fills in that ingredient's numbers right there, without leaving the prompt; Save keeps it as the product's label.",
   "The app opens on Today again, with Today on the left of the Today | Week switch.",
   "Recipe photos no longer blink when you switch pages.",
   "The week's meal plan is the first page again, and Plan is the first tab. Today is one tap away (Week | Today).",
