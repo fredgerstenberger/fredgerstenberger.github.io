@@ -115,3 +115,23 @@ export async function scanLabel(file, { worker, model, key }) {
   if (!data.label) throw new Error(data.error || "Couldn't read that label. Try a closer, straighter photo, or paste its text.");
   return { label: data.label, check: data.check || null, model: data.model };
 }
+
+/** A copied picture (a screenshot, or Photos → Share → Copy Photo) from the clipboard, for the label reader.
+ * Must run from a tap; iPhone shows its "Paste" bubble first. Throws a message to show when there's none. */
+export async function imageFromClipboard() {
+  if (!navigator.clipboard?.read) throw new Error("This browser can't paste pictures here. Use Label photo instead.");
+  let items;
+  try { items = await navigator.clipboard.read(); }
+  catch { throw new Error("Nothing was pasted. Copy the label picture first (in Photos: Share → Copy Photo), then tap Paste label image."); }
+  for (const item of items) {
+    const type = item.types.find(t => t.startsWith("image/"));
+    if (type) return await item.getType(type);
+  }
+  throw new Error("The clipboard has no picture. Copy the label picture first (in Photos: Share → Copy Photo).");
+}
+
+/** The picture in a paste event (pasting with a keyboard or the edit menu), or null. */
+export function imageFromPasteEvent(e) {
+  for (const item of e.clipboardData?.items || []) if (item.kind === "file" && item.type.startsWith("image/")) return item.getAsFile();
+  return null;
+}

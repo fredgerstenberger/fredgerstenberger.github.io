@@ -7,6 +7,8 @@ import { parseIngredient, cleanName, toGrams, UNITS, parseRecipe } from "./ingre
 import { perGram } from "./prices.js";
 import { bump, waitForLookups } from "./data.js";
 import { estimate } from "./nutrition.js";
+import { scanLabel, imageFromClipboard, imageFromPasteEvent } from "./scan.js";
+import { normalizeLabel, labelToFood } from "./label.js";
 
 const UNIT_CHOICES = [["g", "g"], ["oz", "oz"], ["lb", "lb"], ["cup", "cup"], ["tbsp", "tbsp"], ["tsp", "tsp"], ["ml", "ml"], ["each", "each"]];
 const ML_PER_CUP = 236.588;
@@ -58,7 +60,11 @@ function itemHTML(it, i) {
   return `<fieldset class="fillitem" data-i="${i}">
     <legend>${esc(it.key)}</legend>
     <small class="muted">${esc(it.line)}</small>
-    ${!it.builtIn || it.needNu ? `<button type="button" class="btn small fillscan" data-scan="${esc(it.key)}">📷 Scan label</button>` : ""}
+    ${!it.builtIn || it.needNu ? `<div class="filllabel">
+      <button type="button" class="btn small" data-pasteimg>📋 Paste label image</button>
+      <label class="btn small fsfile">📷 Photo<input type="file" accept="image/*" data-labelphoto hidden></label>
+      <p class="muted fillmsg" aria-live="polite"></p>
+    </div>` : ""}
     ${showNu ? `<div class="fillrow"><span>Nutrition for</span>${num("nqty", nr.qty ?? 1, "1")}${unitSelect("nunit", nr.unit || u)}</div>
       <div class="fillgrid">
         <label>Calories${num("kcal", nr.kcal, "kcal")}</label>
@@ -93,7 +99,17 @@ function saveItem(it, fs) {
   let changed = false;
 
   const kcal = v("kcal"), nqty = v("nqty") || 1;
-  if (fs.querySelector("[name=kcal]")) {
+  let lab = null;
+  try { lab = fs.dataset.label ? JSON.parse(fs.dataset.label) : null; } catch {}
+  const asRead = lab && (!fs.querySelector("[name=kcal]") || (kcal === lab.kcal && nqty === (lab.grams || lab.ml) && s("nunit") === "g"
+    && ["protein", "carbs", "fat"].every(n => (v(n) || 0) === (lab[n] || 0))));
+  const fromLabel = asRead && labelToFood(lab, { how: "photo", at: Date.now() });
+  if (fromLabel) {
+    // Read from the label and not changed: saved as the product's label (with fiber and serving size).
+    for (const k of ["nu", "nuRef", "label", "gCup", "gEach"]) delete entry[k];
+    Object.assign(entry, fromLabel);
+    changed = true;
+  } else if (fs.querySelector("[name=kcal]")) {
     if (kcal != null) {
       const ref = { qty: nqty, unit: s("nunit"), kcal, protein: v("protein") || 0, carbs: v("carbs") || 0, fat: v("fat") || 0 };
       const g = gramsFor(entry, food, ref.qty, ref.unit);
@@ -137,8 +153,30 @@ export function openInfo(recipe, items, { first = false, onDone } = {}) {
       ${first ? `<p class="muted" style="font-size:14px">You won't be asked again. To add them later, use the note under <b>Nutrition</b> on the recipe, or <b>Ingredient info</b>.</p>` : ""}
     </form>`, { onClose: () => onDone?.() });
   el.querySelector("#fillSkip").onclick = close;
-  // A label is quicker than typing: open that ingredient's label sheet.
-  el.querySelectorAll("[data-scan]").forEach(b => b.onclick = () => import("./labelsheet.js").then(m => m.openFoodSheet(recipe, b.dataset.scan)));
+  // A label is quicker than typing: read a pasted or chosen picture of it right here, into that ingredient's
+  // numbers (per the label's serving), and keep the label so Save stores it as the product's label.
+  const st = store.settings();
+  const readInto = async (fs, file) => {
+    const msg = fs.querySelector(".fillmsg");
+    if (!file) return;
+    msg.textContent = "Reading the label… this takes a few seconds.";
+    try {
+      const { label } = await scanLabel(file, { worker: st.proxy, model: st.scanModel, key: st.scanKey });
+      const f = normalizeLabel(label), g = f.grams || f.ml;
+      if (!g || f.kcal == null) throw new Error("Couldn't find the calories and serving size on that label. Try a closer picture, or type the numbers.");
+      const set = (n, v) => { const i = fs.querySelector(`[name=${n}]`); if (i) i.value = v ?? ""; };
+      set("nqty", g); set("nunit", "g"); set("kcal", f.kcal); set("protein", f.protein); set("carbs", f.carbs); set("fat", f.fat);
+      fs.dataset.label = JSON.stringify(f);
+      msg.textContent = `Read: ${f.servingText ? `per ${f.servingText}, ` : ""}${Math.round(f.kcal)} kcal, ${Math.round(f.protein || 0)} g protein. Check the numbers, then Save.`;
+    } catch (err) { msg.textContent = err.message; }
+  };
+  el.querySelectorAll(".fillitem").forEach(fs => {
+    fs.querySelector("[data-pasteimg]")?.addEventListener("click", async () => {
+      try { await readInto(fs, await imageFromClipboard()); } catch (err) { fs.querySelector(".fillmsg").textContent = err.message; }
+    });
+    fs.querySelector("[data-labelphoto]")?.addEventListener("change", e => readInto(fs, e.target.files?.[0]));
+    fs.addEventListener("paste", e => { const f = imageFromPasteEvent(e); if (f && fs.querySelector(".fillmsg")) { e.preventDefault(); readInto(fs, f); } });
+  });
   el.querySelector("#fillForm").onsubmit = e => {
     e.preventDefault();
     let n = 0;

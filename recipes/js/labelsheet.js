@@ -7,7 +7,7 @@ import { modal, toast } from "./ui.js";
 import { bump } from "./data.js";
 import { parseIngredient } from "./ingredients.js";
 import { parseLabelText, checkLabel, normalizeLabel, labelToFood } from "./label.js";
-import { scanLabel } from "./scan.js";
+import { scanLabel, imageFromClipboard, imageFromPasteEvent } from "./scan.js";
 import { openInfo, infoItems } from "./fillin.js";
 
 const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
@@ -44,7 +44,8 @@ export function openFoodSheet(recipe, key, onDone = () => {}) {
     <p class="fsrc">${sourceLine(food, key)}</p>
     <p style="font-size:15px;margin:0 0 12px">Add the product's Nutrition Facts label to make it exact. It's used in every recipe with ${esc(key)}, on every synced phone.</p>
     <div class="fsact">
-      <label class="btn primary fsfile">📷 Scan label<input type="file" accept="image/*" id="fsPhoto" hidden></label>
+      <button class="btn primary" id="fsPasteImg">📋 Paste label image</button>
+      <label class="btn fsfile">📷 Label photo<input type="file" accept="image/*" id="fsPhoto" hidden></label>
       <button class="btn" id="fsPaste">Paste label text</button>
       <button class="btn" id="fsType">Type numbers</button>
     </div>
@@ -52,8 +53,7 @@ export function openFoodSheet(recipe, key, onDone = () => {}) {
     <p class="muted" id="fsStatus" style="font-size:14px;min-height:1.2em"></p>`, { onClose: onDone });
 
   const status = t => { const s = el.querySelector("#fsStatus"); if (s) s.textContent = t; };
-  el.querySelector("#fsPhoto").onchange = async e => {
-    const file = e.target.files?.[0];
+  const readImage = async file => {
     if (!file) return;
     status("Reading the label… this takes a few seconds.");
     try {
@@ -61,6 +61,12 @@ export function openFoodSheet(recipe, key, onDone = () => {}) {
       confirmLabel(key, label, check, "photo", close);
     } catch (err) { status(err.message); }
   };
+  el.querySelector("#fsPhoto").onchange = e => readImage(e.target.files?.[0]);
+  el.querySelector("#fsPasteImg").onclick = async () => {
+    try { await readImage(await imageFromClipboard()); } catch (err) { status(err.message); }
+  };
+  // Pasting with a keyboard or the edit menu works too.
+  el.addEventListener("paste", e => { const f = imageFromPasteEvent(e); if (f) { e.preventDefault(); readImage(f); } });
   el.querySelector("#fsPaste").onclick = () => pasteLabel(key, close);
   el.querySelector("#fsType").onclick = () => {
     const it = infoItems(recipe, true).find(i => i.key === key);

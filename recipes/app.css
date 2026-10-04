@@ -1203,3 +1203,7 @@ li + li > .morerow { border-top: 1px solid var(--c-line); }
 .fbtns { position: sticky; bottom: 0; display: flex; gap: var(--s2, 8px); margin-top: var(--s4); padding: var(--s3) 0 2px; background: var(--c-card); }
 .fbtns .btn { flex: 1; min-height: 48px; }
 .fbtns .btn:first-child { flex: 0 0 auto; }
+.filllabel { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: 6px 0 4px; }
+.fillmsg { flex-basis: 100%; margin: 0; font-size: 14px; min-height: 0; }
+.fillmsg:empty { display: none; }
+.filllabel .btn { width: auto; margin: 0; }
