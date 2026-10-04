@@ -16,15 +16,16 @@ export const app = () => document.getElementById("app");
 
 export function go(hash) { location.hash = hash; }
 
-/** A full page in the Calm Pixel style: a quiet top bar (back arrow, title once you scroll, actions) and
- * a large title. bigTitle: false for screens that draw their own title. inlineTitle: the title sits in the
- * top bar next to the back arrow (always shown), saving the big title's line. */
-export function shell({ title, body, status = "", actions = "", back = "#/", calm = true, bigTitle = true, inlineTitle = false }) {
+/** A full page in the Calm Pixel style: a top bar with the back arrow, the page title beside it and the page's
+ * actions on the right (like the grocery list). bigTitle: false for screens that draw their own big title (a
+ * recipe, whose name is often long); its top bar then shows the title only once you've scrolled past it.
+ * back: null for the tab bar's screens, which need no back arrow. */
+export function shell({ title, body, status = "", actions = "", back = "#/", calm = true, bigTitle = true, inlineTitle = calm && bigTitle }) {
   if (calm && bigTitle && !inlineTitle) body = `<h1 class="ctitle">${esc(title)}</h1>` + body;
   return `<main class="page${calm ? " calm" : ""}">
     <section class="win screen">
       <div class="titlebar${inlineTitle ? " inline" : ""}">
-        <span class="tb-left"><a class="backbtn" href="${esc(back)}" aria-label="${back === "#/" ? "Home" : "Back"}">${sprite("back")}</a></span>
+        <span class="tb-left">${back ? `<a class="backbtn" href="${esc(back)}" aria-label="${back === "#/" ? "Today" : "Back"}">${sprite("back")}</a>` : ""}</span>
         <h1 class="wintitle">${esc(title)}</h1>
         <span class="tb-right">${actions}</span>
       </div>

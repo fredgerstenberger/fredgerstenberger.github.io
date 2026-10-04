@@ -1,7 +1,9 @@
 // Single recipe: cooking-friendly view with scaling, unit conversion, timers, nutrition, tags, notes.
 import * as store from "../store.js";
 import { esc, fmtMinutes, debounce, domainOf } from "../util.js";
-import { shell, render, starsHTML, confirmBox, toast, go } from "../ui.js";
+import { shell, render, starsHTML, confirmBox, toast, go, modal } from "../ui.js";
+import { photoOf, setPhoto } from "../photos.js";
+import { importFromUrl } from "../parse.js";
 import { ratingOf, rate } from "../ratings.js";
 import * as sync from "../sync.js";
 import { parseIngredient, displayAmount, equivalents } from "../ingredients.js";
@@ -78,6 +80,28 @@ function nuRowsHTML(rows) {
   }).join("");
 }
 
+// One quiet line under Nutrition when the estimate leans on numbers that aren't really this recipe's: a big
+// contributor (15%+ of calories or protein) on stand-in values, or one with none (20%+ of the weight).
+// Otherwise, ingredients with no nutrition at all are named, with the same form the first prompt showed.
+// Dismissed per recipe and ingredient, on this phone.
+const NUDGE_KEY = "rb.nuhide";
+const cap1 = t => String(t).charAt(0).toUpperCase() + String(t).slice(1);
+const nudgeHidden = () => { try { return JSON.parse(localStorage.getItem(NUDGE_KEY) || "{}"); } catch { return {}; } };
+export function nuNudge(r, nu) {
+  if (nu.source !== "estimate" || !nu.rows) return null;
+  const hidden = nudgeHidden(), id = k => `${r.id}|${k}`;
+  const weighed = nu.rows.filter(x => x.grams > 0).reduce((t, x) => t + x.grams, 0);
+  const big = nu.rows
+    .filter(x => x.key && !hidden[id(x.key)] && (x.source === "standin" ? x.share >= 0.15 : x.source === "none" && x.grams > 0 && x.grams / weighed >= 0.2))
+    .sort((a, b) => (b.share || 0) - (a.share || 0) || (b.grams || 0) - (a.grams || 0))[0];
+  if (big) return { hide: id(big.key), key: big.key, action: "Add its label",
+    text: big.source === "standin" ? `${cap1(big.key)} uses regular ${big.food} values` : `${cap1(big.key)} isn't counted` };
+  const missing = infoItems(r).filter(it => it.needNu && !it.food?.nu);
+  const names = missing.map(it => it.key), hide = id("missing:" + names.join(","));
+  if (!missing.length || hidden[hide]) return null;
+  return { hide, items: missing, action: "Add info", text: `Not counted: ${names.slice(0, 3).join(", ")}${names.length > 3 ? ` and ${names.length - 3} more` : ""}` };
+}
+
 function fmtN(n) { return n == null || isNaN(n) ? "–" : Math.round(n); }
 
 export function recipeView(id) {
@@ -93,6 +117,8 @@ export function recipeView(id) {
     const base = servingsOf(r);
     const mult = P.servings / base;
     const nu = nutritionFor(r);
+    const nudge = nuNudge(r, nu);
+    const photo = photoOf(r.id);
     const cost = recipeCost(r);
     const est = nu.source === "estimate";
 
@@ -140,8 +166,11 @@ export function recipeView(id) {
       bigTitle: false,
       title: r.title,
       back: "#/book",
-      actions: `<button class="tb-btn" id="cookBtn" aria-pressed="${P.cook}">${P.cook ? "Exit cook" : "Cook mode"}</button>`,
+      // Cooking: Exit cook in the top bar. Otherwise the ⋯ menu (Edit, Share, photo, Delete).
+      actions: P.cook ? `<button class="tb-btn" id="cookBtn" aria-pressed="true">Exit cook</button>`
+        : `<button class="tb-btn tb-more" id="moreBtn" aria-label="More actions" aria-haspopup="dialog">⋯</button>`,
       body: `
+        ${photo ? `<img class="rphoto hide-cook" src="${esc(photo)}" alt="" referrerpolicy="no-referrer">` : ""}
         <h2 class="rtitle">${esc(r.title)}</h2>
         <p class="rsource">${r.url ? `from <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.site || domainOf(r.url))} ↗</a>` : "Your recipe"}${r.author ? ` · ${esc(r.author)}` : ""}</p>
         <div class="hide-cook">${ratingHTML(r)}</div>
@@ -154,10 +183,9 @@ export function recipeView(id) {
           ${cost.total > 0 ? `<div><dt>Cost</dt><dd>${money(cost.perServing)}/serving<br><span class="muted" style="font-size:14px">${money(cost.perServing * P.servings)} for ${P.servings}</span></dd></div>` : ""}
           ${nu.kcal ? `<div><dt>Per serving</dt><dd>${fmtN(nu.kcal)} kcal<br><span class="muted" style="font-size:14px">${fmtN(nu.protein)} g protein</span></dd></div>` : ""}
         </dl>
-        <div class="btnrow hide-cook">
+        <div class="btnrow hide-cook rbtns">
           <button class="btn primary" id="planBtn">+ Meal plan</button>
-          <a class="btn" href="#/edit/${r.id}">Edit</a>
-          <button class="btn danger" id="delBtn">Delete</button>
+          ${P.cook ? "" : `<button class="btn" id="cookBtn">Cook mode</button>`}
         </div>
 
         <h2 class="sect">Ingredients <small>${P.ings.size && !P.editIngs ? `${P.ings.size} checked · <button class="btn small" id="clearIngs" style="min-height:28px">Clear</button> ` : ""}<button class="btn small" id="editIngs" style="min-height:28px">${P.editIngs ? "Done" : "✎ Edit"}</button></small></h2>
@@ -188,6 +216,7 @@ export function recipeView(id) {
           <p class="muted" style="font-size:14px;margin:0 0 6px">${est
             ? `Estimated from ingredients (${Math.round(nu.coverage * 100)}% recognized)${nu.assumedServings ? ", assuming 4 servings — set servings in Edit" : ` for ${nu.servings} servings`}.`
             : `From ${esc(r.site || "the recipe")}${nu.serving ? ` · serving: ${esc(nu.serving)}` : ""}.`}</p>
+          ${nudge ? `<p class="nunote" id="nunote"><span>${esc(nudge.text)} · <button class="linkbtn" id="nuAct">${nudge.action}</button></span><button class="nux" id="nuHide" aria-label="Hide this note">×</button></p>` : ""}
           ${nu.rows && nu.rows.length ? `<details class="breakdown nubd" ${P.nubd ? "open" : ""}><summary>Nutrition by ingredient <span class="nuhint">· tap one to add its label</span></summary>
             <ul class="nurows">${nuRowsHTML(nu.rows)}</ul>
           </details>` : ""}
@@ -248,6 +277,13 @@ export function recipeView(id) {
     document.getElementById("ingInfo")?.addEventListener("click", () => openInfo(r, infoItems(r, true)));
     root.querySelector(".nubd")?.addEventListener("toggle", e => { P.nubd = e.target.open; });
     root.querySelectorAll("[data-food]").forEach(b => b.onclick = () => openFoodSheet(r, b.dataset.food));
+    const note = () => nuNudge(r, nutritionFor(r));
+    document.getElementById("nuAct")?.addEventListener("click", () => { const n = note(); if (n) n.key ? openFoodSheet(r, n.key) : openInfo(r, n.items); });
+    document.getElementById("nuHide")?.addEventListener("click", () => {
+      const n = note();
+      if (n) try { localStorage.setItem(NUDGE_KEY, JSON.stringify({ ...nudgeHidden(), [n.hide]: 1 })); } catch {}
+      document.getElementById("nunote")?.remove();
+    });
     if (P.editIngs) {
       const saveIngs = () => { store.putRecipe(r); };
       root.querySelectorAll("[data-ingtext]").forEach(inp => inp.addEventListener("change", () => {
@@ -289,11 +325,7 @@ export function recipeView(id) {
       toast(P.cook ? (s.wakeLock && "wakeLock" in navigator ? "Cook mode · screen stays on" : "Cook mode") : "Cook mode off");
     };
     document.getElementById("planBtn").onclick = () => openAddToPlan(r.id);
-    document.getElementById("delBtn").onclick = async () => {
-      if (await confirmBox(`Delete “${r.title}”? It will also be removed from your meal plans.`)) {
-        store.deleteRecipe(r.id); toast("Recipe deleted"); go("#/book");
-      }
-    };
+    document.getElementById("moreBtn")?.addEventListener("click", () => recipeMenu(r, () => draw()));
     root.querySelectorAll("[data-rmtag]").forEach(b => b.onclick = () => {
       r.tags = (r.tags || []).filter(x => x !== b.dataset.rmtag); store.putRecipe(r); draw();
     });
@@ -313,6 +345,47 @@ export function recipeView(id) {
 
   redrawCurrent = () => { if (location.hash === `#/r/${id}`) draw(true); };
   draw(false);
+  // From Today's Start cooking: straight into cook mode.
+  let cookNow = false;
+  try { cookNow = sessionStorage.getItem("rb.cookNow") === id; if (cookNow) sessionStorage.removeItem("rb.cookNow"); } catch {}
+  if (cookNow && !P.cook) document.getElementById("cookBtn")?.click();
+}
+
+// The recipe's ⋯ menu: things you do now and then, with Delete set apart at the bottom.
+function recipeMenu(r, redraw) {
+  const photo = photoOf(r.id);
+  const { el, close } = modal("Recipe", `
+    <div class="rmenu">
+      <a class="rmitem" href="#/edit/${r.id}">Edit recipe</a>
+      <button class="rmitem" id="rmShare">Share recipe</button>
+      ${photo ? `<button class="rmitem" id="rmNoPhoto">Remove photo</button>` : r.url ? `<button class="rmitem" id="rmPhoto">Get photo from ${esc(r.site || domainOf(r.url))}</button>` : ""}
+      <button class="rmitem danger" id="rmDelete">Delete recipe…</button>
+    </div>`);
+  el.querySelector("#rmShare").onclick = async () => {
+    const text = [r.title, "", ...(r.ingredients || []), "", ...(r.steps || []).map((x, i) => `${i + 1}. ${x}`), r.url ? `\n${r.url}` : ""].join("\n").trim();
+    close();
+    try {
+      if (navigator.share) await navigator.share({ title: r.title, text, ...(r.url ? { url: r.url } : {}) });
+      else { await navigator.clipboard.writeText(text); toast("Recipe copied"); }
+    } catch {}
+  };
+  el.querySelector("#rmNoPhoto")?.addEventListener("click", () => { setPhoto(r.id, null); close(); redraw(); toast("Photo removed from this phone"); });
+  el.querySelector("#rmPhoto")?.addEventListener("click", async e => {
+    e.currentTarget.disabled = true; e.currentTarget.textContent = "Getting the photo…";
+    const st = store.settings();
+    try {
+      const got = await importFromUrl(r.url, st.proxy, () => {}, st.proxy ? { worker: st.proxy, model: st.scanModel, key: st.scanKey } : null);
+      close();
+      if (got?.image) { setPhoto(r.id, got.image); redraw(); toast("Photo added (on this phone)"); }
+      else toast("That page doesn't list a photo");
+    } catch { close(); toast("Couldn't reach the page"); }
+  });
+  el.querySelector("#rmDelete").onclick = async () => {
+    close();
+    if (await confirmBox(`Delete “${r.title}”? It will also be removed from your meal plans.`)) {
+      store.deleteRecipe(r.id); setPhoto(r.id, null); toast("Recipe deleted"); go("#/book");
+    }
+  };
 }
 
 function showConversions(btn, ing, mult) {

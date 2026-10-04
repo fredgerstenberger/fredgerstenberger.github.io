@@ -9,6 +9,7 @@ import { shell, render, modal, closeModal, toast, go, metaLine } from "../ui.js"
 import { nutritionFor, servingsOf } from "../nutrition.js";
 import { matches, searchText } from "./book.js";
 import { recipeCost, money } from "../prices.js";
+import { planSwitch } from "./today.js";
 
 // Slots in the week's order (it starts the day after your shopping day).
 const slotIdx = s => { const [d, m] = s.split("-"); return weekDays().indexOf(d) * MEALS.length + MEALS.indexOf(m); };
@@ -29,10 +30,10 @@ export function weekNav(key, base) {
   const home = planningWeekKey(); // this week, or next week from the shop & prep day on
   const rel = weekRelation(key);
   const jump = key === home ? "" : `<a href="${base}/${home}">${weekRelation(home) === "Next week" ? "Go to next week" : "Go to this week"}</a>`;
-  return `<div class="weeknav">
-    <a class="btn small" href="${base}/${weekKey(addDays(parseWeekKey(key), -7))}" aria-label="Previous week">◀</a>
-    <div class="wk">${weekLabel(key)}<small>${[rel, jump].filter(Boolean).join(" · ")}</small></div>
-    <a class="btn small" href="${base}/${weekKey(addDays(parseWeekKey(key), 7))}" aria-label="Next week">▶</a>
+  // The same week line as the grocery list: ◀ Sep 28 – Oct 4 · This week ▶, with a jump back on the right.
+  return `<div class="csub">
+    <span class="wknav"><a href="${base}/${weekKey(addDays(parseWeekKey(key), -7))}" aria-label="Previous week">◀</a><span>${weekLabel(key)}${rel ? ` · ${rel}` : ""}</span><a href="${base}/${weekKey(addDays(parseWeekKey(key), 7))}" aria-label="Next week">▶</a></span>
+    ${jump ? jump.replace("<a ", '<a class="wkjump" ') : ""}
   </div>`;
 }
 
@@ -103,6 +104,8 @@ export function planView(key) {
 
   render(shell({
     title: "Meal plan",
+    back: null,
+    actions: planSwitch("week"),
     body: `
       ${weekNav(key, "#/plan")}
       ${moving ? `<div class="movebar win" role="status">

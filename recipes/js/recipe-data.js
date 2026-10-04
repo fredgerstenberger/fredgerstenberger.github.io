@@ -133,6 +133,15 @@ function keywordsOf(r) {
 }
 
 // A schema.org Recipe object → the app's recipe fields.
+// The recipe's picture: schema.org image as an address, a list, or an ImageObject; the first https one.
+export function imageOf(img) {
+  for (const x of asArray(img)) {
+    const u = typeof x === "string" ? x : x?.url || x?.contentUrl;
+    if (typeof u === "string" && /^https:\/\/[^\s"'<>]+$/i.test(u.trim())) return u.trim();
+  }
+  return "";
+}
+
 export function recipeFromNode(r) {
   const y = parseYield(r.recipeYield);
   return {
@@ -146,7 +155,8 @@ export function recipeFromNode(r) {
     ingredients: asArray(r.recipeIngredient || r.ingredients).map(text).filter(Boolean),
     steps: splitSentencesIfGiant(flattenSteps(r.recipeInstructions)),
     nutrition: parseNutrition(r.nutrition),
-    siteKeywords: keywordsOf(r)
+    siteKeywords: keywordsOf(r),
+    image: imageOf(r.image)
   };
 }
 

@@ -6,6 +6,7 @@ import { shell, render, metaLine } from "../ui.js";
 import { nutritionFor } from "../nutrition.js";
 import { MEAL_TAGS } from "../tags.js";
 import { recipeCost } from "../prices.js";
+import { allPhotos, okImage } from "../photos.js";
 
 // Filter state survives navigating into a recipe and back.
 const F = loadF();
@@ -66,7 +67,8 @@ export function bookView() {
   const tags = Object.entries(freq).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([t]) => t);
 
   render(shell({
-    title: "Recipe book",
+    title: "Recipes",
+    back: null,
     actions: `<a class="tb-btn" href="#/add">+ Add</a>`,
     body: `
       <div class="search">
@@ -113,11 +115,16 @@ export function bookView() {
       document.getElementById("clear").onclick = () => { F.on.clear(); F.q = ""; saveF(); bookView(); };
       return;
     }
-    listEl.innerHTML = hits.map(r => `
-      <li class="card"><a href="#/r/${r.id}">
-        <span class="ctitle">${esc(r.title)}</span>
-        <div class="cmeta">${metaLine(r)}</div>
-      </a></li>`).join("");
+    const photos = allPhotos();
+    listEl.innerHTML = hits.map(r => {
+      const ph = okImage(photos[r.id]) ? photos[r.id] : "";
+      return `
+      <li class="card"><a href="#/r/${r.id}" class="${ph ? "hasphoto" : ""}">
+        ${ph ? `<img class="cthumb" src="${esc(ph)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ""}
+        <span class="cbody"><span class="ctitle">${esc(r.title)}</span>
+        <div class="cmeta">${metaLine(r)}</div></span>
+      </a></li>`;
+    }).join("");
   }
 
   document.getElementById("q").addEventListener("input", e => { F.q = e.target.value; saveF(); update(); });

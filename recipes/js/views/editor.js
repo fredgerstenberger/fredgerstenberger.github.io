@@ -6,6 +6,7 @@ import { importFromUrl, parseRecipeText } from "../parse.js";
 import { scanPhotos } from "../scan.js";
 import { autoTags } from "../tags.js";
 import { askAfterSave } from "../fillin.js";
+import { photoOf, setPhoto } from "../photos.js";
 
 export function addView(params) {
   const s = store.settings();
@@ -55,7 +56,7 @@ export function addView(params) {
 
       <div id="editor"></div>
       <p class="muted" style="font-size:14px;margin-top:22px">Or <button class="btn small" id="manualBtn" type="button">type one in</button></p>
-      ${s.proxy ? "" : `<p class="note">Imports use free public proxies, which are sometimes slow or down. For reliable imports, <a href="#/settings">set up your own free proxy</a> (5 minutes).</p>`}`
+      ${s.proxy ? "" : `<p class="note">Without your Cloudflare Worker, links are read through free public services, which are sometimes slow or blocked by recipe sites. Add your Worker's address in <a href="#/settings">Settings</a> for reliable imports; the same Worker reads cookbook photos and labels and keeps your phones in sync.</p>`}`
   }));
 
   const statusEl = document.getElementById("status");
@@ -231,6 +232,8 @@ function showEditor(el, r, isNew) {
     r.site = domainOf(r.url);
     if (form.dropNutri?.checked) r.nutrition = null;
     delete r.siteKeywords;
+    // The site's picture stays on this phone (photos.js); it isn't part of the synced recipe.
+    if (r.image) { if (!photoOf(r.id)) setPhoto(r.id, r.image); delete r.image; }
     store.putRecipe(r);
     toast(isNew ? "Saved to your recipe book" : "Saved");
     go(`#/r/${r.id}`);

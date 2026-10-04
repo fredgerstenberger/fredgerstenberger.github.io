@@ -16,7 +16,7 @@ export function pricesView() {
 
   render(shell({
     title: "Prices",
-    back: "#/",
+    back: "#/more",
     body: `
       <p style="margin-top:0">Prices for <b>${esc(region)}</b> (<a href="#/settings">change</a>). Tap an item to enter what <b>your</b> store charges; your prices are used exactly and marked ★.</p>
       ${officialInfo() ? `<p class="note" style="font-size:14px">${officialInfo().count} items use <b>official U.S. average prices</b> from the Bureau of Labor Statistics (${esc(officialInfo().period)}), adjusted for your region and refreshed monthly. They're marked <span class="kind">BLS</span>. Others are estimates.</p>`

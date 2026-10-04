@@ -97,7 +97,8 @@ function confirmLabel(key, raw, check, how, done) {
     <p style="margin-top:0;font-size:15px">Check these against the label, then save. Values are per serving.</p>
     <form id="lcForm" class="lcform">
       <label class="wide">Serving size<input type="text" name="servingText" value="${esc(f.servingText || "")}" placeholder="e.g. 2 oz (56g)"></label>
-      ${n("grams", f.grams ?? f.ml, f.ml && !f.grams ? "Serving (≈ g, from mL)" : "Serving weight", "g")}
+      ${n("grams", f.grams ?? f.ml, f.ml && !f.grams ? "Serving (≈ g, from mL)" : f.gramsFrom === "oz" ? "Serving weight (from oz)" : "Serving weight", "g")}
+      ${f.gramsFrom === "oz" ? `<p class="muted wide" style="margin:0;font-size:14px">The label only gives ounces, so the grams are worked out from them. If the label shows grams too, use those.</p>` : ""}
       ${n("kcal", f.kcal, "Calories", "kcal")}
       ${n("protein", f.protein, "Protein")}
       ${n("carbs", f.carbs, "Total carbs")}

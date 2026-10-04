@@ -1,5 +1,5 @@
 // Automatic keywords from the title, ingredients and the site's own categories.
-import { parseIngredient } from "./ingredients.js";
+import { parseIngredient, parseRecipe } from "./ingredients.js";
 
 // tag → regex tested against "title + site keywords" (T) or ingredient food names/lines (I)
 const RULES = [
@@ -68,8 +68,7 @@ export function autoTags(r) {
   for (const [tag, re, where] of RULES) if (where === "T" && re.test(T)) tags.add(tag);
 
   const foods = new Set();
-  for (const line of r.ingredients || []) {
-    const ing = parseIngredient(line);
+  for (const { line, ing } of parseRecipe(r)) {
     if (ing && ing.food) foods.add(ing.food.name);
   }
   const counts = {};

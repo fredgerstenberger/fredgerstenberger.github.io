@@ -12,11 +12,13 @@ export function pantryView() {
 
   const group = (keys, btn) => AISLES.map(([id, label]) => {
     const ks = keys.filter(k => aisleOf(k) === id).sort();
-    return ks.length ? `<div class="aisle">${label}</div><ul class="plist">${ks.map(k => `<li><span>${esc(k)}</span>${btn(k)}</li>`).join("")}</ul>` : "";
+    // Grouped like the grocery list's aisles: a heading with the count, then a card of rows.
+    return ks.length ? `<div class="chead">${label}<span class="n">${ks.length}</span></div><div class="card"><ul class="glist prows">${ks.map(k => `<li class="prow"><span>${esc(k)}</span>${btn(k)}</li>`).join("")}</ul></div>` : "";
   }).join("");
 
   render(shell({
     title: "Pantry",
+    back: "#/more",
     body: `
       <p style="margin-top:0">Things you keep stocked. They skip the grocery list; spices, sauces and other pantry items you haven't answered yet get asked about once.</p>
       <form id="addForm">

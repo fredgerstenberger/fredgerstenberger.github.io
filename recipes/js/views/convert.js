@@ -10,6 +10,7 @@ export function convertView() {
   const saved = (() => { try { return JSON.parse(sessionStorage.getItem("rb.conv")) || {}; } catch { return {}; } })();
   render(shell({
     title: "Converter",
+    back: "#/more",
     body: `
       <div class="row2">
         <label class="field"><span>Amount</span><input type="text" id="amt" inputmode="decimal" value="${esc(saved.amt || "1")}" placeholder="1 1/2"></label>

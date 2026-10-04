@@ -20,7 +20,7 @@ const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
 // Which words make a different product (oat vs almond milk, 2% vs skim, a brand) lives in variants.js,
 // shared with nutrition.
 export { varietyOf } from "./variants.js";
-import { varietyOf } from "./variants.js";
+import { varietyOf, onlyVarietyWords } from "./variants.js";
 
 export function parseAdd(text) {
   const raw = String(text || "").trim().replace(/\s+/g, " ");
@@ -33,7 +33,8 @@ export function parseAdd(text) {
   const m = matchFoodDetail(ing.name || raw);
   // Your own food info or a USDA match (not in the table) is keyed by the cleaned name already.
   const extra = ing.food && !FOOD_BY_NAME[ing.food.name] ? ing.food : null;
-  const known = m?.fit === "exact" && m.food.kind !== "X" && !m.food.variants.has(m.alias);
+  // A specific product of a food ("protein pasta", "Barilla penne") is that food too, with its variety words.
+  const known = (m?.fit === "exact" || (m?.fit === "head" && onlyVarietyWords(ing.name || raw, m.food, m.alias))) && m.food.kind !== "X" && !m.food.variants.has(m.alias);
   const variety = known ? varietyOf(ing.name || raw, m.food) : [];
   const key = known ? (variety.length ? `${m.food.name} (${variety.join(" ")})` : m.food.name) : own;
   const aisle = m && m.fit !== "loose" && m.food.kind !== "X" ? m.food.aisle : extra?.aisle || null;
