@@ -25,7 +25,7 @@ export function shell({ title, body, status = "", actions = "", back = "#/", cal
   return `<main class="page${calm ? " calm" : ""}">
     <section class="win screen">
       <div class="titlebar${inlineTitle ? " inline" : ""}">
-        <span class="tb-left">${back ? `<a class="backbtn" href="${esc(back)}" aria-label="${back === "#/" ? "Today" : "Back"}">${sprite("back")}</a>` : ""}</span>
+        <span class="tb-left">${back ? `<a class="backbtn" href="${esc(back)}" aria-label="${back === "#/" ? "Meal plan" : "Back"}">${sprite("back")}</a>` : ""}</span>
         <h1 class="wintitle">${esc(title)}</h1>
         <span class="tb-right">${actions}</span>
       </div>

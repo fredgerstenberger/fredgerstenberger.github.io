@@ -21,8 +21,8 @@ import * as sync from "./sync.js";
 import { refreshPrices } from "./data.js";
 import { refreshRecipe } from "./views/recipe.js";
 
-// ---- Today (the first screen) ----
-function homeView() { todayView({ backupNag: backupNag(store.get()) }); }
+// ---- The week's meal plan (the first screen) ----
+function homeView() { planView(undefined, { nag: backupNag(store.get()) }); }
 
 function backupNag(s) {
   if (sync.enabled()) return "";
@@ -45,14 +45,15 @@ const ROUTES = [
   [/^#\/convert$/, () => convertView()],
   [/^#\/settings$/, () => settingsView()],
   [/^#\/prices$/, () => pricesView()],
-  [/^#\/more$/, () => moreView()]
+  [/^#\/more$/, () => moreView()],
+  [/^#\/today$/, () => todayView()]
 ];
 
 // The tab bar: on the main screens, with the current one marked. Not on a recipe, the editor or Add recipe
 // (they have their own way back), and it steps aside in shopping mode (body.shopping-mode).
-const TABS = [["book", "Recipes", "#/book", "book"], ["plan", "Plan", "#/", "plan"], ["list", "List", "#/grocery", "list"], ["more", "More", "#/more", null]];
+const TABS = [["plan", "Plan", "#/", "plan"], ["book", "Recipes", "#/book", "book"], ["list", "List", "#/grocery", "list"], ["more", "More", "#/more", null]];
 function tabFor(h) {
-  if (/^#?\/?$|^#\/plan/.test(h)) return "plan";
+  if (/^#?\/?$|^#\/(plan|today)/.test(h)) return "plan";
   if (/^#\/book/.test(h)) return "book";
   if (/^#\/grocery/.test(h)) return "list";
   if (/^#\/(more|pantry|prices|convert|settings)/.test(h)) return "more";

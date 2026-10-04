@@ -1,7 +1,11 @@
 // App version shown in Settings. Bump together with VERSION in sw.js ("rb-v" + APP_VERSION).
-export const APP_VERSION = 28;
+export const APP_VERSION = 29;
 export const RELEASED = "2026-10-04";
 export const WHATS_NEW = [
+  "The week's meal plan is the first page again, and Plan is the first tab. Today is one tap away (Week | Today).",
+  "Recipes: a Filters button next to search has everything you can filter by: meal, calories, protein, time and cost per serving, rating and keywords. The quick filters stay along the top.",
+  "Recipes you saved before photos get theirs automatically, a few at a time while the recipe book is open.",
+  "More: the arrows line up on the right, with room between each name and its note.",
   "A tab bar at the bottom: Recipes, Plan, List and More. The app opens on Today: tonight's dinner (Start cooking opens it in cook mode), the day's other meals, the grocery list and tomorrow. Week is one tap away.",
   "More holds Pantry, Prices, Stores & aisles, the unit converter, Sync, Settings and Backup.",
   "Recipe pages: Edit, Share and Delete live under the ⋯ button, so Delete is never one stray tap away.",

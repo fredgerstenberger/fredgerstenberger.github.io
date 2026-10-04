@@ -1,4 +1,4 @@
-// Today: the app's first screen (the Plan tab). Tonight's dinner with its photo, the day's other meals, the
+// Today: one tap from the week's plan (the Plan tab's Week | Today switch). Tonight's dinner with its photo, the day's other meals, the
 // grocery list and tomorrow, with Week one tap away.
 import * as store from "../store.js";
 import { esc, weekKey, planningWeekKey, addDays, prepDay, MEALS, cap, plural, fmtDate } from "../util.js";
@@ -20,7 +20,7 @@ function mealsOn(date) {
 
 /** The Today | Week switch shared by Today and the meal plan. */
 export const planSwitch = on => `<div class="seg planseg" role="group" aria-label="Plan view">
-  <a href="#/" ${on === "today" ? 'aria-current="page"' : ""}>Today</a><a href="#/plan" ${on === "week" ? 'aria-current="page"' : ""}>Week</a></div>`;
+  <a href="#/" ${on === "week" ? 'aria-current="page"' : ""}>Week</a><a href="#/today" ${on === "today" ? 'aria-current="page"' : ""}>Today</a></div>`;
 
 export function todayView({ backupNag = "" } = {}) {
   const now = new Date();

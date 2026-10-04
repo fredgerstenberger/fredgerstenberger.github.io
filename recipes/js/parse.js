@@ -1,6 +1,6 @@
 // Fetch a recipe page (through a CORS proxy) and pull the recipe out of it.
 import { domainOf } from "./util.js";
-import { recipeFromLdTexts, parseYield, isoMinutes, finishRecipe, imageOf } from "./recipe-data.js";
+import { recipeFromLdTexts, parseYield, isoMinutes, finishRecipe, imageOf, ldJsonBlocks } from "./recipe-data.js";
 export { isoMinutes };
 
 // Public proxies, tried in order after your own Cloudflare Worker (if set in Settings).
@@ -191,6 +191,24 @@ export async function importFromUrl(url, workerUrl, onStatus, ai = null) {
     throw e;
   }
   return r;
+}
+
+/** Just a recipe page's photo (for recipes saved before photos). Asks the Worker first; a Worker from before
+ * photos sends the recipe without one, so the page is then read here through the public proxies. Never uses AI. */
+export async function photoFromPage(url, workerUrl = "", key = "") {
+  if (workerUrl) {
+    let got = null;
+    try { got = await recipeFromWorker(url, workerUrl, key ? { key } : null, () => {}); } catch {}
+    if (got?.image) return got.image;
+  }
+  try { return imageFromHtml(await fetchPage(url, "", () => {})) || null; } catch { return null; }
+}
+
+/** A page's photo: the recipe data's image, else its share image (og:image / twitter:image). */
+export function imageFromHtml(html) {
+  try { const r = recipeFromLdTexts(ldJsonBlocks(html)); if (r?.image) return r.image; } catch {}
+  const meta = html.match(/<meta\b[^>]*(?:property|name)\s*=\s*["'](?:og:image(?::secure_url)?|twitter:image)["'][^>]*>/i)?.[0] || "";
+  return imageOf((meta.match(/\bcontent\s*=\s*["']([^"']+)["']/i)?.[1] || "").replace(/&amp;/g, "&"));
 }
 
 // ---- Plain text (pasted, or copied from a photo with iPhone Live Text) ----
