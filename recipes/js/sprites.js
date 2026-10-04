@@ -225,6 +225,23 @@ SPRITES.clock = {
   colors: { c: "currentColor" }
 };
 
+SPRITES.filter = {
+  map: [
+    "...cc......",
+    "ccccccccccc",
+    "...cc......",
+    "...........",
+    ".......cc..",
+    "ccccccccccc",
+    ".......cc..",
+    "...........",
+    "....cc.....",
+    "ccccccccccc",
+    "....cc....."
+  ],
+  colors: { c: "currentColor" }
+};
+
 export function sprite(name, cls = "") {
   const { map, colors } = SPRITES[name];
   const w = map[0].length, h = map.length;

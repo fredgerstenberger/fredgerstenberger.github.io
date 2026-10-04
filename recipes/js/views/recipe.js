@@ -3,7 +3,7 @@ import * as store from "../store.js";
 import { esc, fmtMinutes, debounce, domainOf } from "../util.js";
 import { shell, render, starsHTML, confirmBox, toast, go, modal } from "../ui.js";
 import { photoOf, setPhoto } from "../photos.js";
-import { importFromUrl } from "../parse.js";
+import { photoFromPage } from "../parse.js";
 import { ratingOf, rate } from "../ratings.js";
 import * as sync from "../sync.js";
 import { parseIngredient, displayAmount, equivalents } from "../ingredients.js";
@@ -374,9 +374,9 @@ function recipeMenu(r, redraw) {
     e.currentTarget.disabled = true; e.currentTarget.textContent = "Getting the photo…";
     const st = store.settings();
     try {
-      const got = await importFromUrl(r.url, st.proxy, () => {}, st.proxy ? { worker: st.proxy, model: st.scanModel, key: st.scanKey } : null);
+      const img = await photoFromPage(r.url, st.proxy || "", st.scanKey || "");
       close();
-      if (got?.image) { setPhoto(r.id, got.image); redraw(); toast("Photo added (on this phone)"); }
+      if (img) { setPhoto(r.id, img); redraw(); toast("Photo added (on this phone)"); }
       else toast("That page doesn't list a photo");
     } catch { close(); toast("Couldn't reach the page"); }
   });
