@@ -128,6 +128,7 @@ button { font: inherit; color: inherit; }
   position: relative;
 }
 .backbtn svg { width: 18px; height: auto; display: block; }
+.backbtn svg.ic24 { width: 24px; height: 24px; }
 #modal-close svg { width: 14px; }
 .backbtn::after { content: ""; position: absolute; inset: -8px; } /* bigger tap target */
 
@@ -1231,3 +1232,34 @@ body.kb-open.has-tabs:not(.shopping-mode) .page { padding-bottom: 24px; }
 .rdnums dd { margin: 2px 0 0; font: var(--t-row); }
 .pickready { width: 100%; margin-top: var(--s3); }
 .rdadd { width: 100%; margin-bottom: var(--s3); }
+
+/* ---------- Icon set ---------- */
+.ic { width: 1em; height: 1em; display: inline-block; flex: none; vertical-align: -0.14em; }
+.ic16 { width: 16px; height: 16px; }
+.ic20 { width: 20px; height: 20px; }
+.ic24 { width: 24px; height: 24px; }
+.btn .ic, .linkbtn .ic, .chip .ic { margin-right: 4px; }
+.tb-btn.tb-more { display: inline-grid; place-items: center; }
+.stars .off svg { opacity: 1; filter: none; color: var(--c-faint); }
+.stars svg.ic { width: 28px; height: 28px; }
+.stars.small svg.ic, .stars.show svg.ic { width: 18px; height: 18px; }
+.tbtn { display: inline-grid; place-items: center; }
+
+/* One-time tips and the estimates note */
+.tip { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 var(--s3); padding: 8px 12px; border-radius: var(--r-sm); background: var(--c-chip); color: var(--c-ink); font: var(--t-small); }
+.tip .ic { margin-top: 2px; color: var(--c-muted); }
+.estnote { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 var(--s3); padding: 12px; border-radius: var(--r); background: var(--c-card); border: 1px solid var(--c-line); }
+.estnote p { margin: 0; flex: 1; font: var(--t-small); color: var(--c-ink); }
+.estnote .ic20 { color: var(--c-accent); margin-top: 1px; }
+.estnote .iconbtn { margin: -8px -8px 0 0; }
+.estbtn { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; margin-left: 6px; padding: 0 8px; border: 0; border-radius: 999px; background: var(--c-chip); color: var(--c-muted); font: 600 13px var(--body); vertical-align: middle; }
+.nusrc { font: var(--t-small); margin: 0 0 6px; }
+.nunote > span { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+
+/* Recipe source */
+.rsource { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+.rsource .rsite { font-weight: 600; color: var(--c-ink); }
+.rview { display: inline-flex; align-items: center; gap: 4px; }
+.rorigin { flex-basis: 100%; font: var(--t-small); color: var(--c-muted); }
+.ravg { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.ravgwho { flex-basis: 100%; color: var(--c-muted); }
