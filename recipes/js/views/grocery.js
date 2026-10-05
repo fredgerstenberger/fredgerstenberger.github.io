@@ -131,8 +131,8 @@ export function groceryView(key) {
   const findExtra = id => g.extras.find(x => x.id === id);
   // Things you added to this week's list, plus any saved in the week itself by an old app version.
   const manual = () => [...house.inWeek(key).map(h => ({ ...h, src: "house" })), ...g.extras.map(e => ({ ...e, src: "extra" }))];
-  // Each week's list starts fresh. On this week's list, what last week's list didn't get checked off
-  // (things you added and recipe groceries) is offered once: "Still need these?". Not things already here.
+  // Each week's list starts fresh. On this week's list, the things you added last week and didn't check off
+  // are offered once, unticked: "Still need these?". Recipe groceries aren't (this week's plan has its own).
   // Answered already (or skipped by mistake): `again` offers them anyway, from "From last week" at the bottom.
   let again = false;
   function leftovers(any = again) {
@@ -140,23 +140,7 @@ export function groceryView(key) {
     const gp = store.get().grocery?.[prev];
     if (gp?.carry && !any) return [];
     const here = new Set([...sec.buy.map(i => i.key), ...manual().map(e => parseAdd(e.text)?.key)]);
-    const out = [], seen = new Set();
-    const offer = (id, name, amount, text) => {
-      const k = parseAdd(text)?.key || name;
-      if (here.has(k) || seen.has(k)) return;
-      seen.add(k); out.push({ id, name, amount, text });
-    };
-    for (const h of house.leftovers(prev)) { const p = parseAdd(h.text); if (p) offer("h:" + h.id, p.name, p.amount, h.text); }
-    for (const e of gp?.extras || []) { const p = !e.checked && parseAdd(e.text); if (p) offer("x:" + e.id, p.name, p.amount, e.text); }
-    if ((store.week(prev).meals || []).length) {
-      for (const i of sectionize(prev).buy) {
-        if (i.checked || here.has(i.key)) continue;
-        // With its amount when that still reads as the same item ("1 bunch cilantro"), else just the name.
-        const amount = (i.amount || "").replace(/\s*\([^)]*\)/g, ""), withAmount = `${amount} ${i.name}`;
-        offer("r:" + i.key, i.name, amount, amount && parseAdd(withAmount)?.key === parseAdd(i.name)?.key ? withAmount : i.name);
-      }
-    }
-    return out;
+    return house.carryOffer(prev, here, gp?.extras || []);
   }
   // On the list = recipe lines (by food and by the name they show, e.g. "2% milk" after Use for recipe) and
   // lines you added, so quick chips and suggestions don't offer them again.
@@ -213,9 +197,9 @@ export function groceryView(key) {
     document.getElementById("gbody").innerHTML = `
       ${carry.length ? `<div class="gcarry"><div class="chead">${pix("cart", 16)} From last week</div>
       <div class="card gask">
-        <p><b>Still need these?</b> They didn't get checked off last week. Uncheck anything you don't want.</p>
-        ${carry.map(c => `<label class="gopt"><input type="checkbox" checked data-carry="${esc(c.id)}"><span>${esc(cap1(c.name))}${c.amount ? `<small>${esc(c.amount)}</small>` : ""}</span></label>`).join("")}
-        <div class="btnrow"><button class="cbtn primary" id="carryYes">Add to this week</button><button class="cbtn" id="carryNo">Start fresh</button></div>
+        <p><b>Still need these?</b> Tap what you still need.</p>
+        ${carry.map(c => `<label class="gopt"><input type="checkbox" data-carry="${esc(c.id)}"><span>${esc(cap1(c.name))}${c.amount ? `<small>${esc(c.amount)}</small>` : ""}</span></label>`).join("")}
+        <div class="btnrow"><button class="cbtn primary" id="carryYes">Add to this week</button><button class="cbtn" id="carryNo">No thanks</button></div>
       </div></div>` : ""}
       ${!meals.length && !extras.length && !carry.length ? `<div class="cempty">${pix("cart", 32)}<b>Nothing to buy yet</b>Plan some meals and the list builds itself, or add items above.<div class="gfoot"><a class="cbtn primary" href="#/plan/${key}">Go to meal plan</a></div></div>` : ""}
       ${sec.ask.length ? `<div class="gaskwrap"><div class="chead">Do you have these?</div>
@@ -399,7 +383,7 @@ export function groceryView(key) {
     if (bring) for (const c of list) {
       if (!ticked.has(c.id)) continue;
       if (c.id.startsWith("h:")) house.moveTo([c.id.slice(2)], key);
-      else addToList(key, c.text, me().name);
+      else addToList(key, c.text, me().name); // an older version's extra
       n++;
     }
     store.groceryState(prev).carry = Date.now();
