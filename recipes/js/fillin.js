@@ -10,6 +10,7 @@ import { estimate } from "./nutrition.js";
 import { scanLabel, imageFromClipboard, imageFromPasteEvent } from "./scan.js";
 import { normalizeLabel, labelToFood } from "./label.js";
 import { isReady } from "./ready.js";
+import { icon } from "./sprites.js";
 
 const UNIT_CHOICES = [["g", "g"], ["oz", "oz"], ["lb", "lb"], ["cup", "cup"], ["tbsp", "tbsp"], ["tsp", "tsp"], ["ml", "ml"], ["each", "each"]];
 const ML_PER_CUP = 236.588;
@@ -63,8 +64,8 @@ function itemHTML(it, i) {
     <legend>${esc(it.key)}</legend>
     <small class="muted">${esc(it.line)}</small>
     ${!it.builtIn || it.needNu ? `<div class="filllabel">
-      <button type="button" class="btn small" data-pasteimg>📋 Paste label image</button>
-      <label class="btn small fsfile">📷 Photo<input type="file" accept="image/*" data-labelphoto hidden></label>
+      <button type="button" class="btn small" data-pasteimg>${icon("clipboard", "ic16")}Paste label image</button>
+      <label class="btn small fsfile">${icon("camera", "ic16")}Photo<input type="file" accept="image/*" data-labelphoto hidden></label>
       <p class="muted fillmsg" aria-live="polite"></p>
     </div>` : ""}
     ${showNu ? `<div class="fillrow"><span>Nutrition for</span>${num("nqty", nr.qty ?? 1, "1")}${unitSelect("nunit", nr.unit || u)}</div>

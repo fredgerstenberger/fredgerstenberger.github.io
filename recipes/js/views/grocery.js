@@ -16,6 +16,7 @@ import { openStorePicker } from "./stores.js";
 import * as live from "../live.js";
 import * as sync from "../sync.js";
 import { addToList, useForRecipe } from "../grocery-add.js";
+import { icon } from "../sprites.js";
 
 const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
 const HINT_KEY = "rb.groceryHint";
@@ -107,13 +108,13 @@ export function groceryView(key) {
     actions: `<button class="chip gstore" id="storeBtn" type="button"></button>`,
     body: `
       <div class="csub">
-        <span class="wknav"><a href="#/grocery/${prev}" aria-label="Previous week">◀</a><span>${weekLabel(key)}${rel ? ` · ${rel}` : ""}</span><a href="#/grocery/${next}" aria-label="Next week">▶</a></span>
+        <span class="wknav"><a href="#/grocery/${prev}" aria-label="Previous week">${icon("chevLeft", "ic20")}</a><span>${weekLabel(key)}${rel ? ` · ${rel}` : ""}</span><a href="#/grocery/${next}" aria-label="Next week">${icon("chevRight", "ic20")}</a></span>
         <b class="gcount" id="gcount" role="status"></b>
       </div>
       <div class="gshoptop" id="gshoptop" role="status"></div>
       <p class="gwake" id="gwake" hidden>${pix("check", 14)} Screen stays on while you shop</p>
       <form id="addForm" class="gadd" role="search" autocomplete="off">
-        <input type="text" id="addIn" placeholder="Add an item — “2 lb chicken thighs”" autocomplete="off" autocapitalize="sentences" enterkeyhint="go" aria-label="Add an item" aria-controls="gsug">
+        <input type="text" id="addIn" placeholder="Add an item" autocomplete="off" autocapitalize="sentences" enterkeyhint="go" aria-label="Add an item" aria-controls="gsug">
         <button class="plus" type="submit" aria-label="Add">+</button>
       </form>
       <ul class="gsug" id="gsug" role="listbox" hidden></ul>
@@ -170,7 +171,7 @@ export function groceryView(key) {
     const done = sec.buy.filter(i => i.checked).length + extras.filter(x => x.e.checked).length;
     const st = stores.get(stores.current());
     const shop = shopping();
-    document.getElementById("storeBtn").innerHTML = `${pix("cart", 14)} <span class="sname">${esc(st ? st.name : "Any store")}</span> ▾`;
+    document.getElementById("storeBtn").innerHTML = `${pix("cart", 14)} <span class="sname">${esc(st ? st.name : "Any store")}</span>${icon("chevDown", "ic16")}`;
     document.getElementById("gcount").textContent = total ? `${done} of ${total}` : "";
     document.getElementById("gshoptop").innerHTML = total ? shopTopHTML(done, total) : "";
     document.getElementById("gchips").innerHTML = frequentItems(history(), onList()).map(n => `<button class="chip quiet" type="button" data-quick="${esc(n)}">+ ${esc(n)}</button>`).join("");
@@ -201,7 +202,7 @@ export function groceryView(key) {
     let cartOpen = false;
     try { cartOpen = sessionStorage.getItem(CART_KEY) === "1"; } catch {}
     const cart = inCart.length ? `<details class="gcart" id="gcart" ${cartOpen ? "open" : ""}>
-        <summary><div class="chead">${pix("cart", 16)} ${shop ? "In cart" : "Purchased"} (${inCart.length})<span class="n"><span class="tw">▾</span></span></div></summary>
+        <summary><div class="chead">${pix("cart", 16)} ${shop ? "In cart" : "Purchased"} (${inCart.length})<span class="n"><span class="tw">${icon("chevDown", "ic16")}</span></span></div></summary>
         <div class="card"><ul class="glist">${inCart.join("")}</ul></div>
       </details>` : "";
     let hint = true;
@@ -228,7 +229,7 @@ export function groceryView(key) {
       ${total > 0 && done === total ? `<div class="gdone">${pix("cart", 32)}<b>Everything's in the cart</b>Nice shopping.</div>` : ""}
       ${byAisle}
       ${cart}
-      ${sec.have.length ? `<details class="ghave"><summary class="chead">${pix("canned", 16)} Already in your pantry<span class="n">${sec.have.length} ▾</span></summary>
+      ${sec.have.length ? `<details class="ghave"><summary class="chead">${pix("canned", 16)} Already in your pantry<span class="n">${sec.have.length} <span class="tw">${icon("chevDown", "ic16")}</span></span></summary>
         <div class="card"><ul class="glist">${sec.have.map(i => `<li class="grow"><div class="grow-main" style="cursor:default">
           <span class="gname">${esc(cap1(i.name))}</span><button class="chip quiet" data-outof="${esc(i.pantryKey ?? i.key)}">Ran out</button></div></li>`).join("")}</ul></div>
       </details>` : ""}
@@ -345,7 +346,7 @@ export function groceryView(key) {
   function showSuggestions() {
     const list = suggest(input.value, history(), onList());
     sugEl.hidden = !list.length;
-    sugEl.innerHTML = list.map(s => `<li><button type="button" role="option" data-sug="${esc(s.text)}">${esc(s.name)}${s.n ? `<small>added ${s.n}×</small>` : ""}</button></li>`).join("");
+    sugEl.innerHTML = list.map(s => `<li><button type="button" role="option" data-sug="${esc(s.text)}">${esc(s.name)}${s.n ? `<small>added ${s.n === 1 ? "once" : s.n === 2 ? "twice" : `${s.n} times`}</small>` : ""}</button></li>`).join("");
   }
   // Your usual items show as chips while the add box is open and empty; once you type, suggestions take over.
   const chipsEl = document.getElementById("gchips");

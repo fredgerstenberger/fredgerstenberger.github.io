@@ -7,7 +7,7 @@ import { nutritionFor } from "../nutrition.js";
 import { MEAL_TAGS } from "../tags.js";
 import { recipeCost } from "../prices.js";
 import { allPhotos, okImage, fillPhotos, adoptPhotos } from "../photos.js";
-import { sprite } from "../sprites.js";
+import { sprite, icon } from "../sprites.js";
 import { isReady } from "../ready.js";
 import { openReadyForm } from "./ready.js";
 
@@ -51,7 +51,7 @@ export const QUICK = [
   [":protein", "High protein"],
   [":quick", "Quick"],
   [":budget", "Budget"],
-  [":fav", "★ 4+"],
+  [":fav", "4+"],
   [":ready", "Store-bought"]
 ];
 
@@ -106,19 +106,19 @@ export function bookView() {
         <button class="fbtn" id="filtersBtn" aria-haspopup="dialog"></button>
       </div>
       <div class="chipscroll filters" role="group" aria-label="Quick filters">
-        ${QUICK.map(([k, l]) => `<button class="chip" data-chip="${k}" aria-pressed="${F.on.has(k)}">${esc(l)}</button>`).join("")}
+        ${QUICK.map(([k, l]) => `<button class="chip" data-chip="${k}" aria-pressed="${F.on.has(k)}"${k === ":fav" ? ' aria-label="4 stars and up"' : ""}>${k === ":fav" ? icon("star", "ic16") : ""}${esc(l)}</button>`).join("")}
       </div>
       <div class="sortrow">
         <span id="count"></span>
         <label>Sort
           <select id="sort">
-            ${[["recent", "Newest"], ["rating", "Rating"], ["az", "A–Z"], ["kcal", "Calories ↑"], ["protein", "Protein ↓"], ["time", "Time ↑"], ["cost", "Cost ↑"]].map(([v, l]) => `<option value="${v}" ${F.sort === v ? "selected" : ""}>${l}</option>`).join("")}
+            ${[["recent", "Newest"], ["rating", "Top rated"], ["az", "A to Z"], ["kcal", "Fewest calories"], ["protein", "Most protein"], ["time", "Quickest"], ["cost", "Lowest cost"]].map(([v, l]) => `<option value="${v}" ${F.sort === v ? "selected" : ""}>${l}</option>`).join("")}
           </select>
         </label>
       </div>
       <div id="readyAdd"></div>
       <ul class="cards" id="list"></ul>`,
-    status: `<span>Low cal ≤ ${s.lowCal} kcal · Protein ≥ ${s.highProtein} g · Budget ≤ $${s.budget}</span><a href="#/settings">Change</a>`
+    status: `<span>Lighter: up to ${s.lowCal} kcal. High protein: ${s.highProtein} g or more. Budget: up to $${s.budget}</span><a href="#/settings">Change</a>`
   }), { keepScroll: !!sessionStorage.getItem("rb.bookScroll") });
 
   const listEl = document.getElementById("list");
@@ -202,7 +202,7 @@ export function bookView() {
 // The Filters sheet: everything you can filter by. Changes apply as you go; the button shows how many match.
 function openFilters(tags, hitsFor, update) {
   const chip = ([k, l]) => `<button type="button" class="chip" data-fchip="${esc(k)}" aria-pressed="${F.on.has(k)}">${esc(l)}</button>`;
-  const ratings = [["", "Any"], ["3", "3+ ★"], ["4", "4+ ★"], ["5", "5 ★"]];
+  const ratings = [["", "Any"], ["3", "3+"], ["4", "4+"], ["5", "5"]];
   const { el } = modal("Filters", `
     <div class="fsheet">
       <h3>Meal</h3>
@@ -214,7 +214,7 @@ function openFilters(tags, hitsFor, update) {
         </label>`).join("")}
       </div>
       <h3>Rating</h3>
-      <div class="seg frate" role="group" aria-label="Rating">${ratings.map(([v, l]) => `<button type="button" data-rate="${v}" aria-pressed="${String(F.lim.rating ?? "") === v}">${l}</button>`).join("")}</div>
+      <div class="seg frate" role="group" aria-label="Rating">${ratings.map(([v, l]) => `<button type="button" data-rate="${v}" aria-pressed="${String(F.lim.rating ?? "") === v}"${v ? ` aria-label="${l} stars"` : ""}>${v ? icon("star", "ic16") : ""}${l}</button>`).join("")}</div>
       ${tags.length ? `<h3>Keywords</h3><div class="chips">${tags.map(t => chip([t, t])).join("")}</div>` : ""}
       <div class="fbtns"><button type="button" class="btn" id="fClear">Clear all</button><button type="button" class="btn primary" id="fShow"></button></div>
     </div>`, { onClose: update });

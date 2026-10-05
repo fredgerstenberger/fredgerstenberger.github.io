@@ -3,6 +3,7 @@ import * as stores from "../stores.js";
 import { esc } from "../util.js";
 import { modal, toast } from "../ui.js";
 import { pix } from "../pixicons.js";
+import { icon } from "../sprites.js";
 
 export function openStorePicker(onChange) {
   const cur = stores.current();
@@ -41,13 +42,13 @@ export function openAisleOrder(id, onChange, isNew = false) {
   if (!s) return;
   let order = stores.orderFor(id);
   const rowHTML = a => `<li class="orow" data-a="${a}">
-      <span class="ohandle" aria-hidden="true">≡</span>
+      <span class="ohandle" aria-hidden="true">${icon("grip", "ic20")}</span>
       <span class="oname">${pix(a, 16)} ${esc(stores.aisleLabel(a))}</span>
-      <button class="obtn" data-up aria-label="Move ${esc(stores.aisleLabel(a))} up">↑</button>
-      <button class="obtn" data-down aria-label="Move ${esc(stores.aisleLabel(a))} down">↓</button>
+      <button class="obtn" data-up aria-label="Move ${esc(stores.aisleLabel(a))} up">${icon("arrowUp", "ic16")}</button>
+      <button class="obtn" data-down aria-label="Move ${esc(stores.aisleLabel(a))} down">${icon("arrowDown", "ic16")}</button>
     </li>`;
   const { el, close } = modal(isNew ? `Aisles at ${s.name}` : s.name, `
-    <p class="muted" style="margin-top:0;font-size:14px">Drag the ≡ handles into the order you walk the store${isNew ? ". You can change this anytime" : ""}. Your list follows as you go.</p>
+    <p class="muted" style="margin-top:0;font-size:14px">Drag aisles into the order you walk the store${isNew ? ". You can change this anytime" : ""}. Your list follows as you go.</p>
     <ul class="card olist" id="olist">${order.map(rowHTML).join("")}</ul>
     <label class="field" style="margin-top:16px"><span>Name</span><input type="text" id="sName" value="${esc(s.name)}" maxlength="40"></label>
     <div class="btnrow"><button class="btn primary" id="oDone">Done</button><button class="btn danger" id="oDel">Delete store</button></div>`, { onClose: onChange });

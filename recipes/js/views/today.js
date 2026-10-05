@@ -7,6 +7,7 @@ import { sectionize } from "../grocery.js";
 import { inWeek } from "../household.js";
 import { nutritionFor } from "../nutrition.js";
 import { photoOf } from "../photos.js";
+import { icon } from "../sprites.js";
 
 const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 const DAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -67,7 +68,7 @@ export function todayView({ backupNag = "" } = {}) {
       ${rest.length ? `<div class="card"><ul class="glist">${rest.map(x => `<li class="tdrow"><a href="#/r/${x.r.id}"><span class="tdslot">${cap(x.m)}</span><span class="tdname">${esc(x.r.title)}</span>${x.leftover ? `<span class="tdtag">Leftovers</span>` : ""}</a></li>`).join("")}</ul></div>` : ""}
       <a class="card tdlist" href="#/grocery/${wk}">
         <span class="tdlisttext"><b>Groceries${toBuy ? ` · ${toBuy} to get` : ""}</b><small>Shopping day is ${shopDay}</small></span>
-        <span class="tdgo" aria-hidden="true">›</span>
+        <span class="tdgo">${icon("chevRight", "ic16")}</span>
       </a>
       ${tomorrow.length ? `<p class="tdnext">Tomorrow · ${esc((tomorrow.find(x => x.m === "dinner") || tomorrow[0]).r.title)}</p>` : ""}
       ${backupNag}`

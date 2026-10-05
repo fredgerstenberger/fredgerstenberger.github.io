@@ -48,7 +48,7 @@ export function normalizeScan(data) {
       yieldText: "",
       prepMin: prep, cookMin: cook,
       totalMin: num(r.totalMin) || prep + cook,
-      ingredients: strs(r.ingredients).map(s => s.replace(/^[-•*▢]\s*/, "")),
+      ingredients: strs(r.ingredients).map(s => s.replace(/^[-*\u2022\u25A2]\s*/, "")),
       steps: strs(r.steps).map(s => s.replace(/^(step\s*)?\d+[.):]\s*/i, "")),
       description: String(r.notes || "").trim(),
       siteKeywords: []
@@ -59,7 +59,7 @@ export function normalizeScan(data) {
 }
 
 export async function scanPhotos(files, { worker, model, key }, onStatus = () => {}) {
-  if (!worker) throw new Error("Set up your Cloudflare Worker first (Settings → Recipe import).");
+  if (!worker) throw new Error("Set up your Cloudflare Worker first (Settings, Recipe import).");
   onStatus("Preparing photo…");
   const images = [];
   for (const f of files) images.push(await shrinkPhoto(f));
@@ -91,7 +91,7 @@ export async function scanPhotos(files, { worker, model, key }, onStatus = () =>
 // A Nutrition Facts label (photo or screenshot) → its fields, checked, via your Worker's /label.
 // The photo is shrunk on the phone, sent once, and not kept anywhere.
 export async function scanLabel(file, { worker, model, key }) {
-  if (!worker) throw new Error("Label scanning uses your Cloudflare Worker (Settings → Recipe import). You can paste the label's text instead.");
+  if (!worker) throw new Error("Label scanning uses your Cloudflare Worker (Settings, Recipe import). You can paste the label's text instead.");
   const image = await shrinkPhoto(file, 1400, 0.85);
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 90000);
@@ -122,12 +122,12 @@ export async function imageFromClipboard() {
   if (!navigator.clipboard?.read) throw new Error("This browser can't paste pictures here. Use Label photo instead.");
   let items;
   try { items = await navigator.clipboard.read(); }
-  catch { throw new Error("Nothing was pasted. Copy the label picture first (in Photos: Share → Copy Photo), then tap Paste label image."); }
+  catch { throw new Error("Nothing was pasted. Copy the label picture first (in in Photos, tap Share, then Copy Photo), then tap Paste label image."); }
   for (const item of items) {
     const type = item.types.find(t => t.startsWith("image/"));
     if (type) return await item.getType(type);
   }
-  throw new Error("The clipboard has no picture. Copy the label picture first (in Photos: Share → Copy Photo).");
+  throw new Error("The clipboard has no picture. Copy the label picture first (in in Photos, tap Share, then Copy Photo).");
 }
 
 /** The picture in a paste event (pasting with a keyboard or the edit menu), or null. */

@@ -1263,3 +1263,13 @@ body.kb-open.has-tabs:not(.shopping-mode) .page { padding-bottom: 24px; }
 .rorigin { flex-basis: 100%; font: var(--t-small); color: var(--c-muted); }
 .ravg { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
 .ravgwho { flex-basis: 100%; color: var(--c-muted); }
+.ic14 { width: 14px; height: 14px; }
+.cmeta .mstars { display: inline-flex; gap: 1px; align-items: center; color: var(--c-faint); letter-spacing: 0; }
+.stepper button, .obtn { display: inline-grid; place-items: center; }
+.tdgo, .nugo { display: inline-grid; place-items: center; }
+.morerow .tdgo { width: 16px; }
+.ghave .tw { display: inline-block; transition: transform var(--quick) var(--ease); }
+.ghave[open] .tw { transform: rotate(180deg); }
+.chkline { display: flex; align-items: center; gap: 6px; }
+.frate button { display: inline-flex; align-items: center; justify-content: center; gap: 2px; }
+.chip { display: inline-flex; align-items: center; gap: 2px; }

@@ -194,7 +194,7 @@ export function recipeView(id) {
         <dl class="facts">
           ${r.totalMin ? `<div><dt>Time</dt><dd>${fmtMinutes(r.totalMin)}${times.length ? `<br><span class="muted" style="font-size:14px">${times.join(", ")}</span>` : ""}</dd></div>` : ""}
           <div><dt>Servings</dt><dd>
-            <span class="stepper"><button id="sMinus" aria-label="Fewer servings">−</button><output id="sOut">${P.servings}</output><button id="sPlus" aria-label="More servings">+</button></span>
+            <span class="stepper"><button id="sMinus" aria-label="Fewer servings">${icon("minus", "ic16")}</button><output id="sOut">${P.servings}</output><button id="sPlus" aria-label="More servings">${icon("plus", "ic16")}</button></span>
             ${P.servings !== base ? `<br><button class="btn small" id="sReset" style="margin-top:8px">Reset to ${base}</button>` : ""}
           </dd></div>
           ${cost.total > 0 ? `<div><dt>Cost</dt><dd>${money(cost.perServing)}/serving<br><span class="muted" style="font-size:14px">${money(cost.perServing * P.servings)} for ${P.servings}</span></dd></div>` : ""}

@@ -138,7 +138,7 @@ export function starsShow(avg = 0) {
   return `<div class="stars show" role="img" aria-label="Average ${Math.round(avg * 10) / 10} of 5 stars">${[1, 2, 3, 4, 5].map(i =>
     `<span class="${i <= n ? "on" : "off"}">${icon(i <= n ? "star" : "starEmpty")}</span>`).join("")}</div>`;
 }
-export const miniStars = r => r ? "★".repeat(r) + "☆".repeat(5 - r) : "";
+export const miniStars = r => r ? [1, 2, 3, 4, 5].map(i => icon(i <= r ? "star" : "starEmpty", "ic14")).join("") : "";
 
 export function nutriShort(r) {
   const n = nutritionFor(r);

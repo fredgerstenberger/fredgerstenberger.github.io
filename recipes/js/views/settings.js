@@ -9,6 +9,7 @@ import { SCAN_MODELS } from "../scan.js";
 import * as sync from "../sync.js";
 import { modal } from "../ui.js";
 import { APP_VERSION, RELEASED, WHATS_NEW } from "../version.js";
+import { icon } from "../sprites.js";
 
 function ago(t) {
   if (!t) return "never";
@@ -75,7 +76,7 @@ async function showWorkerVersion(s) {
   try {
     const res = await fetch(`${s.proxy.replace(/\/+$/, "")}/status`, { cache: "no-store" });
     const st = await res.json();
-    el.textContent = `Worker: ${st.version || "old version"}${st.fdcKey ? " · USDA key ✓" : ""}`;
+    el.textContent = `Worker: ${st.version || "old version"}${st.fdcKey ? ", USDA key set" : ""}`;
   } catch { el.textContent = "Worker: couldn't reach it"; }
 }
 
@@ -151,7 +152,7 @@ export function settingsView() {
 
       <h2 class="sect">Prices</h2>
       <label class="field"><span>Where you shop<small>Adjusts the built-in US-average estimates</small></span>
-        <select id="region">${REGIONS.map(([id, name, f]) => `<option value="${id}" ${s.priceRegion === id ? "selected" : ""}>${esc(name)}${f ? ` (${f === 1 ? "baseline" : `${f > 1 ? "+" : "−"}${Math.round(Math.abs(f - 1) * 100)}%`})` : ""}</option>`).join("")}</select>
+        <select id="region">${REGIONS.map(([id, name, f]) => `<option value="${id}" ${s.priceRegion === id ? "selected" : ""}>${esc(name)}${f ? ` (${f === 1 ? "baseline" : `${f > 1 ? "+" : "-"}${Math.round(Math.abs(f - 1) * 100)}%`})` : ""}</option>`).join("")}</select>
       </label>
       <div class="setrow" id="customRow" ${s.priceRegion === "custom" ? "" : "hidden"}><span>Custom level<small>% of US average (e.g. 115)</small></span>${num("priceCustomPct", 50, 250, 1, "Custom price level: percent of US average")}</div>
       <p class="muted" style="font-size:14px;margin:4px 0 0">Regional levels are rough estimates. For real accuracy, enter what your store charges on the <a href="#/prices">Prices</a> screen; your prices are used as-is.</p>
@@ -170,7 +171,7 @@ export function settingsView() {
           <button class="btn small" id="testProxy">Test</button>
         </div>
         <div class="note" id="testOut" hidden style="margin:8px 0 4px"></div>
-        <small>Without one, imports go through free public proxies that are sometimes down. A free Cloudflare Worker is more reliable. <a href="${WORKER_HELP}" target="_blank" rel="noopener">Setup guide ↗</a></small>
+        <small>Without one, imports go through free public proxies that are sometimes down. A free Cloudflare Worker is more reliable. <a href="${WORKER_HELP}" target="_blank" rel="noopener">Setup guide</a></small>
       </label>
       <label class="field"><span>Photo scanning model<small>Open-weight vision models on Cloudflare Workers AI</small></span>
         <select id="scanModel">${SCAN_MODELS.map(([id, name]) => `<option value="${id}" ${s.scanModel === id ? "selected" : ""}>${esc(name)}</option>`).join("")}</select>
@@ -181,7 +182,7 @@ export function settingsView() {
       <details class="breakdown" style="margin-top:6px"><summary>Add recipes straight from Safari</summary>
         <p><b>Option A: Shortcut (recommended).</b> In the Shortcuts app, make a new shortcut: turn on <i>Show in Share Sheet</i> (accepts URLs), then add the action <i>Open URLs</i> with:</p>
         <div class="code">${esc(APP_URL)}?url=[Shortcut Input]</div>
-        <p>Now on any recipe page: Share → your shortcut.</p>
+        <p>Then, on any recipe page, tap Share and pick your shortcut.</p>
         <p><b>Option B: Bookmarklet.</b> Bookmark any page, edit the bookmark, and replace its address with:</p>
         <div class="code">${esc(bookmarklet)}</div>
       </details>
@@ -225,7 +226,7 @@ export function settingsView() {
     if (!row) return toast("Saved");
     let tag = row.querySelector(".savedtag");
     if (!tag) { tag = document.createElement("small"); tag.className = "savedtag"; row.querySelector("span")?.appendChild(tag); }
-    tag.textContent = "Saved ✓";
+    tag.innerHTML = `${icon("check", "ic16")} Saved`;
     clearTimeout(tag._t); tag._t = setTimeout(() => { tag.textContent = ""; }, 1600);
   };
   root.querySelectorAll("[data-set]").forEach(b => b.onclick = () => {
@@ -297,11 +298,11 @@ export function settingsView() {
       }
     } catch {}
     try { const r = await fetch(`${base}/status`); if (r.ok) st = await r.json(); } catch {}
-    const line = (ok, text) => `<div>${ok ? "✓" : "✗"} ${text}</div>`;
+    const line = (ok, text) => `<div class="chkline">${icon(ok ? "check" : "close", "ic16")}<span>${text}</span></div>`;
     out.innerHTML =
       line(linkOk, linkOk ? "Recipe links: working" : linkStatus === 401 ? "Recipe links: the Worker needs an app key; enter it below" : "Recipe links: couldn't reach the Worker. Check the address and that it's deployed.") +
       (st == null ? line(false, "Photo scanning: this Worker has the old code. Paste the latest worker.js and deploy.")
-        : st.ai ? line(true, `Photo scanning: ready${st.keyRequired ? (store.settings().scanKey ? " (app key set)" : " — but the Worker needs an app key; enter it below") : ""}`)
+        : st.ai ? line(true, `Photo scanning: ready${st.keyRequired ? (store.settings().scanKey ? " (app key set)" : ". The Worker needs an app key; enter it below.") : ""}`)
         : line(false, "Photo scanning: add a Workers AI binding named AI to the Worker, then deploy."));
   };
   // ---- Sync ----

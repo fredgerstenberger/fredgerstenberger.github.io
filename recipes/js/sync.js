@@ -139,7 +139,7 @@ export async function syncNow() {
       });
       data = await res.json().catch(() => ({}));
     } catch {
-      meta.error = "Offline — will sync when you're back online.";
+      meta.error = "Offline. Changes sync when you're back online.";
       saveMeta();
       throw new Error(meta.error);
     }

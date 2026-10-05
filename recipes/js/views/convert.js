@@ -16,7 +16,7 @@ export function convertView() {
         <label class="field"><span>Amount</span><input type="text" id="amt" inputmode="decimal" value="${esc(saved.amt || "1")}" placeholder="1 1/2"></label>
         <label class="field"><span>Unit</span><select id="unit">${UNIT_CHOICES.map(([v, l]) => `<option value="${v}" ${(saved.unit || "cup") === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
       </div>
-      <label class="field"><span>Ingredient (for grams ↔ cups)</span>
+      <label class="field"><span>Ingredient (for grams and cups)</span>
         <input type="text" id="food" list="cfoods" value="${esc(saved.food || "")}" placeholder="e.g. flour, sugar, butter" autocomplete="off" autocapitalize="none">
         <datalist id="cfoods">${FOODS.filter(f => f.gCup).map(f => `<option value="${esc(f.name)}">`).join("")}</datalist>
         <small id="fnote">Leave blank for liquids (uses water).</small>
@@ -56,7 +56,7 @@ export function convertView() {
   function update() {
     const q = parseNum(amt.value.replace(/[½¼¾⅓⅔]/g, m => ({ "½": " 1/2", "¼": " 1/4", "¾": " 3/4", "⅓": " 1/3", "⅔": " 2/3" }[m])).trim());
     const f = food.value.trim() ? matchFood(food.value) : null;
-    fnote.textContent = food.value.trim() ? (f && f.gCup ? `Using ${f.name}: 1 cup ≈ ${f.gCup} g` : "Don't know that one; using water") : "Leave blank for liquids (uses water).";
+    fnote.textContent = food.value.trim() ? (f && f.gCup ? `Using ${f.name}: 1 cup is about ${f.gCup} g` : "Don't know that one; using water") : "Leave blank for liquids (uses water).";
     const list = q ? equivalents(q, unit.value, f && f.gCup ? f : { gCup: 236.588 }) : [];
     eqs.innerHTML = list.map(x => `<div>${esc(x)}</div>`).join("") || `<p class="muted">Enter an amount.</p>`;
     try { sessionStorage.setItem("rb.conv", JSON.stringify({ amt: amt.value, unit: unit.value, food: food.value })); } catch {}

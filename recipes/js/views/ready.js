@@ -10,6 +10,7 @@ import { normalizeLabel } from "../label.js";
 import { photoOf, setPhoto } from "../photos.js";
 import { bump } from "../data.js";
 import { openAddToPlan } from "./plan.js";
+import { icon } from "../sprites.js";
 
 const MEALS = [["breakfast", "Breakfast"], ["lunch", "Lunch"], ["dinner", "Dinner"]];
 const r0 = n => (n == null || isNaN(n) ? "" : Math.round(n * 10) / 10);
@@ -36,8 +37,8 @@ export function openReadyForm({ id = null, meal = "", onSaved } = {}) {
       <div class="rdwide rdnu">
         <span class="rdlabel">Nutrition per serving <small>(optional)</small></span>
         <div class="filllabel">
-          <button type="button" class="btn small" id="rdPaste">📋 Paste label image</button>
-          <label class="btn small fsfile">📷 Photo<input type="file" accept="image/*" id="rdPhoto" hidden></label>
+          <button type="button" class="btn small" id="rdPaste">${icon("clipboard", "ic16")}Paste label image</button>
+          <label class="btn small fsfile">${icon("camera", "ic16")}Photo<input type="file" accept="image/*" id="rdPhoto" hidden></label>
           <p class="muted fillmsg" id="rdMsg" aria-live="polite"></p>
         </div>
         <div class="rdgrid">
@@ -99,7 +100,7 @@ export function readyView(r) {
     bigTitle: false,
     title: r.title,
     back: "#/book",
-    actions: `<button class="tb-btn tb-more" id="moreBtn" aria-label="More actions" aria-haspopup="dialog">⋯</button>`,
+    actions: `<button class="tb-btn tb-more" id="moreBtn" aria-label="More actions" aria-haspopup="dialog">${icon("more", "ic20")}</button>`,
     body: `
       ${photo ? `<img class="rphoto" data-photo src="${esc(photo)}" alt="" decoding="sync" referrerpolicy="no-referrer">` : ""}
       <h2 class="rtitle">${esc(r.title)}</h2>
