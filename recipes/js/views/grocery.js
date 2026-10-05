@@ -121,7 +121,7 @@ export function groceryView(key) {
       <div id="gbody"></div>`
   }), { keepScroll: true });
 
-  const input = document.getElementById("addIn");
+  let input = document.getElementById("addIn");
   const sugEl = document.getElementById("gsug");
   let sec = null;
   const pantry = store.get().pantry;
@@ -201,7 +201,7 @@ export function groceryView(key) {
     let cartOpen = false;
     try { cartOpen = sessionStorage.getItem(CART_KEY) === "1"; } catch {}
     const cart = inCart.length ? `<details class="gcart" id="gcart" ${cartOpen ? "open" : ""}>
-        <summary><div class="chead">${pix("cart", 16)} In cart (${inCart.length})<span class="n"><span class="tw">▾</span></span></div></summary>
+        <summary><div class="chead">${pix("cart", 16)} ${shop ? "In cart" : "Purchased"} (${inCart.length})<span class="n"><span class="tw">▾</span></span></div></summary>
         <div class="card"><ul class="glist">${inCart.join("")}</ul></div>
       </details>` : "";
     let hint = true;
@@ -350,9 +350,21 @@ export function groceryView(key) {
   // Your usual items show as chips while the add box is open and empty; once you type, suggestions take over.
   const chipsEl = document.getElementById("gchips");
   const showChips = () => { chipsEl.hidden = document.activeElement !== input || !!input.value.trim(); };
-  input.addEventListener("input", () => { showSuggestions(); showChips(); });
-  input.addEventListener("blur", () => setTimeout(() => { sugEl.hidden = true; showChips(); }, 150));
-  input.addEventListener("focus", () => { showSuggestions(); showChips(); });
+  // iPhone's "Shake to Undo" offers to undo typing in the add box long after you're done with it (walking the
+  // aisles counts as a shake). When you leave the box, it's swapped for a fresh copy with no typing to undo.
+  const wire = el => {
+    el.addEventListener("input", () => { showSuggestions(); showChips(); });
+    el.addEventListener("blur", () => setTimeout(() => {
+      sugEl.hidden = true; showChips();
+      if (document.activeElement === el || !el.isConnected) return;
+      const fresh = el.cloneNode(false);
+      fresh.value = el.value;
+      el.replaceWith(fresh);
+      input = fresh; wire(fresh);
+    }, 150));
+    el.addEventListener("focus", () => { showSuggestions(); showChips(); });
+  };
+  wire(input);
   sugEl.addEventListener("pointerdown", e => e.preventDefault()); // keep the keyboard up
   sugEl.addEventListener("click", e => {
     const b = e.target.closest("[data-sug]");
@@ -375,7 +387,7 @@ export function groceryView(key) {
     input.focus();
   };
 
-  // Stop shopping: back to the full list. What you checked off stays in "In cart" (tap one to bring it back).
+  // Stop shopping: back to the full list. What you checked off is folded under "Purchased" (tap one to bring it back).
   const stopShopping = () => { setShopping(false); keepAwake(false); paint(); window.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" }); };
 
   // Answer "Still need these?": bring the ticked ones over (things you added move to this week's list,

@@ -66,7 +66,13 @@ function brandWords(brands) { return new Set(brands.flatMap(words).map(singular)
  * Variety words in a name that aren't part of the food's own name or its default, brands included:
  * "2% milk" → ["2%"], "Barilla Protein+ penne" → ["barilla", "protein"]. Sorted, for stable keys.
  */
+// "white parts only", "white and light green parts", "dark green tops": which part of a green onion or leek to
+// use, not what to buy. Taken out before looking for variety words.
+const PART_PHRASE = /\b(?:(?:white|light green|pale green|dark green|green)(?:\s*(?:and|&|,|or)\s*(?:white|light green|pale green|dark green|green))*)\s+(?:parts?|portions?|tops?|ends?|bits?)(?:\s+only)?\b/gi;
+const withoutParts = name => String(name || "").replace(PART_PHRASE, " ");
+
 export function varietyOf(name, food) {
+  name = withoutParts(name);
   const mine = own(food), brands = brandsIn(name), bw = brandWords(brands);
   const ws = words(name).map(singular).filter(w => !mine.has(w) && !bw.has(w) && (VARIETY.has(w) || isPercent(w)));
   return [...new Set([...brands, ...ws])].sort();
@@ -77,6 +83,7 @@ export function varietyOf(name, food) {
  * "2 cups whole milk" → "whole milk". Just the food's name when there are no variety words.
  */
 export function varietyName(name, food, variety = varietyOf(name, food)) {
+  name = withoutParts(name);
   if (!variety.length) return food.name;
   const brands = variety.filter(w => brandSet.has(w)), want = new Set(variety);
   const ws = [...new Set(words(name).map(singular).filter(w => want.has(w) && !brandSet.has(w)))];

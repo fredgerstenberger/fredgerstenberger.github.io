@@ -32,6 +32,9 @@ const CASES = [
   [["1 red bell pepper", "1 green bell pepper", "1 bell pepper"], [["bell pepper", "bell pepper"], ["bell pepper (green)", "green bell pepper"], ["bell pepper (red)", "red bell pepper"]]],
   [["2 cups milk", "1 cup 2% milk"], [["milk", "milk"], ["milk (2%)", "2% milk"]]],                         // 2% is its own product
   [["8 oz Barilla Protein+ penne", "8 oz protein pasta"], [["pasta (barilla protein)", "barilla protein pasta"], ["pasta (protein)", "protein pasta"]]],
+  [["2 green onions (white parts only)", "3 green onions, sliced"], [["green onion", "green onion"]]],             // which part to use isn't a variety
+  [["1 leek, white and light green parts only", "1 leek"], [["leek", "leek"]]],
+  [["1 white onion", "1 onion"], [["onion (white)", "white onion"]]],                                         // a white onion still is
   [["1 cup oat milk", "1 cup almond milk"], [["plant milk (almond)", "almond plant milk"], ["plant milk (oat)", "oat plant milk"]]]
 ];
 for (const [lines, want] of CASES) {
