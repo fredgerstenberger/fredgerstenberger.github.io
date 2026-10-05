@@ -10,6 +10,7 @@ import { nutritionFor, servingsOf } from "../nutrition.js";
 import { matches, searchText } from "./book.js";
 import { recipeCost, money } from "../prices.js";
 import { planSwitch } from "./today.js";
+import { openReadyForm } from "./ready.js";
 
 // Slots in the week's order (it starts the day after your shopping day).
 const slotIdx = s => { const [d, m] = s.split("-"); return weekDays().indexOf(d) * MEALS.length + MEALS.indexOf(m); };
@@ -229,7 +230,10 @@ function pickRecipe(key, slot) {
     <div class="chipscroll" style="margin-top:10px">
       ${["breakfast", "lunch", "dinner", ":lowcal", ":protein", ":quick", ":budget"].map(c => `<button class="chip" data-f="${c}">${{ ":lowcal": "Low cal", ":protein": "High protein", ":quick": "Quick", ":budget": "Budget" }[c] || cap(c)}</button>`).join("")}
     </div>
-    <ul class="picklist" id="pl"></ul>` : `<p>Your recipe book is empty.</p><a class="btn primary" href="#/add">+ Add a recipe</a>`}`);
+    <ul class="picklist" id="pl"></ul>` : `<p>Your recipe book is empty.</p><a class="btn primary" href="#/add">+ Add a recipe</a>`}
+    <button class="btn pickready" id="pReady">+ Store-bought meal</button>`);
+  // Not a recipe (a Trader Joe's lunch): add it here, then pick its days like any recipe.
+  el.querySelector("#pReady").onclick = () => openReadyForm({ meal, onSaved: r => mealOptions(key, r.id, null, slot) });
   if (!all.length) return;
   const pl = el.querySelector("#pl");
   function draw() {

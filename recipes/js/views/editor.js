@@ -7,6 +7,7 @@ import { scanPhotos } from "../scan.js";
 import { autoTags } from "../tags.js";
 import { askAfterSave } from "../fillin.js";
 import { photoOf, setPhoto } from "../photos.js";
+import { isReady } from "../ready.js";
 
 export function addView(params) {
   const s = store.settings();
@@ -176,6 +177,8 @@ export function addView(params) {
 export function editView(id) {
   const r = store.recipe(id);
   if (!r) return go("#/book");
+  // A store-bought meal is edited with its own short form, over its page.
+  if (isReady(r)) { try { sessionStorage.setItem("rb.editReady", id); } catch {} go(`#/r/${id}`); return; }
   render(shell({ title: "Edit recipe", back: `#/r/${id}`, body: `<div id="editor"></div>` }));
   showEditor(document.getElementById("editor"), structuredClone(r), false);
 }

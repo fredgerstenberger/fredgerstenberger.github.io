@@ -9,6 +9,7 @@ import { bump, waitForLookups } from "./data.js";
 import { estimate } from "./nutrition.js";
 import { scanLabel, imageFromClipboard, imageFromPasteEvent } from "./scan.js";
 import { normalizeLabel, labelToFood } from "./label.js";
+import { isReady } from "./ready.js";
 
 const UNIT_CHOICES = [["g", "g"], ["oz", "oz"], ["lb", "lb"], ["cup", "cup"], ["tbsp", "tbsp"], ["tsp", "tsp"], ["ml", "ml"], ["each", "each"]];
 const ML_PER_CUP = 236.588;
@@ -17,6 +18,7 @@ const ML_PER_CUP = 236.588;
 // all = true also lists ones you've already filled in, so you can change them.
 export function infoItems(recipe, all = false) {
   const items = new Map();
+  if (isReady(recipe)) return []; // a store-bought meal's numbers come from its own label
   for (const { line, ing } of parseRecipe(recipe)) {
     if (!ing || ing.header || ing.qty == null) continue;
     const food = ing.food;

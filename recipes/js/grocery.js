@@ -1,5 +1,6 @@
 // Build a merged grocery list from a week's meal plan.
 import { parseIngredient, toGrams, UNITS, usMass, usVolume, fmtQty, unitLabel, cleanName, parseRecipe } from "./ingredients.js";
+import { isReady, readyPackages, READY_AISLE } from "./ready.js";
 import { servingsOf } from "./nutrition.js";
 import * as store from "./store.js";
 import { FOOD_BY_NAME } from "./fooddb.js";
@@ -57,6 +58,12 @@ export function buildList(weekKey) {
     const r = store.recipe(meal.rid);
     if (!r) continue;
     const mult = (meal.servings || servingsOf(r)) / servingsOf(r);
+    // A store-bought meal is one line: whole packages for the servings planned, in Prepared foods.
+    if (isReady(r)) {
+      const a = addLine(acc, null, `ready:${r.id}`, r.title, r.ingredients?.[0] || r.title, mult, r.title);
+      a.ready = { store: r.ready.store || "", price: r.ready.price, perPkg: servingsOf(r), servings: (a.ready?.servings || 0) + (meal.servings || servingsOf(r)) };
+      continue;
+    }
     for (const { line, ing } of parseRecipe(r)) {
       if (!ing || ing.header) continue;
       let f = ing.food;
@@ -141,6 +148,11 @@ function ceilTo(n, step) { return Math.ceil(n / step - 1e-6) * step; }
 
 // Builds the shopping amount text and sets a.cost (what you'd pay at the store, whole packages).
 function amountText(a) {
+  if (a.ready) {
+    const n = readyPackages(a.ready.servings, a.ready.perPkg);
+    a.cost = a.ready.price != null ? n * a.ready.price : null;
+    return `${n} ${n === 1 ? "package" : "packages"}${a.ready.store ? ` (${a.ready.store})` : ""}`; // the store on the row's second line
+  }
   const f = a.food;
   const parts = [];
   const pg = perGram(f);
@@ -207,7 +219,7 @@ export function sectionize(weekKey) {
     const p = s.pantry[it.pantryKey ?? it.key];
     it.checked = !!g.checked[it.key];
     it.kind = kind;
-    it.aisle = it.food ? it.food.aisle : "other";
+    it.aisle = it.ready ? READY_AISLE : it.food ? it.food.aisle : "other";
     if (it.checked) { buy.push(it); continue; }
     if (p === true) { have.push(it); continue; }
     if (kind === "P" && p === undefined) { ask.push(it); continue; }
