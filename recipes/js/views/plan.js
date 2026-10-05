@@ -130,7 +130,7 @@ export function planView(key) {
         const r = store.recipe(x.rid);
         const sl = [...x.slots].sort((a, b) => slotIdx(a) - slotIdx(b));
         return `<li><a href="#/r/${r.id}"><b>${esc(r.title)}</b></a><br>
-          <span class="muted" style="font-size:15px">${x.servings} servings, eaten ${times(sl.length)}: ${sl.map(slotName).join(", ")}</span></li>`;
+          <span class="muted" style="font-size:0.8824rem">${x.servings} servings, eaten ${times(sl.length)}: ${sl.map(slotName).join(", ")}</span></li>`;
       }).join("")}</ul>` : `<p class="muted">Nothing to cook yet. Add a recipe to any meal.</p>`}
       ${meals.length ? `<div class="btnrow"><button class="btn small danger" id="clearWeek">Clear this week</button></div>` : ""}`,
     status: `<span>${meals.length} meals planned</span><span><a href="#/settings">${people} ${people === 1 ? "person" : "people"}</a></span>`
@@ -166,8 +166,8 @@ function chipActions(key, meal, slot) {
   const sl = sortSlots(meal.slots);
   const many = sl.length > 1;
   const { el, close } = modal(slotName(slot), `
-    <p style="margin:0 0 2px;font-weight:700;font-size:18px">${esc(r.title)}</p>
-    <p class="muted" style="margin:0 0 14px;font-size:14px">${sl[0] === slot ? "Cooked here" : "Leftovers"}, ${meal.servings} servings${many ? `<br>Planned ${times(sl.length)}: ${sl.map(slotName).join(", ")}` : ""}</p>
+    <p style="margin:0 0 2px;font-weight:700;font-size:1.0588rem">${esc(r.title)}</p>
+    <p class="muted" style="margin:0 0 14px;font-size:0.8235rem">${sl[0] === slot ? "Cooked here" : "Leftovers"}, ${meal.servings} servings${many ? `<br>Planned ${times(sl.length)}: ${sl.map(slotName).join(", ")}` : ""}</p>
     <div class="actlist">
       <button class="btn primary" id="aMove">${icon("swap", "ic16")} Move or swap</button>
       <a class="btn" href="#/r/${r.id}">Open recipe</a>
@@ -282,14 +282,14 @@ function mealOptions(key, rid, existing, presetSlot) {
   let touched = !!existing;
 
   const { el, close } = modal(existing ? "Planned meal" : "Add to plan", `
-    <p style="margin:0 0 4px;font-weight:700;font-size:18px">${esc(r.title)}</p>
-    <p class="muted" style="margin:0 0 14px;font-size:14px">${weekLabel(key)}<br>Recipe makes ${base}${r.yield ? "" : " (assumed)"}</p>
+    <p style="margin:0 0 4px;font-weight:700;font-size:1.0588rem">${esc(r.title)}</p>
+    <p class="muted" style="margin:0 0 14px;font-size:0.8235rem">${weekLabel(key)}<br>Recipe makes ${base}${r.yield ? "" : " (assumed)"}</p>
     <div class="setrow" style="border-top:1px solid var(--sunk)">
       <span>Servings to cook<small id="hint"></small></span>
       <span class="stepper"><button id="m" aria-label="Fewer servings">${icon("minus", "ic16")}</button><output id="sv">${servings}</output><button id="p" aria-label="More servings">${icon("plus", "ic16")}</button></span>
     </div>
     <p style="margin:14px 0 6px;font-family:var(--pixel)">When will you eat it?</p>
-    <p class="muted" style="margin:0 0 10px;font-size:14px">Cook once; extra ticks are leftovers. Groceries count it once. Gray slots already have a meal or are in the past.</p>
+    <p class="muted" style="margin:0 0 10px;font-size:0.8235rem">Cook once; extra ticks are leftovers. Groceries count it once. Gray slots already have a meal or are in the past.</p>
     <div class="slotpick">
       <span></span>${MEALS.map(m => `<span class="h">${cap(m)}</span>`).join("")}
       ${weekDays().map((d, di) => `<span class="d">${SHORT[d]} ${dayDate(key, d).getDate()}</span>${MEALS.map(m => {

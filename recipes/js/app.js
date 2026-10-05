@@ -5,6 +5,7 @@ import { alignWeeks } from "./weeks.js";
 import { sprite } from "./sprites.js";
 import { initModal, closeModal, applyTheme } from "./ui.js";
 import { watchForUpdates } from "./updates.js";
+import { noZoom, applyTextSize } from "./platform.js";
 import { initTimers } from "./timers.js";
 import { bookView } from "./views/book.js";
 import { recipeView, leaveRecipe } from "./views/recipe.js";
@@ -125,6 +126,8 @@ function watchKeyboard() {
 }
 
 function init() {
+  noZoom();
+  applyTextSize();
   watchKeyboard();
   applyWeekSetting();
   applyTheme();

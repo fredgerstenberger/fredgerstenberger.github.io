@@ -27,7 +27,7 @@ export function moreView() {
         ${row("#/settings", "Settings")}
         ${row("#/settings", "Backup", s.lastBackup ? `Last: ${fmtDate(new Date(s.lastBackup))}` : "", 'data-focus="backup"')}
       </ul></div>
-      <p class="muted" style="font-size:14px;margin:var(--s3) 4px">Recipe Box ${APP_VERSION}<br>${plural(Object.keys(s.recipes).length, "recipe")}</p>`
+      <p class="muted" style="font-size:0.8235rem;margin:var(--s3) 4px">Recipe Box ${APP_VERSION}<br>${plural(Object.keys(s.recipes).length, "recipe")}</p>`
   }));
   document.getElementById("moreStores").onclick = e => { e.preventDefault(); openStorePicker(() => {}); };
   // Sync and Backup open Settings at their section.

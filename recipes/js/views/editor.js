@@ -35,9 +35,9 @@ export function addView(params) {
           <label class="btn primary" for="scanIn">Scan photo</label>
           <input type="file" id="scanIn" accept="image/*" multiple hidden>
         </div>
-        ${s.proxy ? `<p class="muted" style="font-size:14px;margin:0 0 6px">For a recipe that spans pages, pick up to 4 photos.</p>`
-          : isDev() ? `<p class="muted" style="font-size:14px;margin:0 0 6px">Needs your Cloudflare Worker: set it up in Settings, Developer.</p>` : ""}
-        <p class="px" style="margin:16px 0 4px;font-size:15px">Or copy the text yourself</p>
+        ${s.proxy ? `<p class="muted" style="font-size:0.8235rem;margin:0 0 6px">For a recipe that spans pages, pick up to 4 photos.</p>`
+          : isDev() ? `<p class="muted" style="font-size:0.8235rem;margin:0 0 6px">Needs your Cloudflare Worker: set it up in Settings, Developer.</p>` : ""}
+        <p class="px" style="margin:16px 0 4px;font-size:0.8824rem">Or copy the text yourself</p>
         <ol class="howto">
           <li>Choose a photo of the recipe.</li>
           <li>Press and hold its text, then tap <b>Select All</b> and <b>Copy</b>.</li>
@@ -56,7 +56,7 @@ export function addView(params) {
       </details>
 
       <div id="editor"></div>
-      <p class="muted" style="font-size:14px;margin-top:22px">Or <button class="btn small" id="manualBtn" type="button">type one in</button></p>
+      <p class="muted" style="font-size:0.8235rem;margin-top:22px">Or <button class="btn small" id="manualBtn" type="button">type one in</button></p>
       ${s.proxy || !isDev() ? "" : `<p class="note">Without a Worker, links are read through public services, which are sometimes slow or blocked. Add one in Settings, Developer.</p>`}`
   }));
 
@@ -208,7 +208,7 @@ function showEditor(el, r, isNew) {
         <small>Comma separated. ${isNew ? "Suggested for you. Edit freely." : `<button type="button" class="btn small" id="suggest" style="margin-top:6px">Re-suggest keywords</button>`}</small>
       </label>
       <label class="field"><span>Source link</span><input type="url" name="url" value="${esc(r.url || "")}" autocapitalize="none" placeholder="Link to the original"></label>
-      ${r.nutrition ? `<p class="muted" style="font-size:14px">Nutrition from the site: ${Math.round(r.nutrition.kcal || 0)} kcal per serving. <label class="check" style="display:inline-flex;min-height:0"><input type="checkbox" name="dropNutri"> Ignore it and estimate instead</label></p>` : ""}
+      ${r.nutrition ? `<p class="muted" style="font-size:0.8235rem">Nutrition from the site: ${Math.round(r.nutrition.kcal || 0)} kcal per serving. <label class="check" style="display:inline-flex;min-height:0"><input type="checkbox" name="dropNutri"> Ignore it and estimate instead</label></p>` : ""}
       <div class="btnrow">
         <button class="btn primary" type="submit">${isNew ? "Save to recipe book" : "Save changes"}</button>
         ${isNew ? "" : `<a class="btn" href="#/r/${r.id}">Cancel</a>`}

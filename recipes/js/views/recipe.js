@@ -192,13 +192,13 @@ export function recipeView(id) {
         ${sourceHTML(r)}
         <div class="hide-cook">${ratingHTML(r)}</div>
         <dl class="facts">
-          ${r.totalMin ? `<div><dt>Time</dt><dd>${fmtMinutes(r.totalMin)}${times.length ? `<br><span class="muted" style="font-size:14px">${times.join(", ")}</span>` : ""}</dd></div>` : ""}
+          ${r.totalMin ? `<div><dt>Time</dt><dd>${fmtMinutes(r.totalMin)}${times.length ? `<br><span class="muted" style="font-size:0.8235rem">${times.join(", ")}</span>` : ""}</dd></div>` : ""}
           <div><dt>Servings</dt><dd>
             <span class="stepper"><button id="sMinus" aria-label="Fewer servings">${icon("minus", "ic16")}</button><output id="sOut">${P.servings}</output><button id="sPlus" aria-label="More servings">${icon("plus", "ic16")}</button></span>
             ${P.servings !== base ? `<br><button class="btn small" id="sReset" style="margin-top:8px">Reset to ${base}</button>` : ""}
           </dd></div>
-          ${cost.total > 0 ? `<div><dt>Cost</dt><dd>${money(cost.perServing)}/serving<br><span class="muted" style="font-size:14px">${money(cost.perServing * P.servings)} for ${P.servings}</span></dd></div>` : ""}
-          ${nu.kcal ? `<div><dt>Per serving</dt><dd>${fmtN(nu.kcal)} kcal<br><span class="muted" style="font-size:14px">${fmtN(nu.protein)} g protein</span></dd></div>` : ""}
+          ${cost.total > 0 ? `<div><dt>Cost</dt><dd>${money(cost.perServing)}/serving<br><span class="muted" style="font-size:0.8235rem">${money(cost.perServing * P.servings)} for ${P.servings}</span></dd></div>` : ""}
+          ${nu.kcal ? `<div><dt>Per serving</dt><dd>${fmtN(nu.kcal)} kcal<br><span class="muted" style="font-size:0.8235rem">${fmtN(nu.protein)} g protein</span></dd></div>` : ""}
         </dl>
         <div class="btnrow hide-cook rbtns">
           <button class="btn primary" id="planBtn">+ Meal plan</button>
@@ -206,7 +206,7 @@ export function recipeView(id) {
         </div>
 
         <h2 class="sect">Ingredients <small>${P.ings.size && !P.editIngs ? `<button class="btn small" id="clearIngs" style="min-height:28px">Clear ${P.ings.size}</button> ` : ""}<button class="btn small" id="editIngs" style="min-height:28px">${P.editIngs ? "Done" : `${icon("edit", "ic16")} Edit`}</button></small></h2>
-        ${P.editIngs ? `<p class="muted" style="font-size:14px;margin:0 0 8px">Changes save as you go. Start a line with # for a section heading.</p>
+        ${P.editIngs ? `<p class="muted" style="font-size:0.8235rem;margin:0 0 8px">Changes save as you go. Start a line with # for a section heading.</p>
         <ul class="ings">${ingEditHTML}</ul>` : `
         <div class="cookbar">
           <div class="seg" role="group" aria-label="Units">
@@ -414,7 +414,7 @@ function showConversions(btn, ing, mult) {
   const list = equivalents(q, ing.unit, ing.food);
   const pop = document.createElement("div");
   pop.className = "pop win";
-  pop.innerHTML = `<span class="px">${esc(ing.food ? ing.food.name : ing.name)}</span><ul>${list.map(x => `<li>${esc(x)}</li>`).join("")}</ul>${ing.food?.gCup ? "" : `<span class="muted" style="font-size:12px">Grams assume water density.</span>`}`;
+  pop.innerHTML = `<span class="px">${esc(ing.food ? ing.food.name : ing.name)}</span><ul>${list.map(x => `<li>${esc(x)}</li>`).join("")}</ul>${ing.food?.gCup ? "" : `<span class="muted" style="font-size:0.7059rem">Grams assume water density.</span>`}`;
   document.body.appendChild(pop);
   const rect = btn.getBoundingClientRect();
   const w = pop.offsetWidth;

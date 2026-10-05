@@ -22,7 +22,7 @@ export function pricesView() {
     body: `
       <p style="margin-top:0">Prices for <a href="#/settings">${esc(region)}</a></p>
       ${tipHTML("prices", "Tap an item to enter what your store charges.")}
-      ${officialInfo() ? `<p class="muted" style="font-size:14px">${officialInfo().count} staples use US government average prices (${esc(officialInfo().period)}), marked <span class="kind">BLS</span>.</p>` : ""}
+      ${officialInfo() ? `<p class="muted" style="font-size:0.8235rem">${officialInfo().count} staples use US government average prices (${esc(officialInfo().period)}), marked <span class="kind">BLS</span>.</p>` : ""}
       <input type="search" id="pq" placeholder="Search ingredients" value="${esc(query)}" autocomplete="off" autocapitalize="none">
       <div class="chips" style="margin:10px 0 4px">
         <button class="chip" id="mineOnly" aria-pressed="${onlyMine}">${icon("star", "ic16")}My prices (${mineCount})</button>
@@ -64,8 +64,8 @@ export function editPrice(name, done) {
   const est = BASE_PRICES[name];
   const estNow = est ? Math.round(est.price * regionFactor() * 100) / 100 : null;
   const { el, close } = modal("Your price", `
-    <p style="margin:0 0 4px;font-weight:700;font-size:18px">${esc(name)}</p>
-    <p class="muted" style="margin:0 0 14px;font-size:14px">Estimate: ${money(estNow)} / ${esc(basisLabel(f, est.basis))}</p>
+    <p style="margin:0 0 4px;font-weight:700;font-size:1.0588rem">${esc(name)}</p>
+    <p class="muted" style="margin:0 0 14px;font-size:0.8235rem">Estimate: ${money(estNow)} / ${esc(basisLabel(f, est.basis))}</p>
     <div class="row2">
       <label class="field"><span>Price ($)</span><input type="number" id="pp" inputmode="decimal" step="0.01" min="0" value="${e.price}"></label>
       <label class="field"><span>Per</span><select id="pb">${bases.map(b => `<option value="${b}" ${e.basis === b ? "selected" : ""}>${esc(basisLabel(f, b))}</option>`).join("")}</select></label>

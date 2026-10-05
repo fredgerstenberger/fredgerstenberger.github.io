@@ -107,8 +107,8 @@ export function readyView(r) {
       <p class="rsource"><span class="rdtag">Store-bought</span>${r.ready.store ? ` from ${esc(r.ready.store)}` : ""}</p>
       <dl class="facts">
         ${row("Servings", `${r.yield || 1} per package`)}
-        ${cost.total > 0 ? row("Cost", `${money(cost.perServing)}/serving<br><span class="muted" style="font-size:14px">${money(cost.total)} a package</span>`) : ""}
-        ${nu.kcal ? row("Per serving", `${Math.round(nu.kcal)} kcal<br><span class="muted" style="font-size:14px">${Math.round(nu.protein || 0)} g protein</span>`) : ""}
+        ${cost.total > 0 ? row("Cost", `${money(cost.perServing)}/serving<br><span class="muted" style="font-size:0.8235rem">${money(cost.total)} a package</span>`) : ""}
+        ${nu.kcal ? row("Per serving", `${Math.round(nu.kcal)} kcal<br><span class="muted" style="font-size:0.8235rem">${Math.round(nu.protein || 0)} g protein</span>`) : ""}
       </dl>
       <div class="btnrow rbtns">
         <button class="btn primary" id="planBtn">+ Meal plan</button>
@@ -117,7 +117,7 @@ export function readyView(r) {
       <h2 class="sect">Nutrition <small>per serving${n?.serving ? ` (${esc(n.serving)})` : ""}</small></h2>
       ${n ? `<div class="card"><dl class="rdnums">
           ${[["Calories", n.kcal, ""], ["Protein", n.protein, " g"], ["Carbs", n.carbs, " g"], ["Fat", n.fat, " g"], ["Fiber", n.fiber, " g"]].filter(x => x[1] != null).map(([l, v, u]) => `<div><dt>${l}</dt><dd>${Math.round(v)}${u}</dd></div>`).join("")}
-        </dl></div><p class="muted" style="font-size:14px">From the package label.</p>`
+        </dl></div><p class="muted" style="font-size:0.8235rem">From the package label.</p>`
       : `<p class="muted">No label yet, so it isn't counted in the day's calories. <button class="btn small" id="addLabel">Add label</button></p>`}`
   }));
   const edit = () => openReadyForm({ id: r.id, onSaved: () => readyView(store.recipe(r.id)) });

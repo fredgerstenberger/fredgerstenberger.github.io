@@ -153,7 +153,7 @@ export function openInfo(recipe, items, { first = false, onDone } = {}) {
       : "Your numbers for these ingredients. They're used in every recipe that has them."}</p>
     <form id="fillForm">${items.map(itemHTML).join("")}
       <div class="btnrow"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" id="fillSkip">${first ? "Skip" : "Cancel"}</button></div>
-      ${first ? `<p class="muted" style="font-size:14px">You won't be asked again. To add them later, use the note under <b>Nutrition</b> on the recipe, or <b>Ingredient info</b>.</p>` : ""}
+      ${first ? `<p class="muted" style="font-size:0.8235rem">You won't be asked again. To add them later, use the note under <b>Nutrition</b> on the recipe, or <b>Ingredient info</b>.</p>` : ""}
     </form>`, { onClose: () => onDone?.() });
   el.querySelector("#fillSkip").onclick = close;
   // A label is quicker than typing: read a pasted or chosen picture of it right here, into that ingredient's

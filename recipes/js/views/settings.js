@@ -12,6 +12,7 @@ import { APP_VERSION, RELEASED, WHATS_NEW } from "../version.js";
 import { icon } from "../sprites.js";
 import { showEstimates } from "../tips.js";
 import { isDev, versionTap } from "../dev.js";
+import { TEXT_SIZES, textSize, setTextSize } from "../platform.js";
 
 function ago(t) {
   if (!t) return "never";
@@ -42,11 +43,11 @@ function syncHTML(s) {
       <input type="text" id="myName" value="${esc(me().name)}" placeholder="Your name" autocomplete="given-name" maxlength="40">
       <small>Use the same name on all your devices.</small></label>
     <p style="margin:14px 0 6px"><b>Add another device or a partner</b></p>
-    <p class="muted" style="font-size:14px;margin:0 0 8px">Each invite works once, for 24 hours.</p>
+    <p class="muted" style="font-size:0.8235rem;margin:0 0 8px">Each invite works once, for 24 hours.</p>
     <div id="inviteOut"></div>
     <div class="btnrow"><button class="btn small primary" id="newInvite">Create invite</button></div>
     <details class="breakdown"><summary>Remove access for other devices</summary>
-      <p style="font-size:14px">Other devices stop syncing until you invite them again. This one keeps everything.</p>
+      <p style="font-size:0.8235rem">Other devices stop syncing until you invite them again. This one keeps everything.</p>
       <button class="btn small danger" id="resetCode">Reset sync code</button>
     </details>
     <div class="btnrow"><button class="btn small danger" id="syncOff">Turn off sync on this device</button></div>`;
@@ -58,7 +59,7 @@ const WORKER_HELP = "https://github.com/fredgerstenberger/fredgerstenberger.gith
 function askJoin(invite, worker) {
   const { el, close } = modal("Join recipe box?", `
     <p style="margin-top:0">This device joins the shared recipe box. What's already here is kept and added.</p>
-    ${worker ? `<p class="muted" style="font-size:14px">Worker: ${esc(worker)}</p>` : ""}
+    ${worker ? `<p class="muted" style="font-size:0.8235rem">Worker: ${esc(worker)}</p>` : ""}
     <div class="btnrow"><button class="btn primary" id="jYes">Join and sync</button><button class="btn" id="jNo">Cancel</button></div>`);
   el.querySelector("#jNo").onclick = close;
   el.querySelector("#jYes").onclick = async () => {
@@ -114,9 +115,9 @@ function askRestore(data) {
     const { el, close } = modal("Restore backup?", `
       <p style="margin-top:0">Backup from <b>${esc(date)}</b>, ${count} recipe${count === 1 ? "" : "s"}.</p>
       <div class="btnrow"><button class="btn primary" id="rMerge">Merge</button></div>
-      <p class="muted" style="font-size:14px;margin:4px 0 12px">Adds what's missing. Where a recipe is in both, the newer version is kept. Nothing newer is lost${synced ? ", on this phone or on your other synced devices" : ""}.</p>
+      <p class="muted" style="font-size:0.8235rem;margin:4px 0 12px">Adds what's missing. Where a recipe is in both, the newer version is kept. Nothing newer is lost${synced ? ", on this phone or on your other synced devices" : ""}.</p>
       <div class="btnrow"><button class="btn danger" id="rReplace">Replace everything</button></div>
-      <p class="muted" style="font-size:14px;margin:4px 0 12px">Makes this phone match the backup exactly.${synced ? " <b>Sync is on, so it also replaces everything on your other devices</b>, including changes made after the backup." : ""}</p>
+      <p class="muted" style="font-size:0.8235rem;margin:4px 0 12px">Makes this phone match the backup exactly.${synced ? " <b>Sync is on, so it also replaces everything on your other devices</b>, including changes made after the backup." : ""}</p>
       <div class="btnrow"><button class="btn" id="rCancel">Cancel</button></div>`, { onClose: () => { if (!handled) resolve(null); } });
     el.querySelector("#rMerge").onclick = () => { handled = true; close(); resolve("merge"); };
     el.querySelector("#rCancel").onclick = close;
@@ -145,6 +146,7 @@ export function settingsView() {
     body: `
       <h2 class="sect">Appearance</h2>
       <div class="setrow"><span>Theme</span>${seg("theme", [["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]])}</div>
+      <div class="setrow"><span>Text size<small>Default follows your phone's text size</small></span><div class="seg" role="group" aria-label="Text size">${TEXT_SIZES.map(([v, l]) => `<button data-textsize="${v}" aria-pressed="${textSize() === v}">${l}</button>`).join("")}</div></div>
 
       <h2 class="sect">Recipe filters</h2>
       <div class="setrow"><span>Lighter<small>kcal per serving, at most</small></span>${num("lowCal", 100, 2000, 25, "Lighter: calories per serving, at most")}</div>
@@ -159,7 +161,7 @@ export function settingsView() {
         <select id="region">${REGIONS.map(([id, name, f]) => `<option value="${id}" ${s.priceRegion === id ? "selected" : ""}>${esc(name)}${f ? ` (${f === 1 ? "baseline" : `${f > 1 ? "+" : "-"}${Math.round(Math.abs(f - 1) * 100)}%`})` : ""}</option>`).join("")}</select>
       </label>
       <div class="setrow" id="customRow" ${s.priceRegion === "custom" ? "" : "hidden"}><span>Custom level<small>% of the US average</small></span>${num("priceCustomPct", 50, 250, 1, "Custom price level: percent of US average")}</div>
-      <p class="muted" style="font-size:14px;margin:4px 0 0">For exact costs, enter your store's <a href="#/prices">prices</a>.</p>
+      <p class="muted" style="font-size:0.8235rem;margin:4px 0 0">For exact costs, enter your store's <a href="#/prices">prices</a>.</p>
 
       <h2 class="sect">Cooking &amp; planning</h2>
       <div class="setrow"><span>Shopping &amp; prep day<small>Your week starts the next day</small></span>
@@ -187,7 +189,7 @@ export function settingsView() {
         <label class="btn" for="importFile">Import backup</label>
         <input type="file" id="importFile" accept="application/json,.json" hidden>
       </div>
-      <p class="muted" style="font-size:14px">Last backup: ${st.lastBackup ? new Date(st.lastBackup).toLocaleString() : "never"}</p>
+      <p class="muted" style="font-size:0.8235rem">Last backup: ${st.lastBackup ? new Date(st.lastBackup).toLocaleString() : "never"}</p>
 
       <h2 class="sect">Install on iPhone</h2>
       <ol class="howto">
@@ -195,14 +197,14 @@ export function settingsView() {
         <li>Tap <b>Share</b>.</li>
         <li>Choose <b>Add to Home Screen</b>, then <b>Add</b>.</li>
       </ol>
-      <p class="muted" style="font-size:14px">Safari and the Home Screen app keep separate data, so use one.</p>
+      <p class="muted" style="font-size:0.8235rem">Safari and the Home Screen app keep separate data, so use one.</p>
 
       <h2 class="sect">Version</h2>
       <div class="setrow"><span><button class="vertap" id="verTap">Recipe Box ${APP_VERSION}</button><small>Released ${new Date(RELEASED + "T12:00").toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}</small>${isDev() ? `<small id="workerVer">${s.proxy ? "Worker: checking…" : "Worker: not set up"}</small>` : ""}</span>
         <button class="btn small" id="checkUpdate">Check for updates</button></div>
       <details class="breakdown"><summary>What's new</summary><ul class="howto">${WHATS_NEW.map(x => `<li>${esc(x)}</li>`).join("")}</ul></details>
       ${isDev() ? `      <h2 class="sect" id="set-dev">Developer</h2>
-      <p class="muted" style="font-size:14px;margin-top:0">Tap the version number 7 times to hide this section.</p>
+      <p class="muted" style="font-size:0.8235rem;margin-top:0">Tap the version number 7 times to hide this section.</p>
       <label class="field"><span>Your Worker address<small>From Cloudflare: links &amp; photo scanning</small></span>
         <div class="inline">
           <input type="url" id="proxy" value="${esc(s.proxy)}" placeholder="https://recipe-proxy.yourname.workers.dev" autocapitalize="none">
@@ -267,6 +269,11 @@ export function settingsView() {
     toast(`Weeks now run ${DAY_LONG[(d + 1) % 7]} to ${DAY_LONG[(d + 7) % 7]}`);
   });
   document.getElementById("aboutEst").onclick = showEstimates;
+  root.querySelectorAll("[data-textsize]").forEach(b => b.onclick = () => {
+    setTextSize(b.dataset.textsize);
+    root.querySelectorAll("[data-textsize]").forEach(x => x.setAttribute("aria-pressed", x === b));
+    flash(b);
+  });
   const region = document.getElementById("region");
   region.addEventListener("change", () => {
     store.setSetting("priceRegion", region.value);
@@ -356,9 +363,9 @@ function bindSync(flash, s) {
       const pretty = inv.token.slice(0, 5) + "-" + inv.token.slice(5);
       const out = document.getElementById("inviteOut");
       out.innerHTML = `
-        <p style="margin:0 0 4px">Invite code: <b class="px" style="font-size:20px;letter-spacing:1px">${pretty}</b></p>
+        <p style="margin:0 0 4px">Invite code: <b class="px" style="font-size:1.1765rem;letter-spacing:1px">${pretty}</b></p>
         <div class="code">${esc(inv.link)}</div>
-        <p class="muted" style="font-size:13px;margin:4px 0 0">Works once. Expires ${new Date(inv.expires).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}</p>
+        <p class="muted" style="font-size:0.7647rem;margin:4px 0 0">Works once. Expires ${new Date(inv.expires).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}</p>
         <div class="btnrow"><button class="btn small" id="shareInvite">Share invite</button></div>`;
       document.getElementById("shareInvite").onclick = async () => {
         try {

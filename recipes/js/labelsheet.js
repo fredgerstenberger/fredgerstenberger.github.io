@@ -41,9 +41,9 @@ export function openFoodSheet(recipe, key, onDone = () => {}) {
   const mine = store.get().foods?.[key];
   const st = store.settings();
   const { el, close } = modal(cap1(key), `
-    <p class="muted" style="margin-top:0;font-size:14px">${esc(line)}</p>
+    <p class="muted" style="margin-top:0;font-size:0.8235rem">${esc(line)}</p>
     <p class="fsrc">${sourceLine(food, key)}</p>
-    <p style="font-size:15px;margin:0 0 12px">Add the product's Nutrition Facts label to make it exact. It's used in every recipe with ${esc(key)}, on every synced phone.</p>
+    <p style="font-size:0.8824rem;margin:0 0 12px">Add the product's Nutrition Facts label to make it exact. It's used in every recipe with ${esc(key)}, on every synced phone.</p>
     <div class="fsact">
       <button class="btn primary" id="fsPasteImg">${icon("clipboard", "ic16")}Paste label image</button>
       <label class="btn fsfile">${icon("camera", "ic16")}Label photo<input type="file" accept="image/*" id="fsPhoto" hidden></label>
@@ -51,7 +51,7 @@ export function openFoodSheet(recipe, key, onDone = () => {}) {
       <button class="btn" id="fsType">Type numbers</button>
     </div>
     ${mine?.nu ? `<button class="btn small danger" id="fsRemove" style="margin-top:10px">Remove ${mine.label ? "label" : "my numbers"}</button>` : ""}
-    <p class="muted" id="fsStatus" style="font-size:14px;min-height:1.2em"></p>`, { onClose: onDone });
+    <p class="muted" id="fsStatus" style="font-size:0.8235rem;min-height:1.2em"></p>`, { onClose: onDone });
 
   const status = t => { const s = el.querySelector("#fsStatus"); if (s) s.textContent = t; };
   const readImage = async file => {
@@ -84,10 +84,10 @@ export function openFoodSheet(recipe, key, onDone = () => {}) {
 
 function pasteLabel(key, closeParent) {
   const { el } = modal(`Paste label for ${key}`, `
-    <p style="margin-top:0;font-size:15px">Copy the label's text and paste it here. On iPhone: open the photo, press and hold the text, then Copy (Live Text). Works offline.</p>
+    <p style="margin-top:0;font-size:0.8824rem">Copy the label's text and paste it here. On iPhone: open the photo, press and hold the text, then Copy (Live Text). Works offline.</p>
     <textarea id="lpText" rows="9" placeholder="Nutrition Facts&#10;Serving size 2 oz (56g)&#10;Calories 190&#10;…"></textarea>
     <div class="btnrow"><button class="btn primary" id="lpRead">Read label</button></div>
-    <p class="muted" id="lpMsg" style="font-size:14px"></p>`);
+    <p class="muted" id="lpMsg" style="font-size:0.8235rem"></p>`);
   el.querySelector("#lpRead").onclick = () => {
     const f = parseLabelText(el.querySelector("#lpText").value);
     if (f.kcal == null && f.protein == null) { el.querySelector("#lpMsg").textContent = "Couldn't find calories or protein in that text. Check it's the Nutrition Facts part."; return; }
@@ -101,11 +101,11 @@ function confirmLabel(key, raw, check, how, done) {
   const n = (name, v, label, unit = "g") => `<label>${label}<span class="lin"><input type="number" name="${name}" inputmode="decimal" step="any" min="0" value="${v ?? ""}"><small>${unit}</small></span></label>`;
   const warn = c => c && c.ok === false ? `Calories don't match the protein, carbs and fat (those add up to about ${c.expected} kcal). Check the numbers against the label.` : "";
   const { el, close } = modal(`Label for ${key}`, `
-    <p style="margin-top:0;font-size:15px">Check these against the label, then save. Values are per serving.</p>
+    <p style="margin-top:0;font-size:0.8824rem">Check these against the label, then save. Values are per serving.</p>
     <form id="lcForm" class="lcform">
       <label class="wide">Serving size<input type="text" name="servingText" value="${esc(f.servingText || "")}" placeholder="2 oz (56g)"></label>
       ${n("grams", f.grams ?? f.ml, f.ml && !f.grams ? "Serving (about, in g from mL)" : f.gramsFrom === "oz" ? "Serving weight (from oz)" : "Serving weight", "g")}
-      ${f.gramsFrom === "oz" ? `<p class="muted wide" style="margin:0;font-size:14px">The label only gives ounces, so the grams are worked out from them. If the label shows grams too, use those.</p>` : ""}
+      ${f.gramsFrom === "oz" ? `<p class="muted wide" style="margin:0;font-size:0.8235rem">The label only gives ounces, so the grams are worked out from them. If the label shows grams too, use those.</p>` : ""}
       ${n("kcal", f.kcal, "Calories", "kcal")}
       ${n("protein", f.protein, "Protein")}
       ${n("carbs", f.carbs, "Total carbs")}

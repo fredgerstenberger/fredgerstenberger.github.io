@@ -474,7 +474,7 @@ function itemSheet(g, it, redraw, remove) {
     <label class="field"><span>Item</span><input type="text" id="eName" value="${esc(it.name)}" autocomplete="off"></label>
     <label class="field"><span>Amount</span><input type="text" id="eAmt" value="${esc(it.amount || "")}" placeholder="Like 2 lb or 1 box" autocomplete="off"></label>
     <label class="field"><span>Note<small>Brand, store or size</small></span><input type="text" id="eNote" value="${esc(it.note || "")}" placeholder="Like organic" autocomplete="off"></label>
-    <p class="muted" style="font-size:14px;margin:0">Changes apply to this week's list.</p>
+    <p class="muted" style="font-size:0.8235rem;margin:0">Changes apply to this week's list.</p>
     <div class="btnrow">
       <button class="btn primary" id="eSave">Save</button>
       ${ed ? `<button class="btn" id="eReset">Back to automatic</button>` : ""}
@@ -491,7 +491,7 @@ function itemSheet(g, it, redraw, remove) {
 function extraSheet(e, save, remove) {
   const { el, close } = modal("Edit item", `
     <label class="field"><span>Item<small>Include an amount if you like: “2 lb chicken thighs”</small></span><input type="text" id="exText" value="${esc(e.text)}" autocomplete="off"></label>
-    ${e.by ? `<p class="muted" style="font-size:14px;margin:0">Added by ${esc(e.by)}</p>` : ""}
+    ${e.by ? `<p class="muted" style="font-size:0.8235rem;margin:0">Added by ${esc(e.by)}</p>` : ""}
     <div class="btnrow"><button class="btn primary" id="exSave">Save</button><button class="btn danger" id="exRm">Remove</button></div>`);
   el.querySelector("#exSave").onclick = () => { const v = el.querySelector("#exText").value.trim(); close(); if (v) save(v); };
   el.querySelector("#exRm").onclick = () => { close(); remove(); };
