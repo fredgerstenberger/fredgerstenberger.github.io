@@ -11,6 +11,7 @@ import { matches, searchText } from "./book.js";
 import { recipeCost, money } from "../prices.js";
 import { planSwitch } from "./today.js";
 import { openReadyForm } from "./ready.js";
+import { estimatesNoticeHTML, bindEstimatesNotice } from "../tips.js";
 import { icon } from "../sprites.js";
 
 // Slots in the week's order (it starts the day after your shopping day).
@@ -122,6 +123,7 @@ export function planView(key) {
         <a class="btn small" href="#/grocery/${key}">Grocery list ${icon("chevRight", "ic16")}</a>
         ${weekCost > 0 ? `<span style="flex-basis:100%">Food cost ${money(weekCost)}, ${money(weekCost / servingsTotal)} a serving</span>` : ""}
       </div>
+      ${meals.length ? estimatesNoticeHTML() : ""}
       ${days}
       <h2 class="sect">${DAY_LONG[weekDays()[6]]} prep list <small>${prep.length ? `${prep.length} to cook` : ""}</small></h2>
       ${prep.length ? `<ul class="preplist">${prep.map(x => {
@@ -134,6 +136,7 @@ export function planView(key) {
     status: `<span>${meals.length} meals planned</span><span><a href="#/settings">${people} ${people === 1 ? "person" : "people"}</a></span>`
   }), { keepScroll: true });
 
+  bindEstimatesNotice(document.getElementById("app"));
   document.querySelectorAll("[data-add]").forEach(b => b.onclick = () => pickRecipe(key, b.dataset.add));
   if (!moving) document.querySelectorAll("[data-meal]").forEach(b => b.onclick = () => {
     const m = meals.find(x => x.id === b.dataset.meal);
@@ -230,7 +233,7 @@ function pickRecipe(key, slot) {
     ${all.length ? `
     <input type="search" id="pq" placeholder="Search your recipes…" autocomplete="off">
     <div class="chipscroll" style="margin-top:10px">
-      ${["breakfast", "lunch", "dinner", ":lowcal", ":protein", ":quick", ":budget"].map(c => `<button class="chip" data-f="${c}">${{ ":lowcal": "Low cal", ":protein": "High protein", ":quick": "Quick", ":budget": "Budget" }[c] || cap(c)}</button>`).join("")}
+      ${["breakfast", "lunch", "dinner", ":lowcal", ":protein", ":quick", ":budget"].map(c => `<button class="chip" data-f="${c}">${{ ":lowcal": "Lighter", ":protein": "High protein", ":quick": "Quick", ":budget": "Budget" }[c] || cap(c)}</button>`).join("")}
     </div>
     <ul class="picklist" id="pl"></ul>` : `<p>Your recipe book is empty.</p><a class="btn primary" href="#/add">+ Add a recipe</a>`}
     <button class="btn pickready" id="pReady">+ Store-bought meal</button>`);

@@ -9,6 +9,7 @@ import { recipeCost } from "../prices.js";
 import { allPhotos, okImage, fillPhotos, adoptPhotos } from "../photos.js";
 import { sprite, icon } from "../sprites.js";
 import { isReady } from "../ready.js";
+import { estimatesNoticeHTML, bindEstimatesNotice } from "../tips.js";
 import { openReadyForm } from "./ready.js";
 
 // Filter state survives navigating into a recipe and back. on: chips (quick filters, meals, keywords);
@@ -47,7 +48,7 @@ export const QUICK = [
   ["breakfast", "Breakfast"],
   ["lunch", "Lunch"],
   ["dinner", "Dinner"],
-  [":lowcal", "Low cal"],
+  [":lowcal", "Lighter"],
   [":protein", "High protein"],
   [":quick", "Quick"],
   [":budget", "Budget"],
@@ -116,11 +117,13 @@ export function bookView() {
           </select>
         </label>
       </div>
+      ${all.length ? estimatesNoticeHTML() : ""}
       <div id="readyAdd"></div>
       <ul class="cards" id="list"></ul>`,
     status: `<span>Lighter: up to ${s.lowCal} kcal. High protein: ${s.highProtein} g or more. Budget: up to $${s.budget}</span><a href="#/settings">Change</a>`
   }), { keepScroll: !!sessionStorage.getItem("rb.bookScroll") });
 
+  bindEstimatesNotice(document.getElementById("app"));
   const listEl = document.getElementById("list");
   const countEl = document.getElementById("count");
 

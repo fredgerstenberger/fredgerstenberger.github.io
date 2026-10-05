@@ -10,6 +10,7 @@ import * as sync from "../sync.js";
 import { modal } from "../ui.js";
 import { APP_VERSION, RELEASED, WHATS_NEW } from "../version.js";
 import { icon } from "../sprites.js";
+import { showEstimates } from "../tips.js";
 
 function ago(t) {
   if (!t) return "never";
@@ -144,13 +145,14 @@ export function settingsView() {
       <div class="setrow"><span>Theme</span>${seg("theme", [["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]])}</div>
 
       <h2 class="sect">Recipe filters</h2>
-      <div class="setrow"><span>Low calorie<small>kcal per serving, at most</small></span>${num("lowCal", 100, 2000, 25, "Low calorie: calories per serving, at most")}</div>
+      <div class="setrow"><span>Lighter<small>kcal per serving, at most</small></span>${num("lowCal", 100, 2000, 25, "Lighter: calories per serving, at most")}</div>
       <div class="setrow"><span>High protein<small>grams per serving, at least</small></span>${num("highProtein", 5, 150, 1, "High protein: grams of protein per serving, at least")}</div>
       <div class="setrow"><span>Quick<small>total minutes, at most</small></span>${num("quickMin", 5, 240, 5, "Quick: total minutes, at most")}</div>
 
       <div class="setrow"><span>Budget<small>$ per serving, at most</small></span>${num("budget", 0.5, 50, 0.25, "Budget: dollars per serving, at most")}</div>
 
       <h2 class="sect">Prices</h2>
+      <div class="setrow"><span>About estimates<small>How nutrition and costs are worked out</small></span><button class="btn small" id="aboutEst">${icon("info", "ic16")} View</button></div>
       <label class="field"><span>Where you shop<small>Adjusts estimated prices</small></span>
         <select id="region">${REGIONS.map(([id, name, f]) => `<option value="${id}" ${s.priceRegion === id ? "selected" : ""}>${esc(name)}${f ? ` (${f === 1 ? "baseline" : `${f > 1 ? "+" : "-"}${Math.round(Math.abs(f - 1) * 100)}%`})` : ""}</option>`).join("")}</select>
       </label>
@@ -259,6 +261,7 @@ export function settingsView() {
     flash(prep);
     toast(`Weeks now run ${DAY_LONG[(d + 1) % 7]} to ${DAY_LONG[(d + 7) % 7]}`);
   });
+  document.getElementById("aboutEst").onclick = showEstimates;
   const region = document.getElementById("region");
   region.addEventListener("change", () => {
     store.setSetting("priceRegion", region.value);

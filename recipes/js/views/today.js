@@ -7,6 +7,7 @@ import { sectionize } from "../grocery.js";
 import { inWeek } from "../household.js";
 import { nutritionFor } from "../nutrition.js";
 import { photoOf } from "../photos.js";
+import { estimatesNoticeHTML, bindEstimatesNotice } from "../tips.js";
 import { icon } from "../sprites.js";
 
 const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -71,8 +72,10 @@ export function todayView({ backupNag = "" } = {}) {
         <span class="tdgo">${icon("chevRight", "ic16")}</span>
       </a>
       ${tomorrow.length ? `<p class="tdnext"><span>Tomorrow</span> ${esc((tomorrow.find(x => x.m === "dinner") || tomorrow[0]).r.title)}</p>` : ""}
+      ${hero && nutritionFor(hero.r).kcal ? estimatesNoticeHTML() : ""}
       ${backupNag}`
   }));
+  bindEstimatesNotice(document.getElementById("app"));
   // Start cooking: open the recipe straight into cook mode.
   document.querySelector("[data-cook]")?.addEventListener("click", e => { try { sessionStorage.setItem("rb.cookNow", e.currentTarget.dataset.cook); } catch {} });
 }
