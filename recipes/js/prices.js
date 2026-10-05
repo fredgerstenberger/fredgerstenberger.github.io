@@ -1,6 +1,7 @@
 // Grocery price estimates: rough US national averages (2025), adjusted by region,
 // overridable per item with your own store's prices (Prices screen).
 import { FOODS, FOOD_BY_NAME } from "./fooddb.js";
+import { isReady, readyCost } from "./ready.js";
 import { parseIngredient, toGrams, parseRecipe } from "./ingredients.js";
 import * as store from "./store.js";
 import { officialPrice, dataVersion } from "./data.js";
@@ -354,6 +355,7 @@ export function recipeCost(recipe) {
   const s = store.settings();
   const key = `${recipe.id}:${recipe.updated || 0}:${s.priceRegion}:${s.priceCustomPct}:${store.get().pricesUpdated || 0}:${dataVersion()}:${store.foodsVersion()}`;
   if (cache.has(key)) return cache.get(key);
+  if (isReady(recipe)) { const out = readyCost(recipe); cache.set(key, out); return out; }
   let total = 0, counted = 0, covered = 0;
   const rows = [];
   for (const { line, ing } of parseRecipe(recipe)) {

@@ -1,7 +1,11 @@
 // App version shown in Settings. Bump together with VERSION in sw.js ("rb-v" + APP_VERSION).
-export const APP_VERSION = 32;
+export const APP_VERSION = 34;
 export const RELEASED = "2026-10-05";
 export const WHATS_NEW = [
+  "Store-bought meals: plan a Trader Joe's lunch (or any ready-made meal) like a recipe. In the meal plan's recipe picker, tap + Store-bought meal: name, store, servings and price, and paste a picture of the label for its nutrition. It goes on the grocery list as whole packages under Prepared foods, and counts toward the day's calories and the week's food cost. Find them in Recipes with the Store-bought chip.",
+  "Grocery list: after you stop shopping, what you checked off is under \"Purchased\" (it's \"In cart\" while you shop).",
+  "\"Green onions (white parts only)\" is just green onions on the list, not \"white green onions\".",
+  "Fewer \"Shake to Undo\" pop-ups while shopping: the add box forgets your typing once you leave it.",
   "Sheets (like picking a recipe for the meal plan) respond to taps and scroll on their own; the page behind them stays put.",
   "While you're typing, the tab bar and Start shopping step aside instead of floating over the list.",
   "Nutrition labels: Paste label image reads a copied picture of the label (a screenshot, or Photos → Share → Copy Photo). In the \"Fill in missing info?\" prompt it fills in that ingredient's numbers right there, without leaving the prompt; Save keeps it as the product's label.",

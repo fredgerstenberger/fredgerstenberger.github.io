@@ -148,6 +148,7 @@ export function nutriShort(r) {
 
 export function metaLine(r) {
   const bits = [];
+  if (r.ready && typeof r.ready === "object") bits.push(`<span class="rdtag">Store-bought</span>`);
   const avg = Math.round(avgRating(r));
   if (avg) bits.push(`<span class="mstars" aria-label="${avg} stars">${miniStars(avg)}</span>`);
   if (r.totalMin) bits.push(`<span>${fmtMinutes(r.totalMin)}</span>`);

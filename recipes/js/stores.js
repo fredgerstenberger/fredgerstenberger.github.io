@@ -8,7 +8,7 @@ const PICK = "rb.store";
 export const ALL_AISLES = [["home", "Added items"], ...AISLES];
 // "Any store", and where a new store starts: fresh food first, then the packaged aisles, and frozen
 // last so it stays cold. Things you added with no known aisle come first, so they aren't missed.
-export const DEFAULT_ORDER = ["home", "produce", "dairy", "meat", "seafood", "bakery", "dry", "canned", "baking", "condiments", "spices", "snacks", "drinks", "other", "frozen"];
+export const DEFAULT_ORDER = ["home", "produce", "dairy", "meat", "seafood", "bakery", "dry", "canned", "baking", "condiments", "spices", "snacks", "drinks", "prepared", "other", "frozen"];
 export const aisleLabel = id => (ALL_AISLES.find(a => a[0] === id) || [id, id])[1];
 
 const all = () => (store.get().stores ||= {});

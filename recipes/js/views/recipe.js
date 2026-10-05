@@ -14,6 +14,8 @@ import { openAddToPlan } from "./plan.js";
 import { recipeCost, money, REGIONS } from "../prices.js";
 import { infoItems, openInfo, askAfterSave } from "../fillin.js";
 import { openFoodSheet } from "../labelsheet.js";
+import { isReady } from "../ready.js";
+import { readyView } from "./ready.js";
 
 const progress = {}; // id → { ings:Set, steps:Set, servings, cook }
 let redrawCurrent = null;
@@ -107,6 +109,7 @@ function fmtN(n) { return n == null || isNaN(n) ? "–" : Math.round(n); }
 export function recipeView(id) {
   const r = store.recipe(id);
   if (!r) { render(shell({ title: "Not found", back: "#/book", body: `<p>That recipe isn't in your book anymore.</p><a class="btn" href="#/book">Back to recipe book</a>` })); return; }
+  if (isReady(r)) return readyView(r); // a store-bought meal has its own simpler page
   const P = progress[id] ||= { ings: new Set(), steps: new Set(), servings: servingsOf(r), cook: false };
   const s = store.settings();
   // The unit toggle on a recipe is temporary; changing the default in Settings resets it.

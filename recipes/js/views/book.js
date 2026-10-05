@@ -2,12 +2,14 @@
 import * as store from "../store.js";
 import { avgRating } from "../ratings.js";
 import { esc } from "../util.js";
-import { shell, render, metaLine, modal, closeModal } from "../ui.js";
+import { shell, render, metaLine, modal, closeModal, go } from "../ui.js";
 import { nutritionFor } from "../nutrition.js";
 import { MEAL_TAGS } from "../tags.js";
 import { recipeCost } from "../prices.js";
 import { allPhotos, okImage, fillPhotos, adoptPhotos } from "../photos.js";
 import { sprite } from "../sprites.js";
+import { isReady } from "../ready.js";
+import { openReadyForm } from "./ready.js";
 
 // Filter state survives navigating into a recipe and back. on: chips (quick filters, meals, keywords);
 // lim: the Filters sheet's limits (kcal, protein, time, cost per serving, rating), each a number or absent.
@@ -49,7 +51,8 @@ export const QUICK = [
   [":protein", "High protein"],
   [":quick", "Quick"],
   [":budget", "Budget"],
-  [":fav", "★ 4+"]
+  [":fav", "★ 4+"],
+  [":ready", "Store-bought"]
 ];
 
 export function matches(r, chip, s = store.settings()) {
@@ -59,6 +62,7 @@ export function matches(r, chip, s = store.settings()) {
     case ":quick": return r.totalMin > 0 && r.totalMin <= s.quickMin;
     case ":budget": { const c = recipeCost(r); return c.total > 0 && c.perServing <= s.budget; }
     case ":fav": return avgRating(r) >= 4;
+    case ":ready": return isReady(r);
     default: return (r.tags || []).includes(chip);
   }
 }
@@ -112,6 +116,7 @@ export function bookView() {
           </select>
         </label>
       </div>
+      <div id="readyAdd"></div>
       <ul class="cards" id="list"></ul>`,
     status: `<span>Low cal ≤ ${s.lowCal} kcal · Protein ≥ ${s.highProtein} g · Budget ≤ $${s.budget}</span><a href="#/settings">Change</a>`
   }), { keepScroll: !!sessionStorage.getItem("rb.bookScroll") });
@@ -122,7 +127,10 @@ export function bookView() {
   const filtersBtn = document.getElementById("filtersBtn");
   const hitsFor = () => {
     const words = F.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    // Store-bought meals stay out of the recipe book unless you ask for them (the Store-bought chip).
+    const ready = F.on.has(":ready");
     return all.filter(r => {
+      if (!ready && isReady(r)) return false;
       for (const c of F.on) if (!matches(r, c, s)) return false;
       if (!withinLimits(r, F.lim)) return false;
       if (words.length) { const t = searchText(r); return words.every(w => t.includes(w)); }
@@ -137,7 +145,17 @@ export function bookView() {
     filtersBtn.classList.toggle("on", hidden > 0);
     document.querySelectorAll(".filters [data-chip]").forEach(b => b.setAttribute("aria-pressed", F.on.has(b.dataset.chip)));
     const hits = sorted(hitsFor());
-    countEl.textContent = `${hits.length} of ${all.length}`;
+    const ready = F.on.has(":ready");
+    countEl.textContent = `${hits.length} of ${all.filter(r => isReady(r) === ready).length}`;
+    // Showing store-bought meals: a way to add one.
+    const addEl = document.getElementById("readyAdd");
+    addEl.innerHTML = ready ? `<button class="btn rdadd" id="addReady">+ Store-bought meal</button>` : "";
+    const wireAdd = () => document.getElementById("addReady")?.addEventListener("click", () => openReadyForm({ onSaved: r => go(`#/r/${r.id}`) }));
+    if (ready && !hits.length) {
+      listEl.innerHTML = `<li class="empty"><span class="px">No store-bought meals yet</span>Add the ready-made lunches and dinners you buy, like a Trader Joe's meal, to plan them with your recipes.</li>`;
+      wireAdd();
+      return;
+    }
     if (!all.length) {
       listEl.innerHTML = `<li class="empty"><span class="px">Your recipe book is empty</span>Paste a link from any recipe site to get started.<div class="btnrow" style="justify-content:center"><a class="btn primary" href="#/add">+ Add a recipe</a></div></li>`;
       return;
@@ -158,6 +176,7 @@ export function bookView() {
       </a></li>`;
     }).join("");
     adoptPhotos(listEl);
+    wireAdd();
   }
 
   document.getElementById("q").addEventListener("input", e => { F.q = e.target.value; saveF(); update(); });

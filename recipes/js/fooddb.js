@@ -306,6 +306,7 @@ export const AISLES = [
   ["spices", "Spices"],
   ["snacks", "Snacks"],
   ["drinks", "Drinks"],
+  ["prepared", "Prepared foods"],
   ["frozen", "Frozen"],
   ["other", "Other"]
 ];

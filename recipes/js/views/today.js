@@ -54,10 +54,10 @@ export function todayView({ backupNag = "" } = {}) {
       ${hero ? `<section class="card tdhero" aria-label="${cap(hero.m)} today">
         ${heroPhoto ? `<img class="tdphoto" data-photo src="${esc(heroPhoto)}" alt="" decoding="sync" referrerpolicy="no-referrer">` : ""}
         <div class="tdbody">
-          <div class="tdkind">${hero.m === "dinner" ? "Dinner tonight" : `${cap(hero.m)} today`}${hero.leftover ? " · leftovers" : ""}</div>
+          <div class="tdkind">${hero.m === "dinner" ? "Dinner tonight" : `${cap(hero.m)} today`}${hero.leftover ? " · leftovers" : ""}${hero.r.ready ? ` · store-bought${hero.r.ready.store ? `, ${esc(hero.r.ready.store)}` : ""}` : ""}</div>
           <a class="tdtitle" href="#/r/${hero.r.id}">${esc(hero.r.title)}</a>
           ${meta(hero.r) ? `<div class="tdmeta">${esc(meta(hero.r))}</div>` : ""}
-          <div class="tdbtns"><a class="cbtn primary" href="#/r/${hero.r.id}" data-cook="${hero.r.id}">Start cooking</a><a class="cbtn" href="#/plan">Change</a></div>
+          <div class="tdbtns">${hero.r.ready ? `<a class="cbtn primary" href="#/r/${hero.r.id}">Open</a>` : `<a class="cbtn primary" href="#/r/${hero.r.id}" data-cook="${hero.r.id}">Start cooking</a>`}<a class="cbtn" href="#/plan">Change</a></div>
         </div>
       </section>` : `<section class="card tdempty">
         <b>Nothing planned today</b>
