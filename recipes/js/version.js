@@ -1,7 +1,13 @@
 // App version shown in Settings. Bump together with VERSION in sw.js ("rb-v" + APP_VERSION).
-export const APP_VERSION = 34;
+export const APP_VERSION = 35;
 export const RELEASED = "2026-10-05";
 export const WHATS_NEW = [
+  "A fresh look: one set of pixel icons throughout, shorter and plainer wording, and tips that show once instead of instructions everywhere.",
+  "Imported recipes show where they're from, with View original. Recipes read automatically from a page or a photo say so, so you know to check them.",
+  "Nutrition and costs are clearly estimates: a one-time note, an Estimates button by Nutrition and Cost, and About estimates in Settings. Recipes say how many ingredients are exact and how many are estimated.",
+  "\"Low cal\" is now \"Lighter\".",
+  "Still need these? only offers things you added yourself, unticked, so you tap what you still need.",
+  "Text follows your phone's text size, and Settings has a Text size option. Zoom is off, and buttons are easier to tap.",
   "Store-bought meals: plan a Trader Joe's lunch (or any ready-made meal) like a recipe. In the meal plan's recipe picker, tap + Store-bought meal: name, store, servings and price, and paste a picture of the label for its nutrition. It goes on the grocery list as whole packages under Prepared foods, and counts toward the day's calories and the week's food cost. Find them in Recipes with the Store-bought chip.",
   "Grocery list: after you stop shopping, what you checked off is under \"Purchased\" (it's \"In cart\" while you shop).",
   "\"Green onions (white parts only)\" is just green onions on the list, not \"white green onions\".",

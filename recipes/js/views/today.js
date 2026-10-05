@@ -68,7 +68,7 @@ export function todayView({ backupNag = "" } = {}) {
       </section>`}
       ${rest.length ? `<div class="card"><ul class="glist">${rest.map(x => `<li class="tdrow"><a href="#/r/${x.r.id}"><span class="tdslot">${cap(x.m)}</span><span class="tdname">${esc(x.r.title)}</span>${x.leftover ? `<span class="tdtag">Leftovers</span>` : ""}</a></li>`).join("")}</ul></div>` : ""}
       <a class="card tdlist" href="#/grocery/${wk}">
-        <span class="tdlisttext"><b>Groceries</b>${toBuy ? `<span class="tdcount">${toBuy} to get</span>` : ""}<small>Shopping day is ${shopDay}</small></span>
+        <span class="tdlisttext"><b>Groceries</b><small>${toBuy ? `${toBuy} to get, shopping day is ${shopDay}` : `Shopping day is ${shopDay}`}</small></span>
         <span class="tdgo">${icon("chevRight", "ic16")}</span>
       </a>
       ${tomorrow.length ? `<p class="tdnext"><span>Tomorrow</span> ${esc((tomorrow.find(x => x.m === "dinner") || tomorrow[0]).r.title)}</p>` : ""}
