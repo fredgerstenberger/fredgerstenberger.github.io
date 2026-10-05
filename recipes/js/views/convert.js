@@ -17,7 +17,7 @@ export function convertView() {
         <label class="field"><span>Unit</span><select id="unit">${UNIT_CHOICES.map(([v, l]) => `<option value="${v}" ${(saved.unit || "cup") === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
       </div>
       <label class="field"><span>Ingredient (for grams and cups)</span>
-        <input type="text" id="food" list="cfoods" value="${esc(saved.food || "")}" placeholder="e.g. flour, sugar, butter" autocomplete="off" autocapitalize="none">
+        <input type="text" id="food" list="cfoods" value="${esc(saved.food || "")}" placeholder="Like flour or butter" autocomplete="off" autocapitalize="none">
         <datalist id="cfoods">${FOODS.filter(f => f.gCup).map(f => `<option value="${esc(f.name)}">`).join("")}</datalist>
         <small id="fnote">Leave blank for liquids (uses water).</small>
       </label>
@@ -32,22 +32,22 @@ export function convertView() {
       <h2 class="sect">Cheat sheet</h2>
       <table class="ref">
         <tr><td>3 teaspoons</td><td>1 tbsp</td></tr>
-        <tr><td>2 tablespoons</td><td>⅛ cup · 1 fl oz</td></tr>
+        <tr><td>2 tablespoons</td><td>⅛ cup, 1 fl oz</td></tr>
         <tr><td>4 tablespoons</td><td>¼ cup</td></tr>
         <tr><td>5 tbsp + 1 tsp</td><td>⅓ cup</td></tr>
         <tr><td>8 tablespoons</td><td>½ cup</td></tr>
         <tr><td>16 tablespoons</td><td>1 cup</td></tr>
-        <tr><td>1 cup</td><td>237 ml · 8 fl oz</td></tr>
+        <tr><td>1 cup</td><td>237 ml, 8 fl oz</td></tr>
         <tr><td>2 cups</td><td>1 pint</td></tr>
-        <tr><td>4 cups</td><td>1 quart · 946 ml</td></tr>
+        <tr><td>4 cups</td><td>1 quart, 946 ml</td></tr>
         <tr><td>1 ounce (weight)</td><td>28 g</td></tr>
         <tr><td>1 pound</td><td>454 g</td></tr>
-        <tr><td>1 stick butter</td><td>½ cup · 113 g</td></tr>
+        <tr><td>1 stick butter</td><td>½ cup, 113 g</td></tr>
         <tr><td>1 cup flour</td><td>125 g</td></tr>
         <tr><td>1 cup sugar</td><td>200 g</td></tr>
         <tr><td>1 cup brown sugar (packed)</td><td>220 g</td></tr>
         <tr><td>1 large egg</td><td>50 g</td></tr>
-        <tr><td>325 · 350 · 375 · 400 · 425 °F</td><td>165 · 175 · 190 · 205 · 220 °C</td></tr>
+        <tr><td>325, 350, 375, 400, 425 °F</td><td>165, 175, 190, 205, 220 °C</td></tr>
       </table>`
   }));
 

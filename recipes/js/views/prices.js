@@ -6,6 +6,7 @@ import { FOODS, AISLES } from "../fooddb.js";
 import { priceEntry, basisLabel, basisGrams, BASE_PRICES, regionFactor, money, REGIONS } from "../prices.js";
 import { officialInfo, refreshPrices } from "../data.js";
 import { icon } from "../sprites.js";
+import { tipHTML } from "../tips.js";
 
 let query = "";
 let onlyMine = false;
@@ -19,10 +20,10 @@ export function pricesView() {
     title: "Prices",
     back: "#/more",
     body: `
-      <p style="margin-top:0">Prices for <b>${esc(region)}</b> (<a href="#/settings">change</a>). Tap an item to enter what <b>your</b> store charges; your prices are used exactly.</p>
-      ${officialInfo() ? `<p class="note" style="font-size:14px">${officialInfo().count} items use <b>official U.S. average prices</b> from the Bureau of Labor Statistics (${esc(officialInfo().period)}), adjusted for your region and refreshed monthly. They're marked <span class="kind">BLS</span>. Others are estimates.</p>`
-        : `<p class="note" style="font-size:14px">Connect your Worker in Settings to use official monthly prices from the Bureau of Labor Statistics for ~30 staples.</p>`}
-      <input type="search" id="pq" placeholder="Search ingredients…" value="${esc(query)}" autocomplete="off" autocapitalize="none">
+      <p style="margin-top:0">Prices for <a href="#/settings">${esc(region)}</a></p>
+      ${tipHTML("prices", "Tap an item to enter what your store charges.")}
+      ${officialInfo() ? `<p class="muted" style="font-size:14px">${officialInfo().count} staples use US government average prices (${esc(officialInfo().period)}), marked <span class="kind">BLS</span>.</p>` : ""}
+      <input type="search" id="pq" placeholder="Search ingredients" value="${esc(query)}" autocomplete="off" autocapitalize="none">
       <div class="chips" style="margin:10px 0 4px">
         <button class="chip" id="mineOnly" aria-pressed="${onlyMine}">${icon("star", "ic16")}My prices (${mineCount})</button>
       </div>

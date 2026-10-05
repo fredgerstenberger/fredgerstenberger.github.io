@@ -18,7 +18,7 @@ export function openStorePicker(onChange) {
       </div>`).join("")}
     </div>
     <form id="newStore" class="inline" style="margin-top:14px">
-      <input type="text" id="storeName" placeholder="Add a store, e.g. Trader Joe's" maxlength="40" autocomplete="off">
+      <input type="text" id="storeName" placeholder="Add a store" maxlength="40" autocomplete="off">
       <button class="btn" type="submit">Add</button>
     </form>`);
   el.querySelectorAll('input[name="st"]').forEach(r => r.onchange = () => {

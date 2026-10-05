@@ -328,7 +328,7 @@ export function recipeView(id) {
     document.getElementById("clearSteps")?.addEventListener("click", () => { P.steps.clear(); draw(); });
     root.querySelectorAll("li.step").forEach(li => li.onclick = e => {
       const tb = e.target.closest(".timelink");
-      if (tb) { e.stopPropagation(); startTimer(+tb.dataset.min, `${r.title.slice(0, 18)} · ${tb.dataset.label}`); toast(`Timer started: ${tb.textContent.trim()}`); return; }
+      if (tb) { e.stopPropagation(); startTimer(+tb.dataset.min, `${tb.dataset.label}, ${r.title.slice(0, 18)}`); toast(`Timer started: ${tb.textContent.trim()}`); return; }
       const i = +li.dataset.step;
       P.steps.has(i) ? P.steps.delete(i) : P.steps.add(i);
       draw();

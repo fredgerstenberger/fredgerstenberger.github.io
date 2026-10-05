@@ -42,7 +42,7 @@ export function todayView({ backupNag = "" } = {}) {
     if (r.totalMin) bits.push(`${r.totalMin} min`);
     if (r.yield) bits.push(plural(r.yield, "serving"));
     if (nu.kcal) bits.push(`${Math.round(nu.kcal)} kcal`);
-    return bits.join(" · ");
+    return bits.join(", ");
   };
   const heroPhoto = hero && photoOf(hero.r.id);
 
@@ -55,7 +55,7 @@ export function todayView({ backupNag = "" } = {}) {
       ${hero ? `<section class="card tdhero" aria-label="${cap(hero.m)} today">
         ${heroPhoto ? `<img class="tdphoto" data-photo src="${esc(heroPhoto)}" alt="" decoding="sync" referrerpolicy="no-referrer">` : ""}
         <div class="tdbody">
-          <div class="tdkind">${hero.m === "dinner" ? "Dinner tonight" : `${cap(hero.m)} today`}${hero.leftover ? " · leftovers" : ""}${hero.r.ready ? ` · store-bought${hero.r.ready.store ? `, ${esc(hero.r.ready.store)}` : ""}` : ""}</div>
+          <div class="tdkind">${hero.m === "dinner" ? "Dinner tonight" : `${cap(hero.m)} today`}${hero.leftover ? ", leftovers" : ""}${hero.r.ready ? `, store-bought${hero.r.ready.store ? `, ${esc(hero.r.ready.store)}` : ""}` : ""}</div>
           <a class="tdtitle" href="#/r/${hero.r.id}">${esc(hero.r.title)}</a>
           ${meta(hero.r) ? `<div class="tdmeta">${esc(meta(hero.r))}</div>` : ""}
           <div class="tdbtns">${hero.r.ready ? `<a class="cbtn primary" href="#/r/${hero.r.id}">Open</a>` : `<a class="cbtn primary" href="#/r/${hero.r.id}" data-cook="${hero.r.id}">Start cooking</a>`}<a class="cbtn" href="#/plan">Change</a></div>
@@ -67,10 +67,10 @@ export function todayView({ backupNag = "" } = {}) {
       </section>`}
       ${rest.length ? `<div class="card"><ul class="glist">${rest.map(x => `<li class="tdrow"><a href="#/r/${x.r.id}"><span class="tdslot">${cap(x.m)}</span><span class="tdname">${esc(x.r.title)}</span>${x.leftover ? `<span class="tdtag">Leftovers</span>` : ""}</a></li>`).join("")}</ul></div>` : ""}
       <a class="card tdlist" href="#/grocery/${wk}">
-        <span class="tdlisttext"><b>Groceries${toBuy ? ` · ${toBuy} to get` : ""}</b><small>Shopping day is ${shopDay}</small></span>
+        <span class="tdlisttext"><b>Groceries</b>${toBuy ? `<span class="tdcount">${toBuy} to get</span>` : ""}<small>Shopping day is ${shopDay}</small></span>
         <span class="tdgo">${icon("chevRight", "ic16")}</span>
       </a>
-      ${tomorrow.length ? `<p class="tdnext">Tomorrow · ${esc((tomorrow.find(x => x.m === "dinner") || tomorrow[0]).r.title)}</p>` : ""}
+      ${tomorrow.length ? `<p class="tdnext"><span>Tomorrow</span> ${esc((tomorrow.find(x => x.m === "dinner") || tomorrow[0]).r.title)}</p>` : ""}
       ${backupNag}`
   }));
   // Start cooking: open the recipe straight into cook mode.

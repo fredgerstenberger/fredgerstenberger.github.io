@@ -28,8 +28,8 @@ export function openReadyForm({ id = null, meal = "", onSaved } = {}) {
   const field = (name, label, val, unit, attrs = "") => `<label class="rdfield"><span>${label}</span><span class="lin"><input type="number" name="${name}" inputmode="decimal" step="any" min="0" value="${val ?? ""}" ${attrs}>${unit ? `<small>${unit}</small>` : ""}</span></label>`;
   const { el, close } = modal(old ? "Edit store-bought meal" : "Store-bought meal", `
     <form id="rdForm" class="rdform">
-      <label class="rdwide">Name<input type="text" name="title" required maxlength="120" value="${esc(old?.title || "")}" placeholder="e.g. Chicken Tikka Masala" autocomplete="off"></label>
-      <label class="rdwide">Store<input type="text" name="store" list="rdStores" maxlength="40" value="${esc(old?.ready?.store ?? stores[0] ?? "")}" placeholder="e.g. Trader Joe's" autocomplete="off"></label>
+      <label class="rdwide">Name<input type="text" name="title" required maxlength="120" value="${esc(old?.title || "")}" placeholder="Chicken Tikka Masala" autocomplete="off"></label>
+      <label class="rdwide">Store<input type="text" name="store" list="rdStores" maxlength="40" value="${esc(old?.ready?.store ?? stores[0] ?? "")}" placeholder="Trader Joe's" autocomplete="off"></label>
       <datalist id="rdStores">${stores.map(s => `<option value="${esc(s)}">`).join("")}</datalist>
       <div class="rdwide"><span class="rdlabel">Meal</span><div class="chips">${MEALS.map(([m, l]) => `<button type="button" class="chip" data-meal="${m}" aria-pressed="${meals.has(m)}">${l}</button>`).join("")}</div></div>
       ${field("servings", "Servings per package", old?.yield ?? 1, "", 'step="1" min="1"')}

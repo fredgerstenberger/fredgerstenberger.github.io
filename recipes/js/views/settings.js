@@ -23,7 +23,7 @@ function ago(t) {
 function syncHTML(s) {
   if (!s.proxy) return `<p class="muted" style="margin-top:0">Set your Worker address above first; sync runs through it.</p>`;
   if (!sync.enabled()) return `
-    <p style="margin-top:0">Keep recipes, meal plans, grocery lists, pantry and prices the same on your phone, iPad, computer, or a partner's phone. It also backs everything up to your Cloudflare account.</p>
+    <p style="margin-top:0">Share recipes, plans and lists across your devices and with a partner.</p>
     <div class="btnrow"><button class="btn primary" id="syncOn">Turn on sync</button></div>
     <details class="breakdown"><summary>Have an invite from another device?</summary>
       <form id="joinForm" class="inline" style="margin-top:8px">
@@ -33,17 +33,17 @@ function syncHTML(s) {
     </details>`;
   const i = sync.info();
   return `
-    <div class="setrow" style="border-top:1px solid var(--sunk)"><span>Status<small id="syncStatus">${i.error ? esc(i.error) : `Last synced ${ago(i.last)}${i.pending ? ` · ${i.pending} change${i.pending > 1 ? "s" : ""} waiting` : ""}`}</small></span>
+    <div class="setrow" style="border-top:1px solid var(--sunk)"><span>Status<small id="syncStatus">${i.error ? esc(i.error) : `Last synced ${ago(i.last)}${i.pending ? `, ${i.pending} change${i.pending > 1 ? "s" : ""} waiting` : ""}`}</small></span>
       <button class="btn small" id="syncNow">Sync now</button></div>
     <label class="field" style="margin-top:12px"><span>Your name</span>
-      <input type="text" id="myName" value="${esc(me().name)}" placeholder="e.g. Emma" autocomplete="given-name" maxlength="40">
-      <small>Shown next to your ratings. Use the same name on all your devices so they count as one person.</small></label>
+      <input type="text" id="myName" value="${esc(me().name)}" placeholder="Your name" autocomplete="given-name" maxlength="40">
+      <small>Use the same name on all your devices.</small></label>
     <p style="margin:14px 0 6px"><b>Add another device or a partner</b></p>
-    <p class="muted" style="font-size:14px;margin:0 0 8px">Each invite works <b>once</b> and expires after 24 hours.</p>
+    <p class="muted" style="font-size:14px;margin:0 0 8px">Each invite works once, for 24 hours.</p>
     <div id="inviteOut"></div>
     <div class="btnrow"><button class="btn small primary" id="newInvite">Create invite</button></div>
     <details class="breakdown"><summary>Remove access for other devices</summary>
-      <p style="font-size:14px">Starts a new recipe box with a new secret code. This device keeps everything; other devices stop syncing until you invite them again.</p>
+      <p style="font-size:14px">Other devices stop syncing until you invite them again. This one keeps everything.</p>
       <button class="btn small danger" id="resetCode">Reset sync code</button>
     </details>
     <div class="btnrow"><button class="btn small danger" id="syncOff">Turn off sync on this device</button></div>`;
@@ -54,7 +54,7 @@ const WORKER_HELP = "https://github.com/fredgerstenberger/fredgerstenberger.gith
 
 function askJoin(invite, worker) {
   const { el, close } = modal("Join recipe box?", `
-    <p style="margin-top:0">This device will sync with the recipe box from your invite link. Recipes and plans already on this device are kept and added to the box.</p>
+    <p style="margin-top:0">This device joins the shared recipe box. What's already here is kept and added.</p>
     ${worker ? `<p class="muted" style="font-size:14px">Worker: ${esc(worker)}</p>` : ""}
     <div class="btnrow"><button class="btn primary" id="jYes">Join and sync</button><button class="btn" id="jNo">Cancel</button></div>`);
   el.querySelector("#jNo").onclick = close;
@@ -63,7 +63,7 @@ function askJoin(invite, worker) {
     if (!store.settings().proxy) { toast("Enter your Worker address first"); close(); return; }
     el.querySelector("#jYes").disabled = true;
     el.querySelector("#jYes").textContent = "Syncing…";
-    try { const r = await sync.redeemInvite(invite, worker); toast(`Joined · ${r.applied} item${r.applied === 1 ? "" : "s"} synced`); }
+    try { const r = await sync.redeemInvite(invite, worker); toast(`Joined. ${r.applied} item${r.applied === 1 ? "" : "s"} synced.`); }
     catch (err) { toast(err.message); }
     close();
     settingsView();
@@ -109,7 +109,7 @@ function askRestore(data) {
   return new Promise(resolve => {
     let handled = false;
     const { el, close } = modal("Restore backup?", `
-      <p style="margin-top:0">Backup from <b>${esc(date)}</b> · ${count} recipe${count === 1 ? "" : "s"}.</p>
+      <p style="margin-top:0">Backup from <b>${esc(date)}</b>, ${count} recipe${count === 1 ? "" : "s"}.</p>
       <div class="btnrow"><button class="btn primary" id="rMerge">Merge</button></div>
       <p class="muted" style="font-size:14px;margin:4px 0 12px">Adds what's missing. Where a recipe is in both, the newer version is kept. Nothing newer is lost${synced ? ", on this phone or on your other synced devices" : ""}.</p>
       <div class="btnrow"><button class="btn danger" id="rReplace">Replace everything</button></div>
@@ -151,16 +151,16 @@ export function settingsView() {
       <div class="setrow"><span>Budget<small>$ per serving, at most</small></span>${num("budget", 0.5, 50, 0.25, "Budget: dollars per serving, at most")}</div>
 
       <h2 class="sect">Prices</h2>
-      <label class="field"><span>Where you shop<small>Adjusts the built-in US-average estimates</small></span>
+      <label class="field"><span>Where you shop<small>Adjusts estimated prices</small></span>
         <select id="region">${REGIONS.map(([id, name, f]) => `<option value="${id}" ${s.priceRegion === id ? "selected" : ""}>${esc(name)}${f ? ` (${f === 1 ? "baseline" : `${f > 1 ? "+" : "-"}${Math.round(Math.abs(f - 1) * 100)}%`})` : ""}</option>`).join("")}</select>
       </label>
-      <div class="setrow" id="customRow" ${s.priceRegion === "custom" ? "" : "hidden"}><span>Custom level<small>% of US average (e.g. 115)</small></span>${num("priceCustomPct", 50, 250, 1, "Custom price level: percent of US average")}</div>
-      <p class="muted" style="font-size:14px;margin:4px 0 0">Regional levels are rough estimates. For real accuracy, enter what your store charges on the <a href="#/prices">Prices</a> screen; your prices are used as-is.</p>
+      <div class="setrow" id="customRow" ${s.priceRegion === "custom" ? "" : "hidden"}><span>Custom level<small>% of the US average</small></span>${num("priceCustomPct", 50, 250, 1, "Custom price level: percent of US average")}</div>
+      <p class="muted" style="font-size:14px;margin:4px 0 0">For exact costs, enter your store's <a href="#/prices">prices</a>.</p>
 
       <h2 class="sect">Cooking &amp; planning</h2>
-      <div class="setrow"><span>Shopping &amp; prep day<small>Your week runs from the next day, and the grocery list starts fresh</small></span>
+      <div class="setrow"><span>Shopping &amp; prep day<small>Your week starts the next day</small></span>
         <select id="prepDay" class="setsel" aria-label="Shopping and prep day">${DAY_LONG.map((d, i) => `<option value="${i}" ${(s.prepDay ?? 0) === i ? "selected" : ""}>${d}</option>`).join("")}</select></div>
-      <div class="setrow"><span>People per meal<small>Sets suggested servings in the meal plan</small></span>${num("people", 1, 12, 1, "People per meal")}</div>
+      <div class="setrow"><span>People per meal<small>For suggested servings</small></span>${num("people", 1, 12, 1, "People per meal")}</div>
       <div class="setrow"><span>Default units</span>${seg("units", [["original", "Original"], ["us", "US"], ["metric", "Metric"]])}</div>
       <div class="setrow"><span>Keep screen on in cook mode</span>${seg("wakeLock", [[true, "On"], [false, "Off"]])}</div>
 
@@ -191,7 +191,7 @@ export function settingsView() {
       <div id="syncBox">${syncHTML(s)}</div>
 
       <h2 class="sect" id="set-backup">Backup</h2>
-      <p style="margin-top:0">${sync.enabled() ? "Sync keeps a copy in your Cloudflare account. A backup file is still handy as an extra safety net." : "Everything is saved on this device only. Export a backup now and then, especially before switching phones, or turn on sync above."}</p>
+      <p style="margin-top:0">${sync.enabled() ? "Sync keeps a copy. A backup file is an extra safety net." : "Saved on this device only. Export a backup now and then."}</p>
       <div class="btnrow">
         <button class="btn primary" id="export">Export backup</button>
         <label class="btn" for="importFile">Import backup</label>
@@ -202,11 +202,10 @@ export function settingsView() {
       <h2 class="sect">Install on iPhone</h2>
       <ol class="howto">
         <li>Open this page in <b>Safari</b>.</li>
-        <li>Tap <b>Share</b> (the square with an arrow).</li>
+        <li>Tap <b>Share</b>.</li>
         <li>Choose <b>Add to Home Screen</b>, then <b>Add</b>.</li>
       </ol>
-      <p class="muted" style="font-size:14px">It opens full-screen, works offline for cooking, and iOS is much less likely to clear its data.</p>
-      <p class="note">Heads up: on iPhone, the Home Screen app and Safari keep <b>separate</b> data. Recipes and settings saved in one won't appear in the other. Pick one (the Home Screen app is best) or move data with Export/Import.</p>
+      <p class="muted" style="font-size:14px">Safari and the Home Screen app keep separate data, so use one.</p>
 
       <h2 class="sect">Version</h2>
       <div class="setrow"><span>Recipe Box ${APP_VERSION}<small>Released ${new Date(RELEASED + "T12:00").toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}</small><small id="workerVer">${s.proxy ? "Worker: checking…" : "Worker: not set up"}</small></span>
@@ -309,7 +308,7 @@ export function settingsView() {
   const runSync = async (msg) => {
     const el = document.getElementById("syncStatus");
     if (el) el.textContent = "Syncing…";
-    try { const r = await sync.syncNow(); toast(msg || (r.applied ? `Synced · ${r.applied} update${r.applied > 1 ? "s" : ""}` : "Synced")); }
+    try { const r = await sync.syncNow(); toast(msg || (r.applied ? `Synced ${r.applied} update${r.applied > 1 ? "s" : ""}` : "Synced")); }
     catch (err) { toast(err.message); }
     if (location.hash === "#/settings") settingsView();
   };
@@ -338,7 +337,7 @@ export function settingsView() {
       out.innerHTML = `
         <p style="margin:0 0 4px">Invite code: <b class="px" style="font-size:20px;letter-spacing:1px">${pretty}</b></p>
         <div class="code">${esc(inv.link)}</div>
-        <p class="muted" style="font-size:13px;margin:4px 0 0">Works once · expires ${new Date(inv.expires).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}</p>
+        <p class="muted" style="font-size:13px;margin:4px 0 0">Works once. Expires ${new Date(inv.expires).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}</p>
         <div class="btnrow"><button class="btn small" id="shareInvite">Share invite</button></div>`;
       document.getElementById("shareInvite").onclick = async () => {
         try {
@@ -352,7 +351,7 @@ export function settingsView() {
   });
   document.getElementById("resetCode")?.addEventListener("click", async () => {
     if (await confirmBox("Start a new recipe box with a new secret code? Every other device and person stops syncing until you send them a new invite. Nothing is deleted from this device.", "Reset sync code", true)) {
-      try { await sync.resetCode(); toast("New sync code · other devices removed"); } catch (err) { toast(err.message); }
+      try { await sync.resetCode(); toast("New sync code. Other devices are removed."); } catch (err) { toast(err.message); }
       settingsView();
     }
   });
@@ -389,7 +388,7 @@ export function settingsView() {
       if (!mode) return;
       const n = store.importJSON(text, mode);
       applyTheme();
-      toast(mode === "replace" ? "Restored the backup" : `Merged · ${n} recipe${n === 1 ? "" : "s"} added or updated`);
+      toast(mode === "replace" ? "Restored the backup" : `Merged. ${n} recipe${n === 1 ? "" : "s"} added or updated.`);
       settingsView();
     } catch (err) { toast(err.message || "Import failed"); }
   };

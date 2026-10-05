@@ -141,7 +141,7 @@ export function bookView() {
   function update() {
     // Filters button: how many filters are on that the chips above don't show.
     const hidden = [...F.on].filter(k => !QUICK.some(([q]) => q === k)).length + limitCount();
-    filtersBtn.innerHTML = `${sprite("filter")}<span>Filters${hidden ? ` · ${hidden}` : ""}</span>`;
+    filtersBtn.innerHTML = `${sprite("filter")}<span>Filters</span>${hidden ? `<span class="fcount">${hidden}</span>` : ""}`;
     filtersBtn.classList.toggle("on", hidden > 0);
     document.querySelectorAll(".filters [data-chip]").forEach(b => b.setAttribute("aria-pressed", F.on.has(b.dataset.chip)));
     const hits = sorted(hitsFor());

@@ -88,7 +88,7 @@ export function planView(key) {
     const hasMeals = meals.some(x => x.slots.some(sl => sl.startsWith(d + "-")));
     return `<section class="day ${date.getTime() === todayStr ? "today-day" : ""} ${daySource ? "source" : ""}">
       <div class="dayhead"><span class="px">${SHORT[d]} ${date.getDate()}</span>
-        <span class="dayright">${kcal ? `<small>${Math.round(kcal)} kcal · ${Math.round(protein)} g P</small>` : ""}
+        <span class="dayright">${kcal ? `<small>${Math.round(kcal)} kcal, ${Math.round(protein)} g protein</small>` : ""}
         ${dayTarget ? `<button class="btn small primary" data-dayswap="${d}">${icon("swap", "ic16")} Swap with ${SHORT[moving.day]}</button>`
           : !moving && hasMeals ? `<button class="daybtn" data-moveday="${d}" aria-label="Swap ${SHORT[d]} with another day">${icon("swapVert", "ic16")} Day</button>` : ""}</span>
       </div>
@@ -120,7 +120,7 @@ export function planView(key) {
       <div class="banner">
         <span class="px">${esc(prepLabel(key))}</span>
         <a class="btn small" href="#/grocery/${key}">Grocery list ${icon("chevRight", "ic16")}</a>
-        ${weekCost > 0 ? `<span style="flex-basis:100%">Food cost ${money(weekCost)} · ${money(weekCost / servingsTotal)}/serving</span>` : ""}
+        ${weekCost > 0 ? `<span style="flex-basis:100%">Food cost ${money(weekCost)}, ${money(weekCost / servingsTotal)} a serving</span>` : ""}
       </div>
       ${days}
       <h2 class="sect">${DAY_LONG[weekDays()[6]]} prep list <small>${prep.length ? `${prep.length} to cook` : ""}</small></h2>
@@ -128,10 +128,10 @@ export function planView(key) {
         const r = store.recipe(x.rid);
         const sl = [...x.slots].sort((a, b) => slotIdx(a) - slotIdx(b));
         return `<li><a href="#/r/${r.id}"><b>${esc(r.title)}</b></a><br>
-          <span class="muted" style="font-size:15px">${x.servings} servings · eaten ${times(sl.length)} (${sl.map(slotName).join(", ")})</span></li>`;
-      }).join("")}</ul>` : `<p class="muted">Tap + on any meal to add a recipe. Cook once and tick extra slots for leftovers; groceries only count it once.</p>`}
+          <span class="muted" style="font-size:15px">${x.servings} servings, eaten ${times(sl.length)}: ${sl.map(slotName).join(", ")}</span></li>`;
+      }).join("")}</ul>` : `<p class="muted">Nothing to cook yet. Add a recipe to any meal.</p>`}
       ${meals.length ? `<div class="btnrow"><button class="btn small danger" id="clearWeek">Clear this week</button></div>` : ""}`,
-    status: `<span>${meals.length} meals planned</span><span>${people} ${people === 1 ? "person" : "people"} · <a href="#/settings">change</a></span>`
+    status: `<span>${meals.length} meals planned</span><span><a href="#/settings">${people} ${people === 1 ? "person" : "people"}</a></span>`
   }), { keepScroll: true });
 
   document.querySelectorAll("[data-add]").forEach(b => b.onclick = () => pickRecipe(key, b.dataset.add));
@@ -164,7 +164,7 @@ function chipActions(key, meal, slot) {
   const many = sl.length > 1;
   const { el, close } = modal(slotName(slot), `
     <p style="margin:0 0 2px;font-weight:700;font-size:18px">${esc(r.title)}</p>
-    <p class="muted" style="margin:0 0 14px;font-size:14px">${sl[0] === slot ? "Cooked here" : "Leftovers"}${many ? ` · planned ${times(sl.length)} (${sl.map(slotName).join(", ")})` : ""} · ${meal.servings} servings</p>
+    <p class="muted" style="margin:0 0 14px;font-size:14px">${sl[0] === slot ? "Cooked here" : "Leftovers"}, ${meal.servings} servings${many ? `<br>Planned ${times(sl.length)}: ${sl.map(slotName).join(", ")}` : ""}</p>
     <div class="actlist">
       <button class="btn primary" id="aMove">${icon("swap", "ic16")} Move or swap</button>
       <a class="btn" href="#/r/${r.id}">Open recipe</a>
@@ -226,7 +226,7 @@ function pickRecipe(key, slot) {
   const all = store.recipes();
   let filter = all.some(r => (r.tags || []).includes(meal)) ? meal : "";
   let q = "";
-  const { el } = modal(`${cap(meal)} · ${slotName(slot).split(" ")[0]}`, `
+  const { el } = modal(`${slotName(slot).split(" ")[0]} ${meal}`, `
     ${all.length ? `
     <input type="search" id="pq" placeholder="Search your recipes…" autocomplete="off">
     <div class="chipscroll" style="margin-top:10px">
@@ -280,7 +280,7 @@ function mealOptions(key, rid, existing, presetSlot) {
 
   const { el, close } = modal(existing ? "Planned meal" : "Add to plan", `
     <p style="margin:0 0 4px;font-weight:700;font-size:18px">${esc(r.title)}</p>
-    <p class="muted" style="margin:0 0 14px;font-size:14px">${weekLabel(key)} · recipe makes ${base}${r.yield ? "" : " (assumed)"}</p>
+    <p class="muted" style="margin:0 0 14px;font-size:14px">${weekLabel(key)}<br>Recipe makes ${base}${r.yield ? "" : " (assumed)"}</p>
     <div class="setrow" style="border-top:1px solid var(--sunk)">
       <span>Servings to cook<small id="hint"></small></span>
       <span class="stepper"><button id="m" aria-label="Fewer servings">${icon("minus", "ic16")}</button><output id="sv">${servings}</output><button id="p" aria-label="More servings">${icon("plus", "ic16")}</button></span>

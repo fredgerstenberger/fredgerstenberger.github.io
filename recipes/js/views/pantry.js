@@ -25,7 +25,7 @@ export function pantryView() {
       <form id="addForm">
         <label class="field"><span>I have…</span>
           <div class="inline">
-            <input type="text" id="addIn" list="foods" placeholder="e.g. soy sauce" autocomplete="off" autocapitalize="none">
+            <input type="text" id="addIn" list="foods" placeholder="Like soy sauce" autocomplete="off" autocapitalize="none">
             <button class="btn small" type="submit">Add</button>
           </div>
         </label>

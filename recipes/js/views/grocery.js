@@ -233,7 +233,7 @@ export function groceryView(key) {
         <div class="card"><ul class="glist">${sec.have.map(i => `<li class="grow"><div class="grow-main" style="cursor:default">
           <span class="gname">${esc(cap1(i.name))}</span><button class="chip quiet" data-outof="${esc(i.pantryKey ?? i.key)}">Ran out</button></div></li>`).join("")}</ul></div>
       </details>` : ""}
-      ${total && hint ? `<p class="ghint" id="ghint">Tap an item to check it off. Press and hold, or swipe left, for details.</p>` : ""}
+      ${total && hint ? `<p class="ghint" id="ghint">Tap an item to check it off. Press and hold for details.</p>` : ""}
       ${total || later ? `<div class="gfoot">
         ${total ? `<button class="cbtn ghost" id="share">Share list</button>` : ""}
         ${later ? `<button class="cbtn ghost" id="fromLast">From last week (${later})</button>` : ""}
@@ -317,15 +317,15 @@ export function groceryView(key) {
     if (quiet) return p;
     if (related) {
       // Same food as a recipe line, different variety: two lines unless you say this one is for the recipe.
-      toast(`Added ${p.name} · a recipe needs ${cap1(related.name)}`, { label: "Use for recipe", ms: 7000, run: () => {
+      toast(`Added ${p.name}. A recipe needs ${cap1(related.name)}.`, { label: "Use for recipe", ms: 7000, run: () => {
         const undo = useForRecipe(key, r.id, related.key);
         if (!undo) return;
         store.save(); paint();
         toast(`${p.name} is on the list for the recipe`, { label: "Undo", run: () => { undo(); store.save(); paint(); } });
       } });
     } else {
-      toast(result === "added" ? `Added ${p.name}${aisle ? ` · ${aisle[1]}` : ""}`
-        : `${p.name} is already on the list${amount ? (result === "recipe" ? ` · added ${amount}` : ` · now ${amount}`) : ""}`);
+      toast(result === "added" ? `Added ${p.name}${aisle ? ` to ${aisle[1]}` : ""}`
+        : `${p.name} is already on the list${amount ? (result === "recipe" ? `. Added ${amount}.` : `. Now ${amount}.`) : ""}`);
     }
     return p;
   }
@@ -340,7 +340,7 @@ export function groceryView(key) {
     if (sync.enabled()) { sync.syncNow().catch(() => {}); toast(`Added ${what}`); }
     // Opened in a browser that isn't connected to your household's sync (from a Shortcut that's
     // Safari, whose storage is separate from the home-screen app).
-    else toast(`Added ${what} · this browser isn't synced`, { label: "Set up", run: () => { location.hash = "#/settings"; } });
+    else toast(`Added ${what}. This browser isn't synced.`, { label: "Set up", run: () => { location.hash = "#/settings"; } });
   }
 
   function showSuggestions() {
@@ -427,7 +427,7 @@ export function groceryView(key) {
     document.getElementById("uncheck")?.addEventListener("click", () => { g.checked = {}; delete g.checkedBy; g.extras.forEach(e => e.checked = false); house.items().forEach(h => h.checked && house.setChecked(h.id, false)); store.save(); paint(); });
     document.getElementById("unhide")?.addEventListener("click", () => { g.hidden = {}; store.save(); paint(); });
     document.getElementById("share")?.addEventListener("click", async () => {
-      const text = `Groceries · ${weekLabel(key)}\n\n` + listAsText(key, { ...sec, extras: manual() });
+      const text = `Groceries, ${weekLabel(key)}\n\n` + listAsText(key, { ...sec, extras: manual() });
       try {
         if (navigator.share) await navigator.share({ title: "Grocery list", text });
         else { await navigator.clipboard.writeText(text); toast("List copied"); }
@@ -486,10 +486,10 @@ function itemSheet(g, it, redraw, remove) {
   if (!it) return;
   const ed = g.edits[it.key];
   const { el, close } = modal(cap1(it.name), `
-    <p class="muted" style="margin-top:0">${it.amount ? `<b>${esc(it.amount)}</b> · ` : ""}${it.cost != null ? `${money(it.cost)} · ` : ""}for ${esc(it.sources.join(", "))}</p>
+    <p class="muted gdmeta" style="margin-top:0">${it.amount ? `<b>${esc(it.amount)}</b>` : ""}${it.cost != null ? `<span>${money(it.cost)}</span>` : ""}<span>For ${esc(it.sources.join(", "))}</span></p>
     <label class="field"><span>Item</span><input type="text" id="eName" value="${esc(it.name)}" autocomplete="off"></label>
-    <label class="field"><span>Amount</span><input type="text" id="eAmt" value="${esc(it.amount || "")}" placeholder="e.g. 2 lb, 1 box" autocomplete="off"></label>
-    <label class="field"><span>Note<small>Brand, store, size…</small></span><input type="text" id="eNote" value="${esc(it.note || "")}" placeholder="e.g. organic" autocomplete="off"></label>
+    <label class="field"><span>Amount</span><input type="text" id="eAmt" value="${esc(it.amount || "")}" placeholder="Like 2 lb or 1 box" autocomplete="off"></label>
+    <label class="field"><span>Note<small>Brand, store or size</small></span><input type="text" id="eNote" value="${esc(it.note || "")}" placeholder="Like organic" autocomplete="off"></label>
     <p class="muted" style="font-size:14px;margin:0">Changes apply to this week's list.</p>
     <div class="btnrow">
       <button class="btn primary" id="eSave">Save</button>

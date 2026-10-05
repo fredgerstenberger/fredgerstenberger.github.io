@@ -40,7 +40,7 @@ export async function watchForUpdates() {
     if (!hadController) return;
     if (updateAction({ askedHere, unsaved: unsavedHere() }) === "defer") {
       pending = true;
-      toast("Recipe Box updated · it will reload when you're done here", { label: "Reload now", ms: 8000, run: reload });
+      toast("Recipe Box updated. It reloads when you're done here.", { label: "Reload now", ms: 8000, run: reload });
     } else reload();
   });
   const offer = w => toast("Recipe Box updated", { label: "Reload", ms: 12000, run: async () => {

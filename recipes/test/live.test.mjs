@@ -15,7 +15,7 @@ test("item 7: a partner checking and adding things reads as one short note", () 
   }, WK);
   const chs = L.changes(before, after);
   assert.deepEqual(chs.map(c => `${c.who} ${c.verb} ${c.name}`).sort(), ["Emma added coffee", "Emma checked eggs", "Emma checked paper towels"]);
-  assert.equal(L.describe(chs), "Emma checked eggs and paper towels · added coffee");
+  assert.equal(L.describe(chs), "Emma checked eggs and paper towels, added coffee");
 });
 
 test("item 7: notes name the person only when it's one known person; quiet for unchecks and removals", () => {

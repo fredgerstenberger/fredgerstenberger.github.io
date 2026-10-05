@@ -46,7 +46,7 @@ export const WHATS_NEW = [
   "The same thing added on two phones at once ends up as one line.",
   "Store aisles: drag by the handle and scroll anywhere else; the list follows as you go.",
   "Grocery rows: names get the room, package sizes sit on a small second line.",
-  "Opens instantly even with a weak signal; updates download in the background (\"Recipe Box updated · Reload\").",
+  "Opens instantly even with a weak signal; updates download in the background (\"Recipe Box updated\" with Reload).",
   "The recipe book opens much faster with a big library.",
   "A calmer, roomier look everywhere, with the pixel icons kept as accents. Works in light and dark.",
   "Grocery list: tap a row to check it off; it folds into In cart, with Undo. Press and hold, or swipe left, for details.",

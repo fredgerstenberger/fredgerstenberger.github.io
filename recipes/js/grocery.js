@@ -231,7 +231,7 @@ export function sectionize(weekKey) {
 
 export function listAsText(weekKey, sections) {
   const lines = [];
-  for (const it of sections.buy.filter(i => !i.checked)) lines.push(`☐ ${it.name}${it.amount ? " — " + it.amount : ""}${it.note ? ` (${it.note})` : ""}`);
+  for (const it of sections.buy.filter(i => !i.checked)) lines.push(`☐ ${it.name}${it.amount ? ", " + it.amount : ""}${it.note ? ` (${it.note})` : ""}`);
   for (const e of sections.extras.filter(e => !e.checked)) lines.push(`☐ ${e.text}`);
   return lines.join("\n");
 }

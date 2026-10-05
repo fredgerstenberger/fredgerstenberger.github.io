@@ -122,12 +122,12 @@ export async function imageFromClipboard() {
   if (!navigator.clipboard?.read) throw new Error("This browser can't paste pictures here. Use Label photo instead.");
   let items;
   try { items = await navigator.clipboard.read(); }
-  catch { throw new Error("Nothing was pasted. Copy the label picture first (in in Photos, tap Share, then Copy Photo), then tap Paste label image."); }
+  catch { throw new Error("Nothing was pasted. Copy the label picture first (in Photos, tap Share, then Copy Photo), then tap Paste label image."); }
   for (const item of items) {
     const type = item.types.find(t => t.startsWith("image/"));
     if (type) return await item.getType(type);
   }
-  throw new Error("The clipboard has no picture. Copy the label picture first (in in Photos, tap Share, then Copy Photo).");
+  throw new Error("The clipboard has no picture. Copy the label picture first (in Photos, tap Share, then Copy Photo).");
 }
 
 /** The picture in a paste event (pasting with a keyboard or the edit menu), or null. */

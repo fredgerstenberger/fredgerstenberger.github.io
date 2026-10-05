@@ -19,7 +19,7 @@ export function addView(params) {
       <form id="urlForm">
         <label class="field"><span>Recipe link</span>
           <div class="inline">
-            <input type="url" id="url" inputmode="url" placeholder="https://…" value="${esc(pre)}" autocomplete="off" autocapitalize="none" required>
+            <input type="url" id="url" inputmode="url" placeholder="Paste a recipe link" value="${esc(pre)}" autocomplete="off" autocapitalize="none" required>
             <button class="btn primary" type="submit" id="fetchBtn">Get it</button>
           </div>
           <small>Paste a link from any recipe site. The ads and life story get stripped out.</small>
@@ -37,10 +37,10 @@ export function addView(params) {
         <p class="muted" style="font-size:14px;margin:0 0 6px">${s.proxy
           ? "Reads the page with AI on your Cloudflare Worker. For a recipe that spans pages, pick up to 4 photos."
           : `Needs your Cloudflare Worker: <a href="#/settings">set it up in Settings</a>. Or copy the text yourself below.`}</p>
-        <p class="px" style="margin:16px 0 4px;font-size:15px">Or copy the text yourself (free, works offline)</p>
+        <p class="px" style="margin:16px 0 4px;font-size:15px">Or copy the text yourself</p>
         <ol class="howto">
-          <li>Tap <b>Choose photo</b> and pick (or take) a photo of the recipe.</li>
-          <li>Press and hold on the text in the photo, then tap <b>Select All</b> and <b>Copy</b>. If selecting doesn't work here, do the same in the Photos app.</li>
+          <li>Choose a photo of the recipe.</li>
+          <li>Press and hold its text, then tap <b>Select All</b> and <b>Copy</b>.</li>
           <li>Tap <b>Paste</b>, then <b>Read recipe</b>.</li>
         </ol>
         <div class="btnrow">
@@ -50,7 +50,7 @@ export function addView(params) {
         </div>
         <img id="photoPrev" class="photoprev" alt="Your recipe photo. Press and hold the text to copy it." hidden>
         <label class="field"><span>Recipe text</span>
-          <textarea id="rtext" rows="8" placeholder="Paste the recipe here: title, ingredients and steps. Works with text from photos, emails, notes…">${esc(params.get("text") || "")}</textarea>
+          <textarea id="rtext" rows="8" placeholder="Paste the title, ingredients and steps">${esc(params.get("text") || "")}</textarea>
         </label>
         <button class="btn primary" id="readText" type="button">Read recipe</button>
       </details>
@@ -195,18 +195,18 @@ function showEditor(el, r, isNew) {
       </div>
       <label class="field"><span>Total time (min)</span><input type="number" name="totalMin" min="0" inputmode="numeric" value="${r.totalMin || ""}" placeholder="Prep + cook"></label>
       <label class="field"><span>Ingredients</span>
-        <textarea name="ingredients" rows="10" placeholder="One per line, e.g.&#10;2 cups flour&#10;1 (14.5 oz) can diced tomatoes&#10;# Sauce">${esc((r.ingredients || []).join("\n"))}</textarea>
+        <textarea name="ingredients" rows="10" placeholder="One per line&#10;2 cups flour&#10;1 (14.5 oz) can diced tomatoes&#10;# Sauce">${esc((r.ingredients || []).join("\n"))}</textarea>
         <small>One per line. Start a line with # for a section heading.</small>
       </label>
       <label class="field"><span>Steps</span>
         <textarea name="steps" rows="10" placeholder="One step per line">${esc((r.steps || []).join("\n"))}</textarea>
-        <small>One step per line. Times like “10 minutes” become tap-to-start timers.</small>
+        <small>One step per line.</small>
       </label>
       <label class="field"><span>Keywords</span>
         <input type="text" name="tags" value="${esc((r.tags || []).join(", "))}" autocapitalize="none" placeholder="chicken, dinner, pasta">
         <small>Comma separated. ${isNew ? "Suggested for you. Edit freely." : `<button type="button" class="btn small" id="suggest" style="margin-top:6px">Re-suggest keywords</button>`}</small>
       </label>
-      <label class="field"><span>Source link</span><input type="url" name="url" value="${esc(r.url || "")}" autocapitalize="none" placeholder="https://…"></label>
+      <label class="field"><span>Source link</span><input type="url" name="url" value="${esc(r.url || "")}" autocapitalize="none" placeholder="Link to the original"></label>
       ${r.nutrition ? `<p class="muted" style="font-size:14px">Nutrition from the site: ${Math.round(r.nutrition.kcal || 0)} kcal per serving. <label class="check" style="display:inline-flex;min-height:0"><input type="checkbox" name="dropNutri"> Ignore it and estimate instead</label></p>` : ""}
       <div class="btnrow">
         <button class="btn primary" type="submit">${isNew ? "Save to recipe book" : "Save changes"}</button>
