@@ -5,6 +5,8 @@ import { shell, render, modal, toast } from "../ui.js";
 import { FOODS, AISLES } from "../fooddb.js";
 import { priceEntry, basisLabel, basisGrams, BASE_PRICES, regionFactor, money, REGIONS } from "../prices.js";
 import { officialInfo, refreshPrices } from "../data.js";
+import { icon } from "../sprites.js";
+import { tipHTML } from "../tips.js";
 
 let query = "";
 let onlyMine = false;
@@ -18,15 +20,15 @@ export function pricesView() {
     title: "Prices",
     back: "#/more",
     body: `
-      <p style="margin-top:0">Prices for <b>${esc(region)}</b> (<a href="#/settings">change</a>). Tap an item to enter what <b>your</b> store charges; your prices are used exactly and marked ★.</p>
-      ${officialInfo() ? `<p class="note" style="font-size:14px">${officialInfo().count} items use <b>official U.S. average prices</b> from the Bureau of Labor Statistics (${esc(officialInfo().period)}), adjusted for your region and refreshed monthly. They're marked <span class="kind">BLS</span>. Others are estimates.</p>`
-        : `<p class="note" style="font-size:14px">Connect your Worker in Settings to use official monthly prices from the Bureau of Labor Statistics for ~30 staples.</p>`}
-      <input type="search" id="pq" placeholder="Search ingredients…" value="${esc(query)}" autocomplete="off" autocapitalize="none">
+      <p style="margin-top:0">Prices for <a href="#/settings">${esc(region)}</a></p>
+      ${tipHTML("prices", "Tap an item to enter what your store charges.")}
+      ${officialInfo() ? `<p class="muted" style="font-size:0.8235rem">${officialInfo().count} staples use US government average prices (${esc(officialInfo().period)}), marked <span class="kind">BLS</span>.</p>` : ""}
+      <input type="search" id="pq" placeholder="Search ingredients" value="${esc(query)}" autocomplete="off" autocapitalize="none">
       <div class="chips" style="margin:10px 0 4px">
-        <button class="chip" id="mineOnly" aria-pressed="${onlyMine}">★ My prices (${mineCount})</button>
+        <button class="chip" id="mineOnly" aria-pressed="${onlyMine}">${icon("star", "ic16")}My prices (${mineCount})</button>
       </div>
       <div id="plist"></div>`,
-    status: `<span>Estimates ×${regionFactor().toFixed(2)} vs US average</span><span>${mineCount} yours</span>`
+    status: `<span>Estimates at ${Math.round(regionFactor() * 100)}% of the US average</span><span>${mineCount} yours</span>`
   }), { keepScroll: true });
 
   const listEl = document.getElementById("plist");
@@ -41,7 +43,7 @@ export function pricesView() {
       if (!fs.length) return "";
       return `<div class="aisle">${label}</div><ul class="plist">${fs.map(f => {
         const e = priceEntry(f.name);
-        return `<li><button class="pricerow" data-food="${esc(f.name)}"><span>${esc(f.name)}${e.mine ? ` <span class="kind">★ yours</span>` : e.official ? ` <span class="kind">BLS</span>` : ""}</span><span class="pr">${money(e.price)} <small>/ ${esc(basisLabel(f, e.basis))}</small></span></button></li>`;
+        return `<li><button class="pricerow" data-food="${esc(f.name)}"><span>${esc(f.name)}${e.mine ? ` <span class="kind">Yours</span>` : e.official ? ` <span class="kind">BLS</span>` : ""}</span><span class="pr">${money(e.price)} <small>/ ${esc(basisLabel(f, e.basis))}</small></span></button></li>`;
       }).join("")}</ul>`;
     }).join("") || `<p class="muted">No matches.</p>`;
   }
@@ -62,8 +64,8 @@ export function editPrice(name, done) {
   const est = BASE_PRICES[name];
   const estNow = est ? Math.round(est.price * regionFactor() * 100) / 100 : null;
   const { el, close } = modal("Your price", `
-    <p style="margin:0 0 4px;font-weight:700;font-size:18px">${esc(name)}</p>
-    <p class="muted" style="margin:0 0 14px;font-size:14px">Estimate: ${money(estNow)} / ${esc(basisLabel(f, est.basis))}</p>
+    <p style="margin:0 0 4px;font-weight:700;font-size:1.0588rem">${esc(name)}</p>
+    <p class="muted" style="margin:0 0 14px;font-size:0.8235rem">Estimate: ${money(estNow)} / ${esc(basisLabel(f, est.basis))}</p>
     <div class="row2">
       <label class="field"><span>Price ($)</span><input type="number" id="pp" inputmode="decimal" step="0.01" min="0" value="${e.price}"></label>
       <label class="field"><span>Per</span><select id="pb">${bases.map(b => `<option value="${b}" ${e.basis === b ? "selected" : ""}>${esc(basisLabel(f, b))}</option>`).join("")}</select></label>

@@ -8,6 +8,7 @@ import { autoTags } from "../tags.js";
 import { askAfterSave } from "../fillin.js";
 import { photoOf, setPhoto } from "../photos.js";
 import { isReady } from "../ready.js";
+import { isDev } from "../dev.js";
 
 export function addView(params) {
   const s = store.settings();
@@ -19,10 +20,10 @@ export function addView(params) {
       <form id="urlForm">
         <label class="field"><span>Recipe link</span>
           <div class="inline">
-            <input type="url" id="url" inputmode="url" placeholder="https://…" value="${esc(pre)}" autocomplete="off" autocapitalize="none" required>
+            <input type="url" id="url" inputmode="url" placeholder="Paste a recipe link" value="${esc(pre)}" autocomplete="off" autocapitalize="none" required>
             <button class="btn primary" type="submit" id="fetchBtn">Get it</button>
           </div>
-          <small>Paste a link from any recipe site. The ads and life story get stripped out.</small>
+          <small>Saves a clean, cook-friendly copy with a link back to the original.</small>
         </label>
       </form>
       <div class="btnrow" style="margin-top:0"><button class="btn small" id="pasteBtn" type="button">Paste from clipboard</button></div>
@@ -30,17 +31,16 @@ export function addView(params) {
 
       <details class="fromtext" id="textBox" ${params.get("text") ? "open" : ""}>
         <summary>From a cookbook photo or text</summary>
-        <div class="btnrow" style="margin-top:6px">
+        <div class="btnrow" style="margin-top:6px" ${s.proxy || isDev() ? "" : "hidden"}>
           <label class="btn primary" for="scanIn">Scan photo</label>
           <input type="file" id="scanIn" accept="image/*" multiple hidden>
         </div>
-        <p class="muted" style="font-size:14px;margin:0 0 6px">${s.proxy
-          ? "Reads the page with AI on your Cloudflare Worker. For a recipe that spans pages, pick up to 4 photos."
-          : `Needs your Cloudflare Worker: <a href="#/settings">set it up in Settings</a>. Or copy the text yourself below.`}</p>
-        <p class="px" style="margin:16px 0 4px;font-size:15px">Or copy the text yourself (free, works offline)</p>
+        ${s.proxy ? `<p class="muted" style="font-size:0.8235rem;margin:0 0 6px">For a recipe that spans pages, pick up to 4 photos.</p>`
+          : isDev() ? `<p class="muted" style="font-size:0.8235rem;margin:0 0 6px">Needs your Cloudflare Worker: set it up in Settings, Developer.</p>` : ""}
+        <p class="px" style="margin:16px 0 4px;font-size:0.8824rem">Or copy the text yourself</p>
         <ol class="howto">
-          <li>Tap <b>Choose photo</b> and pick (or take) a photo of the recipe.</li>
-          <li>Press and hold on the text in the photo, then tap <b>Select All</b> → <b>Copy</b>. If selecting doesn't work here, do the same in the Photos app.</li>
+          <li>Choose a photo of the recipe.</li>
+          <li>Press and hold its text, then tap <b>Select All</b> and <b>Copy</b>.</li>
           <li>Tap <b>Paste</b>, then <b>Read recipe</b>.</li>
         </ol>
         <div class="btnrow">
@@ -48,16 +48,16 @@ export function addView(params) {
           <input type="file" id="photo" accept="image/*" hidden>
           <button class="btn" id="pasteText" type="button">Paste</button>
         </div>
-        <img id="photoPrev" class="photoprev" alt="Your recipe photo — press and hold the text to copy it" hidden>
+        <img id="photoPrev" class="photoprev" alt="Your recipe photo. Press and hold the text to copy it." hidden>
         <label class="field"><span>Recipe text</span>
-          <textarea id="rtext" rows="8" placeholder="Paste the recipe here: title, ingredients and steps. Works with text from photos, emails, notes…">${esc(params.get("text") || "")}</textarea>
+          <textarea id="rtext" rows="8" placeholder="Paste the title, ingredients and steps">${esc(params.get("text") || "")}</textarea>
         </label>
         <button class="btn primary" id="readText" type="button">Read recipe</button>
       </details>
 
       <div id="editor"></div>
-      <p class="muted" style="font-size:14px;margin-top:22px">Or <button class="btn small" id="manualBtn" type="button">type one in</button></p>
-      ${s.proxy ? "" : `<p class="note">Without your Cloudflare Worker, links are read through free public services, which are sometimes slow or blocked by recipe sites. Add your Worker's address in <a href="#/settings">Settings</a> for reliable imports; the same Worker reads cookbook photos and labels and keeps your phones in sync.</p>`}`
+      <p class="muted" style="font-size:0.8235rem;margin-top:22px">Or <button class="btn small" id="manualBtn" type="button">type one in</button></p>
+      ${s.proxy || !isDev() ? "" : `<p class="note">Without a Worker, links are read through public services, which are sometimes slow or blocked. Add one in Settings, Developer.</p>`}`
   }));
 
   const statusEl = document.getElementById("status");
@@ -80,12 +80,13 @@ export function addView(params) {
       const st = store.settings();
       const r = await importFromUrl(url, st.proxy, msg => { const el = document.getElementById("st"); if (el) el.textContent = msg; },
         st.proxy ? { worker: st.proxy, model: st.scanModel, key: st.scanKey } : null);
-      statusEl.innerHTML = `<p class="note">${r.viaAI ? "This site had no recipe data, so AI read the page. Check it carefully, then save." : "Found it. Check it over, then save."}</p>`;
+      statusEl.innerHTML = `<p class="note">${r.viaAI ? "This page had no recipe data, so it was read automatically. Check it over, then save." : "Found it. Check it over, then save."}</p>`;
       showEditor(editorEl, {
         id: uid(), title: r.title, url: r.url, site: r.site, author: r.author,
         yield: r.yield, yieldText: r.yieldText, prepMin: r.prepMin, cookMin: r.cookMin, totalMin: r.totalMin,
         ingredients: r.ingredients, steps: r.steps, nutrition: r.nutrition,
-        tags: autoTags(r), rating: 0, notes: "", siteKeywords: r.siteKeywords
+        tags: autoTags(r), rating: 0, notes: "", siteKeywords: r.siteKeywords,
+        ...(r.viaAI ? { origin: "ai-page" } : {}) // shown as "Read from page" so people check it
       }, true);
     } catch (e) {
       statusEl.innerHTML = `<div class="note error"><b>${esc(e.message)}</b>
@@ -119,12 +120,12 @@ export function addView(params) {
         msg => { const el = document.getElementById("st"); if (el) el.textContent = msg; });
       statusEl.innerHTML = r.ingredients.length
         ? `<p class="note">Read ${r.ingredients.length} ingredients and ${r.steps.length} steps. Check it against the page, then save.</p>`
-        : `<p class="note error">The model didn't find ingredients. Fill them in below, or try another model in Settings.</p>`;
+        : `<p class="note error">No ingredients were found. Fill them in below.</p>`;
       showEditor(editorEl, {
         id: uid(), title: r.title, url: "", site: "", author: "",
         yield: r.yield, yieldText: r.yieldText, prepMin: r.prepMin, cookMin: r.cookMin, totalMin: r.totalMin,
         ingredients: r.ingredients, steps: r.steps, nutrition: null,
-        tags: autoTags(r), rating: 0, notes: r.description || ""
+        tags: autoTags(r), rating: 0, notes: r.description || "", origin: "photo" // "Imported from photo"
       }, true);
     } catch (err) {
       statusEl.innerHTML = `<div class="note error"><b>${esc(err.message)}</b><p style="margin:6px 0 0">You can still copy the text from the photo yourself (steps below).</p></div>`;
@@ -169,7 +170,7 @@ export function addView(params) {
       const t = await navigator.clipboard.readText();
       const found = (t.match(/https?:\/\/\S+/) || [])[0];
       if (found) { urlIn.value = found; run(); } else toast("No link on the clipboard");
-    } catch { toast("Clipboard not available — long-press the box to paste"); }
+    } catch { toast("Press and hold the box, then tap Paste"); }
   };
   if (pre) run(); else if (!params.get("text")) urlIn.focus();
 }
@@ -195,19 +196,19 @@ function showEditor(el, r, isNew) {
       </div>
       <label class="field"><span>Total time (min)</span><input type="number" name="totalMin" min="0" inputmode="numeric" value="${r.totalMin || ""}" placeholder="Prep + cook"></label>
       <label class="field"><span>Ingredients</span>
-        <textarea name="ingredients" rows="10" placeholder="One per line, e.g.&#10;2 cups flour&#10;1 (14.5 oz) can diced tomatoes&#10;# Sauce  ← a line starting with # is a section heading">${esc((r.ingredients || []).join("\n"))}</textarea>
+        <textarea name="ingredients" rows="10" placeholder="One per line&#10;2 cups flour&#10;1 (14.5 oz) can diced tomatoes&#10;# Sauce">${esc((r.ingredients || []).join("\n"))}</textarea>
         <small>One per line. Start a line with # for a section heading.</small>
       </label>
       <label class="field"><span>Steps</span>
         <textarea name="steps" rows="10" placeholder="One step per line">${esc((r.steps || []).join("\n"))}</textarea>
-        <small>One step per line. Times like “10 minutes” become tap-to-start timers.</small>
+        <small>One step per line.</small>
       </label>
       <label class="field"><span>Keywords</span>
         <input type="text" name="tags" value="${esc((r.tags || []).join(", "))}" autocapitalize="none" placeholder="chicken, dinner, pasta">
-        <small>Comma separated. ${isNew ? "Suggested automatically — edit freely." : `<button type="button" class="btn small" id="suggest" style="margin-top:6px">Re-suggest keywords</button>`}</small>
+        <small>Comma separated. ${isNew ? "Suggested for you. Edit freely." : `<button type="button" class="btn small" id="suggest" style="margin-top:6px">Re-suggest keywords</button>`}</small>
       </label>
-      <label class="field"><span>Source link</span><input type="url" name="url" value="${esc(r.url || "")}" autocapitalize="none" placeholder="https://…"></label>
-      ${r.nutrition ? `<p class="muted" style="font-size:14px">Nutrition from the site: ${Math.round(r.nutrition.kcal || 0)} kcal per serving. <label class="check" style="display:inline-flex;min-height:0"><input type="checkbox" name="dropNutri"> Ignore it and estimate instead</label></p>` : ""}
+      <label class="field"><span>Source link</span><input type="url" name="url" value="${esc(r.url || "")}" autocapitalize="none" placeholder="Link to the original"></label>
+      ${r.nutrition ? `<p class="muted" style="font-size:0.8235rem">Nutrition from the site: ${Math.round(r.nutrition.kcal || 0)} kcal per serving. <label class="check" style="display:inline-flex;min-height:0"><input type="checkbox" name="dropNutri"> Ignore it and estimate instead</label></p>` : ""}
       <div class="btnrow">
         <button class="btn primary" type="submit">${isNew ? "Save to recipe book" : "Save changes"}</button>
         ${isNew ? "" : `<a class="btn" href="#/r/${r.id}">Cancel</a>`}

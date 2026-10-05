@@ -1,7 +1,7 @@
 // Shared UI building blocks: window shell, modal, toast, stars, recipe meta line.
 import { esc, fmtMinutes } from "./util.js";
 import { avgRating } from "./ratings.js";
-import { sprite } from "./sprites.js";
+import { sprite, icon } from "./sprites.js";
 import { nutritionFor } from "./nutrition.js";
 import * as store from "./store.js";
 import { recipeCost, money } from "./prices.js";
@@ -26,7 +26,7 @@ export function shell({ title, body, status = "", actions = "", back = "#/", cal
   return `<main class="page${calm ? " calm" : ""}">
     <section class="win screen">
       <div class="titlebar${inlineTitle ? " inline" : ""}">
-        <span class="tb-left">${back ? `<a class="backbtn" href="${esc(back)}" aria-label="${back === "#/" ? "Today" : "Back"}">${sprite("back")}</a>` : ""}</span>
+        <span class="tb-left">${back ? `<a class="backbtn" href="${esc(back)}" aria-label="${back === "#/" ? "Today" : "Back"}">${icon("chevLeft", "ic24")}</a>` : ""}</span>
         <h1 class="wintitle">${esc(title)}</h1>
         <span class="tb-right">${actions}</span>
       </div>
@@ -129,16 +129,16 @@ export function toast(msg, action = null, badge = "") {
 // ---- Stars ----
 export function starsHTML(rating = 0, { label = "Rating", small = false } = {}) {
   return `<div class="stars${small ? " small" : ""}" role="group" aria-label="${label}">${[1, 2, 3, 4, 5].map(n =>
-    `<button data-star="${n}" class="${n <= rating ? "on" : "off"}" aria-label="${n} star${n > 1 ? "s" : ""}" aria-pressed="${n <= rating}">${sprite("star")}</button>`
+    `<button data-star="${n}" class="${n <= rating ? "on" : "off"}" aria-label="${n} star${n > 1 ? "s" : ""}" aria-pressed="${n <= rating}">${icon(n <= rating ? "star" : "starEmpty")}</button>`
   ).join("")}</div>`;
 }
 // Stars you can't tap (an average), rounded to the nearest whole star.
 export function starsShow(avg = 0) {
   const n = Math.round(avg);
   return `<div class="stars show" role="img" aria-label="Average ${Math.round(avg * 10) / 10} of 5 stars">${[1, 2, 3, 4, 5].map(i =>
-    `<span class="${i <= n ? "on" : "off"}">${sprite("star")}</span>`).join("")}</div>`;
+    `<span class="${i <= n ? "on" : "off"}">${icon(i <= n ? "star" : "starEmpty")}</span>`).join("")}</div>`;
 }
-export const miniStars = r => r ? "★".repeat(r) + "☆".repeat(5 - r) : "";
+export const miniStars = r => r ? [1, 2, 3, 4, 5].map(i => icon(i <= r ? "star" : "starEmpty", "ic14")).join("") : "";
 
 export function nutriShort(r) {
   const n = nutritionFor(r);

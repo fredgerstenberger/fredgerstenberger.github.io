@@ -3,12 +3,13 @@ import * as stores from "../stores.js";
 import { esc } from "../util.js";
 import { modal, toast } from "../ui.js";
 import { pix } from "../pixicons.js";
+import { icon } from "../sprites.js";
 
 export function openStorePicker(onChange) {
   const cur = stores.current();
   const all = stores.list();
   const { el, close } = modal("Where are you shopping?", `
-    <p class="muted" style="margin-top:0;font-size:14px">The list follows each store's aisle order. Your stores sync with your partner; which one you pick stays on this phone.</p>
+    <p class="muted" style="margin-top:0;font-size:0.8235rem">The list follows each store's aisle order. Your stores sync with your partner; which one you pick stays on this phone.</p>
     <div class="card spick">
       <label class="srow"><input type="radio" name="st" value="" ${cur ? "" : "checked"}><span>Any store<small>Produce, dairy, meat, then packaged aisles; frozen last</small></span></label>
       ${all.map(s => `<div class="srow">
@@ -17,7 +18,7 @@ export function openStorePicker(onChange) {
       </div>`).join("")}
     </div>
     <form id="newStore" class="inline" style="margin-top:14px">
-      <input type="text" id="storeName" placeholder="Add a store, e.g. Trader Joe's" maxlength="40" autocomplete="off">
+      <input type="text" id="storeName" placeholder="Add a store" maxlength="40" autocomplete="off">
       <button class="btn" type="submit">Add</button>
     </form>`);
   el.querySelectorAll('input[name="st"]').forEach(r => r.onchange = () => {
@@ -41,13 +42,13 @@ export function openAisleOrder(id, onChange, isNew = false) {
   if (!s) return;
   let order = stores.orderFor(id);
   const rowHTML = a => `<li class="orow" data-a="${a}">
-      <span class="ohandle" aria-hidden="true">≡</span>
+      <span class="ohandle" aria-hidden="true">${icon("grip", "ic20")}</span>
       <span class="oname">${pix(a, 16)} ${esc(stores.aisleLabel(a))}</span>
-      <button class="obtn" data-up aria-label="Move ${esc(stores.aisleLabel(a))} up">↑</button>
-      <button class="obtn" data-down aria-label="Move ${esc(stores.aisleLabel(a))} down">↓</button>
+      <button class="obtn" data-up aria-label="Move ${esc(stores.aisleLabel(a))} up">${icon("arrowUp", "ic16")}</button>
+      <button class="obtn" data-down aria-label="Move ${esc(stores.aisleLabel(a))} down">${icon("arrowDown", "ic16")}</button>
     </li>`;
   const { el, close } = modal(isNew ? `Aisles at ${s.name}` : s.name, `
-    <p class="muted" style="margin-top:0;font-size:14px">Drag the ≡ handles into the order you walk the store${isNew ? ". You can change this anytime" : ""}. Your list follows as you go.</p>
+    <p class="muted" style="margin-top:0;font-size:0.8235rem">Drag aisles into the order you walk the store${isNew ? ". You can change this anytime" : ""}. Your list follows as you go.</p>
     <ul class="card olist" id="olist">${order.map(rowHTML).join("")}</ul>
     <label class="field" style="margin-top:16px"><span>Name</span><input type="text" id="sName" value="${esc(s.name)}" maxlength="40"></label>
     <div class="btnrow"><button class="btn primary" id="oDone">Done</button><button class="btn danger" id="oDel">Delete store</button></div>`, { onClose: onChange });

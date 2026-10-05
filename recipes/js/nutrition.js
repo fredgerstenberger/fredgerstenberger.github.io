@@ -80,3 +80,29 @@ export function nutritionFor(recipe) {
   cache.set(key, out);
   return out;
 }
+
+/**
+ * How the estimate's ingredients are counted, for "7 of 8 ingredients matched, 1 estimated": matched (the food is
+ * known, or has your numbers or its label), estimated (another food's values stand in, like regular pasta for
+ * protein pasta) and missing (no nutrition, not counted). Each ingredient line counts once.
+ */
+export function ingredientCounts(nu) {
+  const seen = new Set(), out = { total: 0, matched: 0, estimated: 0, missing: 0 };
+  for (const r of nu?.rows || []) {
+    const id = r.line ?? r.key;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.total++;
+    if (r.source === "standin") out.estimated++;
+    else if (r.source === "none") out.missing++;
+    else out.matched++;
+  }
+  return out;
+}
+export function countsText(c) {
+  if (!c.total) return "";
+  const parts = [`${c.matched} of ${c.total} ingredient${c.total === 1 ? "" : "s"} matched`];
+  if (c.estimated) parts.push(`${c.estimated} estimated`);
+  if (c.missing) parts.push(`${c.missing} not counted`);
+  return parts.join(", ");
+}

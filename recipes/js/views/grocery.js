@@ -16,6 +16,7 @@ import { openStorePicker } from "./stores.js";
 import * as live from "../live.js";
 import * as sync from "../sync.js";
 import { addToList, useForRecipe } from "../grocery-add.js";
+import { icon } from "../sprites.js";
 
 const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
 const HINT_KEY = "rb.groceryHint";
@@ -107,13 +108,13 @@ export function groceryView(key) {
     actions: `<button class="chip gstore" id="storeBtn" type="button"></button>`,
     body: `
       <div class="csub">
-        <span class="wknav"><a href="#/grocery/${prev}" aria-label="Previous week">◀</a><span>${weekLabel(key)}${rel ? ` · ${rel}` : ""}</span><a href="#/grocery/${next}" aria-label="Next week">▶</a></span>
+        <span class="wknav"><a href="#/grocery/${prev}" aria-label="Previous week">${icon("chevLeft", "ic20")}</a><span>${weekLabel(key)}${rel ? ` · ${rel}` : ""}</span><a href="#/grocery/${next}" aria-label="Next week">${icon("chevRight", "ic20")}</a></span>
         <b class="gcount" id="gcount" role="status"></b>
       </div>
       <div class="gshoptop" id="gshoptop" role="status"></div>
       <p class="gwake" id="gwake" hidden>${pix("check", 14)} Screen stays on while you shop</p>
       <form id="addForm" class="gadd" role="search" autocomplete="off">
-        <input type="text" id="addIn" placeholder="Add an item — “2 lb chicken thighs”" autocomplete="off" autocapitalize="sentences" enterkeyhint="go" aria-label="Add an item" aria-controls="gsug">
+        <input type="text" id="addIn" placeholder="Add an item" autocomplete="off" autocapitalize="sentences" enterkeyhint="go" aria-label="Add an item" aria-controls="gsug">
         <button class="plus" type="submit" aria-label="Add">+</button>
       </form>
       <ul class="gsug" id="gsug" role="listbox" hidden></ul>
@@ -130,8 +131,8 @@ export function groceryView(key) {
   const findExtra = id => g.extras.find(x => x.id === id);
   // Things you added to this week's list, plus any saved in the week itself by an old app version.
   const manual = () => [...house.inWeek(key).map(h => ({ ...h, src: "house" })), ...g.extras.map(e => ({ ...e, src: "extra" }))];
-  // Each week's list starts fresh. On this week's list, what last week's list didn't get checked off
-  // (things you added and recipe groceries) is offered once: "Still need these?". Not things already here.
+  // Each week's list starts fresh. On this week's list, the things you added last week and didn't check off
+  // are offered once, unticked: "Still need these?". Recipe groceries aren't (this week's plan has its own).
   // Answered already (or skipped by mistake): `again` offers them anyway, from "From last week" at the bottom.
   let again = false;
   function leftovers(any = again) {
@@ -139,23 +140,7 @@ export function groceryView(key) {
     const gp = store.get().grocery?.[prev];
     if (gp?.carry && !any) return [];
     const here = new Set([...sec.buy.map(i => i.key), ...manual().map(e => parseAdd(e.text)?.key)]);
-    const out = [], seen = new Set();
-    const offer = (id, name, amount, text) => {
-      const k = parseAdd(text)?.key || name;
-      if (here.has(k) || seen.has(k)) return;
-      seen.add(k); out.push({ id, name, amount, text });
-    };
-    for (const h of house.leftovers(prev)) { const p = parseAdd(h.text); if (p) offer("h:" + h.id, p.name, p.amount, h.text); }
-    for (const e of gp?.extras || []) { const p = !e.checked && parseAdd(e.text); if (p) offer("x:" + e.id, p.name, p.amount, e.text); }
-    if ((store.week(prev).meals || []).length) {
-      for (const i of sectionize(prev).buy) {
-        if (i.checked || here.has(i.key)) continue;
-        // With its amount when that still reads as the same item ("1 bunch cilantro"), else just the name.
-        const amount = (i.amount || "").replace(/\s*\([^)]*\)/g, ""), withAmount = `${amount} ${i.name}`;
-        offer("r:" + i.key, i.name, amount, amount && parseAdd(withAmount)?.key === parseAdd(i.name)?.key ? withAmount : i.name);
-      }
-    }
-    return out;
+    return house.carryOffer(prev, here, gp?.extras || []);
   }
   // On the list = recipe lines (by food and by the name they show, e.g. "2% milk" after Use for recipe) and
   // lines you added, so quick chips and suggestions don't offer them again.
@@ -170,7 +155,7 @@ export function groceryView(key) {
     const done = sec.buy.filter(i => i.checked).length + extras.filter(x => x.e.checked).length;
     const st = stores.get(stores.current());
     const shop = shopping();
-    document.getElementById("storeBtn").innerHTML = `${pix("cart", 14)} <span class="sname">${esc(st ? st.name : "Any store")}</span> ▾`;
+    document.getElementById("storeBtn").innerHTML = `${pix("cart", 14)} <span class="sname">${esc(st ? st.name : "Any store")}</span>${icon("chevDown", "ic16")}`;
     document.getElementById("gcount").textContent = total ? `${done} of ${total}` : "";
     document.getElementById("gshoptop").innerHTML = total ? shopTopHTML(done, total) : "";
     document.getElementById("gchips").innerHTML = frequentItems(history(), onList()).map(n => `<button class="chip quiet" type="button" data-quick="${esc(n)}">+ ${esc(n)}</button>`).join("");
@@ -201,7 +186,7 @@ export function groceryView(key) {
     let cartOpen = false;
     try { cartOpen = sessionStorage.getItem(CART_KEY) === "1"; } catch {}
     const cart = inCart.length ? `<details class="gcart" id="gcart" ${cartOpen ? "open" : ""}>
-        <summary><div class="chead">${pix("cart", 16)} ${shop ? "In cart" : "Purchased"} (${inCart.length})<span class="n"><span class="tw">▾</span></span></div></summary>
+        <summary><div class="chead">${pix("cart", 16)} ${shop ? "In cart" : "Purchased"} (${inCart.length})<span class="n"><span class="tw">${icon("chevDown", "ic16")}</span></span></div></summary>
         <div class="card"><ul class="glist">${inCart.join("")}</ul></div>
       </details>` : "";
     let hint = true;
@@ -212,9 +197,9 @@ export function groceryView(key) {
     document.getElementById("gbody").innerHTML = `
       ${carry.length ? `<div class="gcarry"><div class="chead">${pix("cart", 16)} From last week</div>
       <div class="card gask">
-        <p><b>Still need these?</b> They didn't get checked off last week. Uncheck anything you don't want.</p>
-        ${carry.map(c => `<label class="gopt"><input type="checkbox" checked data-carry="${esc(c.id)}"><span>${esc(cap1(c.name))}${c.amount ? `<small>${esc(c.amount)}</small>` : ""}</span></label>`).join("")}
-        <div class="btnrow"><button class="cbtn primary" id="carryYes">Add to this week</button><button class="cbtn" id="carryNo">Start fresh</button></div>
+        <p><b>Still need these?</b> Tap what you still need.</p>
+        ${carry.map(c => `<label class="gopt"><input type="checkbox" data-carry="${esc(c.id)}"><span>${esc(cap1(c.name))}${c.amount ? `<small>${esc(c.amount)}</small>` : ""}</span></label>`).join("")}
+        <div class="btnrow"><button class="cbtn primary" id="carryYes">Add to this week</button><button class="cbtn" id="carryNo">No thanks</button></div>
       </div></div>` : ""}
       ${!meals.length && !extras.length && !carry.length ? `<div class="cempty">${pix("cart", 32)}<b>Nothing to buy yet</b>Plan some meals and the list builds itself, or add items above.<div class="gfoot"><a class="cbtn primary" href="#/plan/${key}">Go to meal plan</a></div></div>` : ""}
       ${sec.ask.length ? `<div class="gaskwrap"><div class="chead">Do you have these?</div>
@@ -228,11 +213,11 @@ export function groceryView(key) {
       ${total > 0 && done === total ? `<div class="gdone">${pix("cart", 32)}<b>Everything's in the cart</b>Nice shopping.</div>` : ""}
       ${byAisle}
       ${cart}
-      ${sec.have.length ? `<details class="ghave"><summary class="chead">${pix("canned", 16)} Already in your pantry<span class="n">${sec.have.length} ▾</span></summary>
+      ${sec.have.length ? `<details class="ghave"><summary class="chead">${pix("canned", 16)} Already in your pantry<span class="n">${sec.have.length} <span class="tw">${icon("chevDown", "ic16")}</span></span></summary>
         <div class="card"><ul class="glist">${sec.have.map(i => `<li class="grow"><div class="grow-main" style="cursor:default">
           <span class="gname">${esc(cap1(i.name))}</span><button class="chip quiet" data-outof="${esc(i.pantryKey ?? i.key)}">Ran out</button></div></li>`).join("")}</ul></div>
       </details>` : ""}
-      ${total && hint ? `<p class="ghint" id="ghint">Tap an item to check it off. Press and hold, or swipe left, for details.</p>` : ""}
+      ${total && hint ? `<p class="ghint" id="ghint">Tap an item to check it off. Press and hold for details.</p>` : ""}
       ${total || later ? `<div class="gfoot">
         ${total ? `<button class="cbtn ghost" id="share">Share list</button>` : ""}
         ${later ? `<button class="cbtn ghost" id="fromLast">From last week (${later})</button>` : ""}
@@ -316,15 +301,15 @@ export function groceryView(key) {
     if (quiet) return p;
     if (related) {
       // Same food as a recipe line, different variety: two lines unless you say this one is for the recipe.
-      toast(`Added ${p.name} · a recipe needs ${cap1(related.name)}`, { label: "Use for recipe", ms: 7000, run: () => {
+      toast(`Added ${p.name}. A recipe needs ${cap1(related.name)}.`, { label: "Use for recipe", ms: 7000, run: () => {
         const undo = useForRecipe(key, r.id, related.key);
         if (!undo) return;
         store.save(); paint();
         toast(`${p.name} is on the list for the recipe`, { label: "Undo", run: () => { undo(); store.save(); paint(); } });
       } });
     } else {
-      toast(result === "added" ? `Added ${p.name}${aisle ? ` · ${aisle[1]}` : ""}`
-        : `${p.name} is already on the list${amount ? (result === "recipe" ? ` · added ${amount}` : ` · now ${amount}`) : ""}`);
+      toast(result === "added" ? `Added ${p.name}${aisle ? ` to ${aisle[1]}` : ""}`
+        : `${p.name} is already on the list${amount ? (result === "recipe" ? `. Added ${amount}.` : `. Now ${amount}.`) : ""}`);
     }
     return p;
   }
@@ -339,13 +324,13 @@ export function groceryView(key) {
     if (sync.enabled()) { sync.syncNow().catch(() => {}); toast(`Added ${what}`); }
     // Opened in a browser that isn't connected to your household's sync (from a Shortcut that's
     // Safari, whose storage is separate from the home-screen app).
-    else toast(`Added ${what} · this browser isn't synced`, { label: "Set up", run: () => { location.hash = "#/settings"; } });
+    else toast(`Added ${what}. This browser isn't synced.`, { label: "Set up", run: () => { location.hash = "#/settings"; } });
   }
 
   function showSuggestions() {
     const list = suggest(input.value, history(), onList());
     sugEl.hidden = !list.length;
-    sugEl.innerHTML = list.map(s => `<li><button type="button" role="option" data-sug="${esc(s.text)}">${esc(s.name)}${s.n ? `<small>added ${s.n}×</small>` : ""}</button></li>`).join("");
+    sugEl.innerHTML = list.map(s => `<li><button type="button" role="option" data-sug="${esc(s.text)}">${esc(s.name)}${s.n ? `<small>added ${s.n === 1 ? "once" : s.n === 2 ? "twice" : `${s.n} times`}</small>` : ""}</button></li>`).join("");
   }
   // Your usual items show as chips while the add box is open and empty; once you type, suggestions take over.
   const chipsEl = document.getElementById("gchips");
@@ -398,7 +383,7 @@ export function groceryView(key) {
     if (bring) for (const c of list) {
       if (!ticked.has(c.id)) continue;
       if (c.id.startsWith("h:")) house.moveTo([c.id.slice(2)], key);
-      else addToList(key, c.text, me().name);
+      else addToList(key, c.text, me().name); // an older version's extra
       n++;
     }
     store.groceryState(prev).carry = Date.now();
@@ -426,7 +411,7 @@ export function groceryView(key) {
     document.getElementById("uncheck")?.addEventListener("click", () => { g.checked = {}; delete g.checkedBy; g.extras.forEach(e => e.checked = false); house.items().forEach(h => h.checked && house.setChecked(h.id, false)); store.save(); paint(); });
     document.getElementById("unhide")?.addEventListener("click", () => { g.hidden = {}; store.save(); paint(); });
     document.getElementById("share")?.addEventListener("click", async () => {
-      const text = `Groceries · ${weekLabel(key)}\n\n` + listAsText(key, { ...sec, extras: manual() });
+      const text = `Groceries, ${weekLabel(key)}\n\n` + listAsText(key, { ...sec, extras: manual() });
       try {
         if (navigator.share) await navigator.share({ title: "Grocery list", text });
         else { await navigator.clipboard.writeText(text); toast("List copied"); }
@@ -485,11 +470,11 @@ function itemSheet(g, it, redraw, remove) {
   if (!it) return;
   const ed = g.edits[it.key];
   const { el, close } = modal(cap1(it.name), `
-    <p class="muted" style="margin-top:0">${it.amount ? `<b>${esc(it.amount)}</b> · ` : ""}${it.cost != null ? `${money(it.cost)} · ` : ""}for ${esc(it.sources.join(", "))}</p>
+    <p class="muted gdmeta" style="margin-top:0">${it.amount ? `<b>${esc(it.amount)}</b>` : ""}${it.cost != null ? `<span>${money(it.cost)}</span>` : ""}<span>For ${esc(it.sources.join(", "))}</span></p>
     <label class="field"><span>Item</span><input type="text" id="eName" value="${esc(it.name)}" autocomplete="off"></label>
-    <label class="field"><span>Amount</span><input type="text" id="eAmt" value="${esc(it.amount || "")}" placeholder="e.g. 2 lb, 1 box" autocomplete="off"></label>
-    <label class="field"><span>Note<small>Brand, store, size…</small></span><input type="text" id="eNote" value="${esc(it.note || "")}" placeholder="e.g. organic" autocomplete="off"></label>
-    <p class="muted" style="font-size:14px;margin:0">Changes apply to this week's list.</p>
+    <label class="field"><span>Amount</span><input type="text" id="eAmt" value="${esc(it.amount || "")}" placeholder="Like 2 lb or 1 box" autocomplete="off"></label>
+    <label class="field"><span>Note<small>Brand, store or size</small></span><input type="text" id="eNote" value="${esc(it.note || "")}" placeholder="Like organic" autocomplete="off"></label>
+    <p class="muted" style="font-size:0.8235rem;margin:0">Changes apply to this week's list.</p>
     <div class="btnrow">
       <button class="btn primary" id="eSave">Save</button>
       ${ed ? `<button class="btn" id="eReset">Back to automatic</button>` : ""}
@@ -506,7 +491,7 @@ function itemSheet(g, it, redraw, remove) {
 function extraSheet(e, save, remove) {
   const { el, close } = modal("Edit item", `
     <label class="field"><span>Item<small>Include an amount if you like: “2 lb chicken thighs”</small></span><input type="text" id="exText" value="${esc(e.text)}" autocomplete="off"></label>
-    ${e.by ? `<p class="muted" style="font-size:14px;margin:0">Added by ${esc(e.by)}</p>` : ""}
+    ${e.by ? `<p class="muted" style="font-size:0.8235rem;margin:0">Added by ${esc(e.by)}</p>` : ""}
     <div class="btnrow"><button class="btn primary" id="exSave">Save</button><button class="btn danger" id="exRm">Remove</button></div>`);
   el.querySelector("#exSave").onclick = () => { const v = el.querySelector("#exText").value.trim(); close(); if (v) save(v); };
   el.querySelector("#exRm").onclick = () => { close(); remove(); };

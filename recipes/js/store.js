@@ -47,7 +47,7 @@ export function save(info) {
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
   } catch (e) {
-    alert("Couldn't save — storage may be full or blocked. Export a backup from Settings.");
+    alert("Couldn't save. Storage may be full or blocked. Export a backup from Settings.");
   }
   listeners.forEach(fn => fn(info));
 }

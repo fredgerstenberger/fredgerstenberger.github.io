@@ -11,6 +11,8 @@ import { matches, searchText } from "./book.js";
 import { recipeCost, money } from "../prices.js";
 import { planSwitch } from "./today.js";
 import { openReadyForm } from "./ready.js";
+import { estimatesNoticeHTML, bindEstimatesNotice } from "../tips.js";
+import { icon } from "../sprites.js";
 
 // Slots in the week's order (it starts the day after your shopping day).
 const slotIdx = s => { const [d, m] = s.split("-"); return weekDays().indexOf(d) * MEALS.length + MEALS.indexOf(m); };
@@ -33,12 +35,13 @@ export function weekNav(key, base) {
   const jump = key === home ? "" : `<a href="${base}/${home}">${weekRelation(home) === "Next week" ? "Go to next week" : "Go to this week"}</a>`;
   // The same week line as the grocery list: ◀ Sep 28 – Oct 4 · This week ▶, with a jump back on the right.
   return `<div class="csub">
-    <span class="wknav"><a href="${base}/${weekKey(addDays(parseWeekKey(key), -7))}" aria-label="Previous week">◀</a><span>${weekLabel(key)}${rel ? ` · ${rel}` : ""}</span><a href="${base}/${weekKey(addDays(parseWeekKey(key), 7))}" aria-label="Next week">▶</a></span>
+    <span class="wknav"><a href="${base}/${weekKey(addDays(parseWeekKey(key), -7))}" aria-label="Previous week">${icon("chevLeft", "ic20")}</a><span>${weekLabel(key)}${rel ? ` · ${rel}` : ""}</span><a href="${base}/${weekKey(addDays(parseWeekKey(key), 7))}" aria-label="Next week">${icon("chevRight", "ic20")}</a></span>
     ${jump ? jump.replace("<a ", '<a class="wkjump" ') : ""}
   </div>`;
 }
 
 const slotName = s => { const [d, m] = s.split("-"); return `${SHORT[d]} ${m}`; };
+const times = n => n === 1 ? "once" : n === 2 ? "twice" : `${n} times`;
 const sortSlots = arr => [...new Set(arr)].sort((a, b) => slotIdx(a) - slotIdx(b));
 
 // Move mode: { type: "slot", mealId, slot } moves/swaps one meal; { type: "day", day } swaps whole days.
@@ -76,7 +79,7 @@ export function planView(key) {
         <div class="slotname">${cap(m)}</div>
         <div class="slotmeals">
           ${chips}
-          ${target ? `<span class="droptag">${here.length ? "⇄ Swap" : "↓ Move here"}</span>`
+          ${target ? `<span class="droptag">${here.length ? `${icon("swap", "ic16")} Swap` : `${icon("arrowDown", "ic16")} Move here`}</span>`
             : !moving && !here.length && !isPastDay(key, di) ? `<button class="addslot" data-add="${slot}" aria-label="Add ${m} on ${d}">+</button>` : ""}
         </div>
       </div>`;
@@ -86,9 +89,9 @@ export function planView(key) {
     const hasMeals = meals.some(x => x.slots.some(sl => sl.startsWith(d + "-")));
     return `<section class="day ${date.getTime() === todayStr ? "today-day" : ""} ${daySource ? "source" : ""}">
       <div class="dayhead"><span class="px">${SHORT[d]} ${date.getDate()}</span>
-        <span class="dayright">${kcal ? `<small>${Math.round(kcal)} kcal · ${Math.round(protein)} g P</small>` : ""}
-        ${dayTarget ? `<button class="btn small primary" data-dayswap="${d}">⇄ Swap with ${SHORT[moving.day]}</button>`
-          : !moving && hasMeals ? `<button class="daybtn" data-moveday="${d}" aria-label="Swap ${SHORT[d]} with another day">⇅ Day</button>` : ""}</span>
+        <span class="dayright">${kcal ? `<small>${Math.round(kcal)} kcal, ${Math.round(protein)} g protein</small>` : ""}
+        ${dayTarget ? `<button class="btn small primary" data-dayswap="${d}">${icon("swap", "ic16")} Swap with ${SHORT[moving.day]}</button>`
+          : !moving && hasMeals ? `<button class="daybtn" data-moveday="${d}" aria-label="Swap ${SHORT[d]} with another day">${icon("swapVert", "ic16")} Day</button>` : ""}</span>
       </div>
       ${rows}
     </section>`;
@@ -117,21 +120,23 @@ export function planView(key) {
       </div>` : ""}
       <div class="banner">
         <span class="px">${esc(prepLabel(key))}</span>
-        <a class="btn small" href="#/grocery/${key}">Grocery list ▸</a>
-        ${weekCost > 0 ? `<span style="flex-basis:100%">Food cost ${money(weekCost)} · ${money(weekCost / servingsTotal)}/serving</span>` : ""}
+        <a class="btn small" href="#/grocery/${key}">Grocery list ${icon("chevRight", "ic16")}</a>
+        ${weekCost > 0 ? `<span style="flex-basis:100%">Food cost ${money(weekCost)}, ${money(weekCost / servingsTotal)} a serving</span>` : ""}
       </div>
+      ${meals.length ? estimatesNoticeHTML() : ""}
       ${days}
       <h2 class="sect">${DAY_LONG[weekDays()[6]]} prep list <small>${prep.length ? `${prep.length} to cook` : ""}</small></h2>
       ${prep.length ? `<ul class="preplist">${prep.map(x => {
         const r = store.recipe(x.rid);
         const sl = [...x.slots].sort((a, b) => slotIdx(a) - slotIdx(b));
         return `<li><a href="#/r/${r.id}"><b>${esc(r.title)}</b></a><br>
-          <span class="muted" style="font-size:15px">${x.servings} servings · eaten ${sl.length}× (${sl.map(slotName).join(", ")})</span></li>`;
-      }).join("")}</ul>` : `<p class="muted">Tap + on any meal to add a recipe. Cook once and tick extra slots for leftovers; groceries only count it once.</p>`}
+          <span class="muted" style="font-size:0.8824rem">${x.servings} servings, eaten ${times(sl.length)}: ${sl.map(slotName).join(", ")}</span></li>`;
+      }).join("")}</ul>` : `<p class="muted">Nothing to cook yet. Add a recipe to any meal.</p>`}
       ${meals.length ? `<div class="btnrow"><button class="btn small danger" id="clearWeek">Clear this week</button></div>` : ""}`,
-    status: `<span>${meals.length} meals planned</span><span>${people} ${people === 1 ? "person" : "people"} · <a href="#/settings">change</a></span>`
+    status: `<span>${meals.length} meals planned</span><span><a href="#/settings">${people} ${people === 1 ? "person" : "people"}</a></span>`
   }), { keepScroll: true });
 
+  bindEstimatesNotice(document.getElementById("app"));
   document.querySelectorAll("[data-add]").forEach(b => b.onclick = () => pickRecipe(key, b.dataset.add));
   if (!moving) document.querySelectorAll("[data-meal]").forEach(b => b.onclick = () => {
     const m = meals.find(x => x.id === b.dataset.meal);
@@ -161,10 +166,10 @@ function chipActions(key, meal, slot) {
   const sl = sortSlots(meal.slots);
   const many = sl.length > 1;
   const { el, close } = modal(slotName(slot), `
-    <p style="margin:0 0 2px;font-weight:700;font-size:18px">${esc(r.title)}</p>
-    <p class="muted" style="margin:0 0 14px;font-size:14px">${sl[0] === slot ? "Cooked here" : "Leftovers"}${many ? ` · planned ${sl.length}× (${sl.map(slotName).join(", ")})` : ""} · ${meal.servings} servings</p>
+    <p style="margin:0 0 2px;font-weight:700;font-size:1.0588rem">${esc(r.title)}</p>
+    <p class="muted" style="margin:0 0 14px;font-size:0.8235rem">${sl[0] === slot ? "Cooked here" : "Leftovers"}, ${meal.servings} servings${many ? `<br>Planned ${times(sl.length)}: ${sl.map(slotName).join(", ")}` : ""}</p>
     <div class="actlist">
-      <button class="btn primary" id="aMove">⇄ Move or swap</button>
+      <button class="btn primary" id="aMove">${icon("swap", "ic16")} Move or swap</button>
       <a class="btn" href="#/r/${r.id}">Open recipe</a>
       <button class="btn" id="aEdit">Edit days &amp; servings</button>
       <button class="btn danger" id="aRm">${many ? `Remove from ${slotName(slot)}` : "Remove from plan"}</button>
@@ -195,7 +200,7 @@ function moveMealTo(key, target) {
   m1.slots = sortSlots(m1.slots.map(x => (x === from ? target : x)));
   for (const m2 of others) m2.slots = sortSlots(m2.slots.map(x => (x === target ? from : x)));
   store.save();
-  toast(others.length ? `Swapped ${slotName(from)} ↔ ${slotName(target)}` : `Moved to ${slotName(target)}`);
+  toast(others.length ? `Swapped ${slotName(from)} and ${slotName(target)}` : `Moved to ${slotName(target)}`);
   planView(key);
 }
 
@@ -210,7 +215,7 @@ function swapDays(key, a, b) {
     }));
   }
   store.save();
-  toast(`Swapped ${DAY_LONG[a]} ↔ ${DAY_LONG[b]}`);
+  toast(`Swapped ${DAY_LONG[a]} and ${DAY_LONG[b]}`);
   planView(key);
 }
 
@@ -224,11 +229,11 @@ function pickRecipe(key, slot) {
   const all = store.recipes();
   let filter = all.some(r => (r.tags || []).includes(meal)) ? meal : "";
   let q = "";
-  const { el } = modal(`${cap(meal)} · ${slotName(slot).split(" ")[0]}`, `
+  const { el } = modal(`${slotName(slot).split(" ")[0]} ${meal}`, `
     ${all.length ? `
     <input type="search" id="pq" placeholder="Search your recipes…" autocomplete="off">
     <div class="chipscroll" style="margin-top:10px">
-      ${["breakfast", "lunch", "dinner", ":lowcal", ":protein", ":quick", ":budget"].map(c => `<button class="chip" data-f="${c}">${{ ":lowcal": "Low cal", ":protein": "High protein", ":quick": "Quick", ":budget": "Budget" }[c] || cap(c)}</button>`).join("")}
+      ${["breakfast", "lunch", "dinner", ":lowcal", ":protein", ":quick", ":budget"].map(c => `<button class="chip" data-f="${c}">${{ ":lowcal": "Lighter", ":protein": "High protein", ":quick": "Quick", ":budget": "Budget" }[c] || cap(c)}</button>`).join("")}
     </div>
     <ul class="picklist" id="pl"></ul>` : `<p>Your recipe book is empty.</p><a class="btn primary" href="#/add">+ Add a recipe</a>`}
     <button class="btn pickready" id="pReady">+ Store-bought meal</button>`);
@@ -242,7 +247,7 @@ function pickRecipe(key, slot) {
     const hits = all.filter(r => (!filter || matches(r, filter)) && words.every(w => searchText(r).includes(w)))
       .sort((a, b) => avgRating(b) - avgRating(a) || a.title.localeCompare(b.title));
     pl.innerHTML = hits.length ? hits.map(r => `<li><button data-rid="${r.id}"><b>${esc(r.title)}</b><span class="muted">${metaLine(r).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ")}</span></button></li>`).join("")
-      : `<li class="muted" style="padding:14px 4px">No recipes match${filter ? ` “${filter.replace(":", "")}” — <button class="btn small" id="nof">show all</button>` : "."}</li>`;
+      : `<li class="muted" style="padding:14px 4px">No recipes match${filter ? `. <button class="btn small" id="nof">Show all</button>` : "."}</li>`;
     pl.querySelector("#nof")?.addEventListener("click", () => { filter = ""; draw(); });
   }
   el.querySelector("#pq").addEventListener("input", e => { q = e.target.value; draw(); });
@@ -277,14 +282,14 @@ function mealOptions(key, rid, existing, presetSlot) {
   let touched = !!existing;
 
   const { el, close } = modal(existing ? "Planned meal" : "Add to plan", `
-    <p style="margin:0 0 4px;font-weight:700;font-size:18px">${esc(r.title)}</p>
-    <p class="muted" style="margin:0 0 14px;font-size:14px">${weekLabel(key)} · recipe makes ${base}${r.yield ? "" : " (assumed)"}</p>
+    <p style="margin:0 0 4px;font-weight:700;font-size:1.0588rem">${esc(r.title)}</p>
+    <p class="muted" style="margin:0 0 14px;font-size:0.8235rem">${weekLabel(key)}<br>Recipe makes ${base}${r.yield ? "" : " (assumed)"}</p>
     <div class="setrow" style="border-top:1px solid var(--sunk)">
       <span>Servings to cook<small id="hint"></small></span>
-      <span class="stepper"><button id="m" aria-label="Fewer">−</button><output id="sv">${servings}</output><button id="p" aria-label="More">+</button></span>
+      <span class="stepper"><button id="m" aria-label="Fewer servings">${icon("minus", "ic16")}</button><output id="sv">${servings}</output><button id="p" aria-label="More servings">${icon("plus", "ic16")}</button></span>
     </div>
     <p style="margin:14px 0 6px;font-family:var(--pixel)">When will you eat it?</p>
-    <p class="muted" style="margin:0 0 10px;font-size:14px">Cook once; extra ticks are leftovers. Groceries count it once. Gray slots already have a meal or are in the past.</p>
+    <p class="muted" style="margin:0 0 10px;font-size:0.8235rem">Cook once; extra ticks are leftovers. Groceries count it once. Gray slots already have a meal or are in the past.</p>
     <div class="slotpick">
       <span></span>${MEALS.map(m => `<span class="h">${cap(m)}</span>`).join("")}
       ${weekDays().map((d, di) => `<span class="d">${SHORT[d]} ${dayDate(key, d).getDate()}</span>${MEALS.map(m => {
@@ -303,7 +308,7 @@ function mealOptions(key, rid, existing, presetSlot) {
   function upd() {
     sv.textContent = servings;
     const need = chosen.size * people;
-    hint.textContent = chosen.size ? `${chosen.size} meal${chosen.size > 1 ? "s" : ""} × ${people} = ${need} needed${servings < need ? " — not enough!" : ""}` : "Pick at least one meal";
+    hint.textContent = chosen.size ? `${need} serving${need === 1 ? "" : "s"} needed for ${chosen.size} meal${chosen.size > 1 ? "s" : ""}${people > 1 ? ` for ${people}` : ""}${servings < need ? ". Not enough." : ""}` : "Pick at least one meal";
   }
   el.querySelector("#m").onclick = () => { servings = Math.max(1, servings - 1); touched = true; upd(); };
   el.querySelector("#p").onclick = () => { servings = Math.min(99, servings + 1); touched = true; upd(); };

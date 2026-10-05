@@ -157,25 +157,6 @@ export const SPRITES = {
       "................"
     ],
     colors: { k: K, y: "#F7C948", w: K, d: "#2E7D3A" }
-  },
-  star: {
-    map: [
-      ".......kk.......",
-      "......kyyk......",
-      "......kyyk......",
-      ".....kyyyyk.....",
-      "kkkkkkyyyykkkkkk",
-      "kyyyyyyyyyyyyyyk",
-      ".kyyyyyyyyyyyyk.",
-      "..kyyyyyyyyyyk..",
-      "...kyyyyyyyyk...",
-      "...kyyyyyyyyk...",
-      "..kyyyykkyyyyk..",
-      "..kyyykk.kyyyk..",
-      ".kyykk....kkyyk.",
-      ".kkk........kkk."
-    ],
-    colors: { k: K, y: "#F7C948" }
   }
 };
 
@@ -191,20 +172,6 @@ SPRITES.back = {
     "..ccc......",
     "...cc......",
     "....c......"
-  ],
-  colors: { c: "currentColor" }
-};
-SPRITES.close = {
-  map: [
-    "cc.....cc",
-    "ccc...ccc",
-    ".ccc.ccc.",
-    "..ccccc..",
-    "...ccc...",
-    "..ccccc..",
-    ".ccc.ccc.",
-    "ccc...ccc",
-    "cc.....cc"
   ],
   colors: { c: "currentColor" }
 };
@@ -241,6 +208,439 @@ SPRITES.filter = {
   ],
   colors: { c: "currentColor" }
 };
+
+
+// The interface icon set: 12 × 12 so it lands on whole device pixels at 16, 20 and 24 px on a 3× screen.
+// "c" pixels take the text color; stars are gold with a darker edge (the empty star is just the edge).
+const STAR = { k: "#B7791F", y: "#F7C948" };
+SPRITES.chevLeft = {
+  map: [
+    "............",
+    ".......cc...",
+    "......cc....",
+    ".....cc.....",
+    "....cc......",
+    "...cc.......",
+    "...cc.......",
+    "....cc......",
+    ".....cc.....",
+    "......cc....",
+    ".......cc...",
+    "............"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.chevRight = {
+  map: [
+    "............",
+    "...cc.......",
+    "....cc......",
+    ".....cc.....",
+    "......cc....",
+    ".......cc...",
+    ".......cc...",
+    "......cc....",
+    ".....cc.....",
+    "....cc......",
+    "...cc.......",
+    "............"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.chevDown = {
+  map: [
+    "............",
+    "............",
+    "............",
+    ".c........c.",
+    ".cc......cc.",
+    "..cc....cc..",
+    "...cc..cc...",
+    "....cccc....",
+    ".....cc.....",
+    "............",
+    "............",
+    "............"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.chevUp = {
+  map: [
+    "............",
+    "............",
+    "............",
+    ".....cc.....",
+    "....cccc....",
+    "...cc..cc...",
+    "..cc....cc..",
+    ".cc......cc.",
+    ".c........c.",
+    "............",
+    "............",
+    "............"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.close = {
+  map: [
+    "............",
+    ".cc......cc.",
+    ".ccc....ccc.",
+    "..ccc..ccc..",
+    "...cccccc...",
+    "....cccc....",
+    "....cccc....",
+    "...cccccc...",
+    "..ccc..ccc..",
+    ".ccc....ccc.",
+    ".cc......cc.",
+    "............"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.check = {
+  map: [
+    "............",
+    "............",
+    "..........cc",
+    ".........ccc",
+    "........ccc.",
+    ".cc....ccc..",
+    ".ccc..ccc...",
+    "..cccccc....",
+    "...cccc.....",
+    "....cc......",
+    "............",
+    "............"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.plus = {
+  map: [
+    "............",
+    ".....cc.....",
+    ".....cc.....",
+    ".....cc.....",
+    ".....cc.....",
+    ".cccccccccc.",
+    ".cccccccccc.",
+    ".....cc.....",
+    ".....cc.....",
+    ".....cc.....",
+    ".....cc.....",
+    "............"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.minus = {
+  map: [
+    "............",
+    "............",
+    "............",
+    "............",
+    "............",
+    ".cccccccccc.",
+    ".cccccccccc.",
+    "............",
+    "............",
+    "............",
+    "............",
+    "............"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.more = {
+  map: [
+    "............",
+    "............",
+    "............",
+    "............",
+    "............",
+    ".cc..cc..cc.",
+    ".cc..cc..cc.",
+    "............",
+    "............",
+    "............",
+    "............",
+    "............"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.pause = {
+  map: [
+    "............",
+    "..ccc..ccc..",
+    "..ccc..ccc..",
+    "..ccc..ccc..",
+    "..ccc..ccc..",
+    "..ccc..ccc..",
+    "..ccc..ccc..",
+    "..ccc..ccc..",
+    "..ccc..ccc..",
+    "..ccc..ccc..",
+    "..ccc..ccc..",
+    "............"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.play = {
+  map: [
+    "............",
+    "...c........",
+    "...cc.......",
+    "...ccc......",
+    "...cccc.....",
+    "...ccccc....",
+    "...ccccc....",
+    "...cccc.....",
+    "...ccc......",
+    "...cc.......",
+    "...c........",
+    "............"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.edit = {
+  map: [
+    "............",
+    ".........cc.",
+    ".........cc.",
+    ".......cc...",
+    "......ccc...",
+    ".....ccc....",
+    "....ccc.....",
+    "...ccc......",
+    "..ccc.......",
+    "..cc........",
+    ".c..........",
+    "............"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.camera = {
+  map: [
+    "............",
+    "...cccc.....",
+    "cccccccccccc",
+    "c..........c",
+    "c...cccc...c",
+    "c..cc..cc..c",
+    "c..c....c..c",
+    "c..c....c..c",
+    "c..cc..cc..c",
+    "c...cccc...c",
+    "c..........c",
+    "cccccccccccc"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.clipboard = {
+  map: [
+    "....cccc....",
+    ".cccc..cccc.",
+    ".c..cccc..c.",
+    ".c........c.",
+    ".c.cccccc.c.",
+    ".c........c.",
+    ".c.cccccc.c.",
+    ".c........c.",
+    ".c.cccc...c.",
+    ".c........c.",
+    ".c........c.",
+    ".cccccccccc."
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.external = {
+  map: [
+    "......cccccc",
+    "......cccccc",
+    ".........ccc",
+    "cccc....cccc",
+    "c......cc.cc",
+    "c.....cc..cc",
+    "c....cc.....",
+    "c...cc......",
+    "c.......c...",
+    "c.......c...",
+    "c.......c...",
+    "ccccccccc..."
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.swap = {
+  map: [
+    ".......c....",
+    ".......cc...",
+    "cccccccccc..",
+    "ccccccccccc.",
+    ".......cc...",
+    ".......c....",
+    "....c.......",
+    "...cc.......",
+    "..cccccccccc",
+    ".ccccccccccc",
+    "...cc.......",
+    "....c......."
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.swapVert = {
+  map: [
+    "..cc........",
+    "..cc.....c..",
+    "..cc....cc..",
+    "..cc...cccc.",
+    "..cc..cccccc",
+    "..cc....cc..",
+    "..cc....cc..",
+    "cccccc..cc..",
+    ".cccc...cc..",
+    "..cc....cc..",
+    "...c....cc..",
+    "........cc.."
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.arrowUp = {
+  map: [
+    "............",
+    ".....cc.....",
+    "....cccc....",
+    "...cccccc...",
+    "..cccccccc..",
+    ".ccc.cc.ccc.",
+    ".cc..cc..cc.",
+    ".....cc.....",
+    ".....cc.....",
+    ".....cc.....",
+    ".....cc.....",
+    "............"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.arrowDown = {
+  map: [
+    "............",
+    ".....cc.....",
+    ".....cc.....",
+    ".....cc.....",
+    ".....cc.....",
+    ".cc..cc..cc.",
+    ".ccc.cc.ccc.",
+    "..cccccccc..",
+    "...cccccc...",
+    "....cccc....",
+    ".....cc.....",
+    "............"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.grip = {
+  map: [
+    "............",
+    "............",
+    ".cccccccccc.",
+    "............",
+    "............",
+    ".cccccccccc.",
+    "............",
+    "............",
+    ".cccccccccc.",
+    "............",
+    "............",
+    "............"
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.info = {
+  map: [
+    "...cccccc...",
+    "..c......c..",
+    ".c...cc...c.",
+    "c....cc....c",
+    "c..........c",
+    "c...ccc....c",
+    "c....cc....c",
+    "c....cc....c",
+    "c....cc....c",
+    ".c..cccc..c.",
+    "..c......c..",
+    "...cccccc..."
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.timer = {
+  map: [
+    "....cccc....",
+    ".....cc.....",
+    "...cccccc.c.",
+    "..c......cc.",
+    ".c...cc...c.",
+    ".c...cc...c.",
+    "c....cc....c",
+    "c....ccc...c",
+    "c.....ccc..c",
+    ".c........c.",
+    "..c......c..",
+    "...cccccc..."
+  ],
+  colors: { c: "currentColor" }
+};
+SPRITES.star = {
+  map: [
+    ".....kk.....",
+    ".....kk.....",
+    "....kyyk....",
+    "kkkkkyykkkkk",
+    "kyyyyyyyyyyk",
+    ".kyyyyyyyyk.",
+    "..kyyyyyyk..",
+    "..kyyyyyyk..",
+    ".kyyykkyyyk.",
+    ".kyyk..kyyk.",
+    "kyyk....kyyk",
+    "kkk......kkk"
+  ],
+  colors: STAR
+};
+SPRITES.starHalf = {
+  map: [
+    ".....kk.....",
+    ".....kk.....",
+    "....ky.k....",
+    "kkkkky.kkkkk",
+    "kyyyyy.....k",
+    ".kyyyy....k.",
+    "..kyyy...k..",
+    "..kyyy...k..",
+    ".kyyykk...k.",
+    ".kyyk..k..k.",
+    "kyyk....k..k",
+    "kkk......kkk"
+  ],
+  colors: STAR
+};
+SPRITES.starEmpty = {
+  map: [
+    ".....kk.....",
+    ".....kk.....",
+    "....k..k....",
+    "kkkkk..kkkkk",
+    "k..........k",
+    ".k........k.",
+    "..k......k..",
+    "..k......k..",
+    ".k...kk...k.",
+    ".k..k..k..k.",
+    "k..k....k..k",
+    "kkk......kkk"
+  ],
+  colors: { k: "currentColor" }
+};
+
+/** An interface icon (sized by CSS: 1em, or the .ic16/.ic20/.ic24 classes). Decorative: the button it sits in carries the label. */
+export const icon = (name, cls = "") => sprite(name, `ic ${cls}`.trim());
 
 export function sprite(name, cls = "") {
   const { map, colors } = SPRITES[name];

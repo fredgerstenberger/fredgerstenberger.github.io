@@ -5,12 +5,13 @@ import { shell, render } from "../ui.js";
 import { openStorePicker } from "./stores.js";
 import { APP_VERSION } from "../version.js";
 import { plural, fmtDate } from "../util.js";
+import { icon } from "../sprites.js";
 
 export function moreView() {
   const s = store.get();
   const onHand = Object.values(s.pantry || {}).filter(v => v === true).length;
   const syncText = sync.enabled() ? (sync.info().error ? "Paused" : "On") : "Off";
-  const row = (href, label, note = "", attrs = "") => `<li><a class="morerow" href="${href}" ${attrs}><span>${label}</span>${note ? `<small>${note}</small>` : ""}<span class="tdgo" aria-hidden="true">›</span></a></li>`;
+  const row = (href, label, note = "", attrs = "") => `<li><a class="morerow" href="${href}" ${attrs}><span>${label}</span>${note ? `<small>${note}</small>` : ""}<span class="tdgo">${icon("chevRight", "ic16")}</span></a></li>`;
   render(shell({
     title: "More",
     back: null,
@@ -26,7 +27,7 @@ export function moreView() {
         ${row("#/settings", "Settings")}
         ${row("#/settings", "Backup", s.lastBackup ? `Last: ${fmtDate(new Date(s.lastBackup))}` : "", 'data-focus="backup"')}
       </ul></div>
-      <p class="muted" style="font-size:14px;margin:var(--s3) 4px">Recipe Box ${APP_VERSION} · ${plural(Object.keys(s.recipes).length, "recipe")}</p>`
+      <p class="muted" style="font-size:0.8235rem;margin:var(--s3) 4px">Recipe Box ${APP_VERSION}<br>${plural(Object.keys(s.recipes).length, "recipe")}</p>`
   }));
   document.getElementById("moreStores").onclick = e => { e.preventDefault(); openStorePicker(() => {}); };
   // Sync and Backup open Settings at their section.

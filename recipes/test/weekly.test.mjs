@@ -113,3 +113,21 @@ test("an item checked by an older app version keeps its week", async () => {
   assert.equal(HA.get(id).wk, THIS);
   assert.equal(HA.get(id).checked, true);
 });
+
+test("Still need these? offers only things people added, not last week's recipe groceries", async () => {
+  const p = await one({
+    recipes: { r1: { id: "r1", title: "Tacos", yield: 4, ingredients: ["1 lb ground beef", "8 tortillas", "1 cup salsa"], steps: [] } },
+    plan: { [LAST]: { meals: [{ id: "m1", rid: "r1", servings: 4, slots: ["mon-dinner"] }] } }
+  });
+  const coffee = p.H.add("coffee", "", "a", 1, LAST), foil = p.H.add("foil", "", "b", 2, LAST), soap = p.H.add("dish soap", "", "c", 3, LAST);
+  p.H.setChecked(soap, true);
+  const offer = p.H.carryOffer(LAST, new Set(["foil"]));
+  assert.deepEqual(offer.map(o => o.name.toLowerCase()), ["coffee"], "unchecked added items, minus what's already on this list");
+  assert.ok(offer.every(o => o.id.startsWith("h:")), "no recipe groceries");
+  // Nothing added last week: nothing to offer.
+  const q = await one();
+  assert.deepEqual(q.H.carryOffer(LAST), []);
+  // An older version's extras on last week's record still count as added by hand.
+  assert.deepEqual(p.H.carryOffer(LAST, new Set(["coffee", "foil"]), [{ id: "e1", text: "paper towels" }, { id: "e2", text: "batteries", checked: true }]).map(o => o.name.toLowerCase()), ["paper towels"]);
+  void coffee; void foil;
+});

@@ -3,6 +3,7 @@ import * as store from "../store.js";
 import { esc } from "../util.js";
 import { shell, render, toast } from "../ui.js";
 import { FOODS, FOOD_BY_NAME, AISLES, matchFood } from "../fooddb.js";
+import { icon } from "../sprites.js";
 
 export function pantryView() {
   const pantry = store.get().pantry;
@@ -24,7 +25,7 @@ export function pantryView() {
       <form id="addForm">
         <label class="field"><span>I have…</span>
           <div class="inline">
-            <input type="text" id="addIn" list="foods" placeholder="e.g. soy sauce" autocomplete="off" autocapitalize="none">
+            <input type="text" id="addIn" list="foods" placeholder="Like soy sauce" autocomplete="off" autocapitalize="none">
             <button class="btn small" type="submit">Add</button>
           </div>
         </label>
@@ -33,8 +34,8 @@ export function pantryView() {
       <h2 class="sect">On hand <small>${have.length}</small></h2>
       ${have.length ? group(have, k => `<button class="btn small" data-out="${esc(k)}">Ran out</button>`) : `<p class="muted">Nothing yet.</p>`}
       ${need.length ? `<h2 class="sect">Don't have <small>${need.length}</small></h2>
-        <p class="muted" style="margin-top:0;font-size:14px">These go on the list whenever a recipe needs them.</p>
-        ${group(need, k => `<span style="display:flex;gap:8px"><button class="btn small" data-have="${esc(k)}">Have it</button><button class="iconbtn" data-forget="${esc(k)}" aria-label="Forget ${esc(k)}">✕</button></span>`)}` : ""}`,
+        <p class="muted" style="margin-top:0;font-size:0.8235rem">These go on the list whenever a recipe needs them.</p>
+        ${group(need, k => `<span style="display:flex;gap:8px"><button class="btn small" data-have="${esc(k)}">Have it</button><button class="iconbtn" data-forget="${esc(k)}" aria-label="Forget ${esc(k)}">${icon("close", "ic16")}</button></span>`)}` : ""}`,
     status: `<span>${have.length} on hand</span><span>Saved on this device</span>`
   }), { keepScroll: true });
 

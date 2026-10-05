@@ -10,6 +10,7 @@ import { normalizeLabel } from "../label.js";
 import { photoOf, setPhoto } from "../photos.js";
 import { bump } from "../data.js";
 import { openAddToPlan } from "./plan.js";
+import { icon } from "../sprites.js";
 
 const MEALS = [["breakfast", "Breakfast"], ["lunch", "Lunch"], ["dinner", "Dinner"]];
 const r0 = n => (n == null || isNaN(n) ? "" : Math.round(n * 10) / 10);
@@ -27,8 +28,8 @@ export function openReadyForm({ id = null, meal = "", onSaved } = {}) {
   const field = (name, label, val, unit, attrs = "") => `<label class="rdfield"><span>${label}</span><span class="lin"><input type="number" name="${name}" inputmode="decimal" step="any" min="0" value="${val ?? ""}" ${attrs}>${unit ? `<small>${unit}</small>` : ""}</span></label>`;
   const { el, close } = modal(old ? "Edit store-bought meal" : "Store-bought meal", `
     <form id="rdForm" class="rdform">
-      <label class="rdwide">Name<input type="text" name="title" required maxlength="120" value="${esc(old?.title || "")}" placeholder="e.g. Chicken Tikka Masala" autocomplete="off"></label>
-      <label class="rdwide">Store<input type="text" name="store" list="rdStores" maxlength="40" value="${esc(old?.ready?.store ?? stores[0] ?? "")}" placeholder="e.g. Trader Joe's" autocomplete="off"></label>
+      <label class="rdwide">Name<input type="text" name="title" required maxlength="120" value="${esc(old?.title || "")}" placeholder="Chicken Tikka Masala" autocomplete="off"></label>
+      <label class="rdwide">Store<input type="text" name="store" list="rdStores" maxlength="40" value="${esc(old?.ready?.store ?? stores[0] ?? "")}" placeholder="Trader Joe's" autocomplete="off"></label>
       <datalist id="rdStores">${stores.map(s => `<option value="${esc(s)}">`).join("")}</datalist>
       <div class="rdwide"><span class="rdlabel">Meal</span><div class="chips">${MEALS.map(([m, l]) => `<button type="button" class="chip" data-meal="${m}" aria-pressed="${meals.has(m)}">${l}</button>`).join("")}</div></div>
       ${field("servings", "Servings per package", old?.yield ?? 1, "", 'step="1" min="1"')}
@@ -36,8 +37,8 @@ export function openReadyForm({ id = null, meal = "", onSaved } = {}) {
       <div class="rdwide rdnu">
         <span class="rdlabel">Nutrition per serving <small>(optional)</small></span>
         <div class="filllabel">
-          <button type="button" class="btn small" id="rdPaste">📋 Paste label image</button>
-          <label class="btn small fsfile">📷 Photo<input type="file" accept="image/*" id="rdPhoto" hidden></label>
+          <button type="button" class="btn small" id="rdPaste">${icon("clipboard", "ic16")}Paste label image</button>
+          <label class="btn small fsfile">${icon("camera", "ic16")}Photo<input type="file" accept="image/*" id="rdPhoto" hidden></label>
           <p class="muted fillmsg" id="rdMsg" aria-live="polite"></p>
         </div>
         <div class="rdgrid">
@@ -99,15 +100,15 @@ export function readyView(r) {
     bigTitle: false,
     title: r.title,
     back: "#/book",
-    actions: `<button class="tb-btn tb-more" id="moreBtn" aria-label="More actions" aria-haspopup="dialog">⋯</button>`,
+    actions: `<button class="tb-btn tb-more" id="moreBtn" aria-label="More actions" aria-haspopup="dialog">${icon("more", "ic20")}</button>`,
     body: `
       ${photo ? `<img class="rphoto" data-photo src="${esc(photo)}" alt="" decoding="sync" referrerpolicy="no-referrer">` : ""}
       <h2 class="rtitle">${esc(r.title)}</h2>
       <p class="rsource"><span class="rdtag">Store-bought</span>${r.ready.store ? ` from ${esc(r.ready.store)}` : ""}</p>
       <dl class="facts">
         ${row("Servings", `${r.yield || 1} per package`)}
-        ${cost.total > 0 ? row("Cost", `${money(cost.perServing)}/serving<br><span class="muted" style="font-size:14px">${money(cost.total)} a package</span>`) : ""}
-        ${nu.kcal ? row("Per serving", `${Math.round(nu.kcal)} kcal<br><span class="muted" style="font-size:14px">${Math.round(nu.protein || 0)} g protein</span>`) : ""}
+        ${cost.total > 0 ? row("Cost", `${money(cost.perServing)}/serving<br><span class="muted" style="font-size:0.8235rem">${money(cost.total)} a package</span>`) : ""}
+        ${nu.kcal ? row("Per serving", `${Math.round(nu.kcal)} kcal<br><span class="muted" style="font-size:0.8235rem">${Math.round(nu.protein || 0)} g protein</span>`) : ""}
       </dl>
       <div class="btnrow rbtns">
         <button class="btn primary" id="planBtn">+ Meal plan</button>
@@ -116,7 +117,7 @@ export function readyView(r) {
       <h2 class="sect">Nutrition <small>per serving${n?.serving ? ` (${esc(n.serving)})` : ""}</small></h2>
       ${n ? `<div class="card"><dl class="rdnums">
           ${[["Calories", n.kcal, ""], ["Protein", n.protein, " g"], ["Carbs", n.carbs, " g"], ["Fat", n.fat, " g"], ["Fiber", n.fiber, " g"]].filter(x => x[1] != null).map(([l, v, u]) => `<div><dt>${l}</dt><dd>${Math.round(v)}${u}</dd></div>`).join("")}
-        </dl></div><p class="muted" style="font-size:14px">From the package label.</p>`
+        </dl></div><p class="muted" style="font-size:0.8235rem">From the package label.</p>`
       : `<p class="muted">No label yet, so it isn't counted in the day's calories. <button class="btn small" id="addLabel">Add label</button></p>`}`
   }));
   const edit = () => openReadyForm({ id: r.id, onSaved: () => readyView(store.recipe(r.id)) });

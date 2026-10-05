@@ -7,9 +7,10 @@ import { photoFromPage } from "../parse.js";
 import { ratingOf, rate } from "../ratings.js";
 import * as sync from "../sync.js";
 import { parseIngredient, displayAmount, equivalents } from "../ingredients.js";
-import { nutritionFor, servingsOf } from "../nutrition.js";
+import { nutritionFor, servingsOf, ingredientCounts, countsText } from "../nutrition.js";
 import { findTimes, startTimer } from "../timers.js";
-import { sprite } from "../sprites.js";
+import { sprite, icon } from "../sprites.js";
+import { tipHTML, estimatesNoticeHTML, estimatesButton, bindEstimatesNotice } from "../tips.js";
 import { openAddToPlan } from "./plan.js";
 import { recipeCost, money, REGIONS } from "../prices.js";
 import { infoItems, openInfo, askAfterSave } from "../fillin.js";
@@ -54,20 +55,20 @@ function regionName() {
 function ratingHTML(r) {
   const R = ratingOf(r);
   const mine = !sync.enabled() && !R.others.length ? R.mine || (R.legacy ? R.avg : 0) : R.mine;
-  const hint = mine ? "" : `<span class="rhint">Tap a star to rate</span>`;
+  const hint = mine ? "" : tipHTML("rate", "Tap a star to rate it.");
   const shared = sync.enabled() || R.others.length;
   const avg = shared && R.count
-    ? `<p class="ravg">${sprite("star")}<b>${Math.round(R.avg * 10) / 10}</b> average · ${R.count} rating${R.count > 1 ? "s" : ""}${R.others.filter(o => o.name).map(o => ` · ${esc(o.name)} ${o.stars}★`).join("")}</p>`
+    ? `<p class="ravg">${icon("star", "ic16")}<b>${Math.round(R.avg * 10) / 10}</b> average from ${R.count} rating${R.count > 1 ? "s" : ""}${R.others.some(o => o.name) ? `<span class="ravgwho">${R.others.filter(o => o.name).map(o => `${esc(o.name)} ${o.stars}`).join(", ")}</span>` : ""}</p>`
     : "";
   return `<div class="ratingbox">
-    <div class="rmine"><span class="rlabel">Your rating</span>${starsHTML(mine, { label: "Your rating" })}${hint}</div>
+    <div class="rmine"><span class="rlabel">Your rating</span>${starsHTML(mine, { label: "Your rating" })}</div>${hint}
     ${avg}
   </div>`;
 }
 
 // Each ingredient's part of the nutrition, biggest first, with where its numbers come from. Tapping one
 // opens its nutrition: scan or paste the product's label to make it exact.
-const SRC = { label: "Label", yours: "Yours", usda: "USDA", standin: "≈ {base} values", table: "", none: "Not counted" };
+const SRC = { label: "Label", yours: "Yours", usda: "USDA", standin: "Using {base}", table: "", none: "Not counted" };
 function nuRowsHTML(rows) {
   const seen = new Set();
   return rows.filter(r => r.key).slice().sort((a, b) => (b.kcal ?? -1) - (a.kcal ?? -1)).map(row => {
@@ -77,7 +78,7 @@ function nuRowsHTML(rows) {
     return `<li><button class="nurow ${row.source === "none" ? "miss" : ""}" data-food="${esc(row.key)}">
       <span class="nuname">${esc(row.line)}${tag ? `<small class="nutag ${row.source}">${esc(tag)}</small>` : ""}</span>
       <span class="nuval">${row.kcal != null ? `${Math.round(row.kcal)} kcal<br>${Math.round(row.protein)} g P` : "?"}</span>
-      <span class="nugo" aria-hidden="true">›</span>
+      <span class="nugo">${icon("chevRight", "ic16")}</span>
     </button></li>`;
   }).join("");
 }
@@ -103,6 +104,19 @@ export function nuNudge(r, nu) {
   if (!missing.length || hidden[hide]) return null;
   return { hide, items: missing, action: "Add info", text: `Not counted: ${names.slice(0, 3).join(", ")}${names.length > 3 ? ` and ${names.length - 3} more` : ""}` };
 }
+
+// Where a recipe came from, near its title: the site and author, with a link back to the original. Recipes
+// that AI read from a page or a photo say so, so people know to check them.
+function sourceHTML(r) {
+  const note = r.origin === "photo" ? "Imported from photo" : r.origin === "ai-page" ? "Read from page" : "";
+  if (!r.url) return `<p class="rsource">${r.author ? `<span>By ${esc(r.author)}</span>` : "<span>Your recipe</span>"}${note ? `<span class="rorigin">${note}</span>` : ""}</p>`;
+  return `<p class="rsource"><span class="rsite">${esc(r.site || domainOf(r.url))}</span>${r.author ? `<span>By ${esc(r.author)}</span>` : ""}
+    <a class="rview" href="${esc(r.url)}" target="_blank" rel="noopener">View original ${icon("external", "ic16")}</a>${note ? `<span class="rorigin">${note}</span>` : ""}</p>`;
+}
+const costCounts = c => {
+  const n = c.rows.length, priced = c.rows.filter(x => x.cost != null).length;
+  return n ? `${priced} of ${n} ingredient${n === 1 ? "" : "s"} priced` : "";
+};
 
 function fmtN(n) { return n == null || isNaN(n) ? "–" : Math.round(n); }
 
@@ -130,8 +144,8 @@ export function recipeView(id) {
 
     const ingEditHTML = (r.ingredients || []).map((line, i) => `
       <li class="ingedit"><input type="text" data-ingtext="${i}" value="${esc(line)}" aria-label="Ingredient ${i + 1}" autocomplete="off">
-      <button class="iconbtn" data-ingdel="${i}" aria-label="Remove ingredient">✕</button></li>`).join("") + `
-      <li class="ingedit"><input type="text" id="ingAdd" placeholder="+ Add ingredient (e.g. 1 tsp cumin)" autocomplete="off">
+      <button class="iconbtn" data-ingdel="${i}" aria-label="Remove ingredient">${icon("close", "ic16")}</button></li>`).join("") + `
+      <li class="ingedit"><input type="text" id="ingAdd" placeholder="Add an ingredient" autocomplete="off">
       <button class="btn small" id="ingAddBtn">Add</button></li>`;
 
     const ingHTML = (r.ingredients || []).map((line, i) => {
@@ -158,12 +172,12 @@ export function recipeView(id) {
       const cls = P.steps.has(i) ? "done" : i === firstOpen ? "current" : "";
       const { html, timers } = findTimes(esc(st));
       return `<li class="step ${cls}" data-step="${i}"><div class="stepbody"><span>${html}</span>${timers.map(tm =>
-        `<button class="timelink" data-min="${tm.min}" data-label="Step ${stepNo}" aria-label="Start ${tm.text} timer">${sprite("clock")}<span>${tm.text}</span></button>`).join("")}</div></li>`;
+        `<button class="timelink" data-min="${tm.min}" data-label="Step ${stepNo}" aria-label="Start ${tm.text} timer">${icon("timer", "ic16")}<span>${tm.text}</span></button>`).join("")}</div></li>`;
     }).join("");
 
     const times = [];
     if (r.prepMin) times.push(`Prep ${fmtMinutes(r.prepMin)}`);
-    if (r.cookMin) times.push(`Cook ${fmtMinutes(r.cookMin)}`);
+    if (r.cookMin) times.push(`${times.length ? "cook" : "Cook"} ${fmtMinutes(r.cookMin)}`);
 
     render(shell({
       bigTitle: false,
@@ -171,42 +185,44 @@ export function recipeView(id) {
       back: "#/book",
       // Cooking: Exit cook in the top bar. Otherwise the ⋯ menu (Edit, Share, photo, Delete).
       actions: P.cook ? `<button class="tb-btn" id="cookBtn" aria-pressed="true">Exit cook</button>`
-        : `<button class="tb-btn tb-more" id="moreBtn" aria-label="More actions" aria-haspopup="dialog">⋯</button>`,
+        : `<button class="tb-btn tb-more" id="moreBtn" aria-label="More actions" aria-haspopup="dialog">${icon("more", "ic20")}</button>`,
       body: `
         ${photo ? `<img class="rphoto hide-cook" data-photo src="${esc(photo)}" alt="" decoding="sync" referrerpolicy="no-referrer">` : ""}
         <h2 class="rtitle">${esc(r.title)}</h2>
-        <p class="rsource">${r.url ? `from <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.site || domainOf(r.url))} ↗</a>` : "Your recipe"}${r.author ? ` · ${esc(r.author)}` : ""}</p>
+        ${sourceHTML(r)}
         <div class="hide-cook">${ratingHTML(r)}</div>
         <dl class="facts">
-          ${r.totalMin ? `<div><dt>Time</dt><dd>${fmtMinutes(r.totalMin)}${times.length ? `<br><span class="muted" style="font-size:14px">${times.join(" · ")}</span>` : ""}</dd></div>` : ""}
+          ${r.totalMin ? `<div><dt>Time</dt><dd>${fmtMinutes(r.totalMin)}${times.length ? `<br><span class="muted" style="font-size:0.8235rem">${times.join(", ")}</span>` : ""}</dd></div>` : ""}
           <div><dt>Servings</dt><dd>
-            <span class="stepper"><button id="sMinus" aria-label="Fewer servings">−</button><output id="sOut">${P.servings}</output><button id="sPlus" aria-label="More servings">+</button></span>
+            <span class="stepper"><button id="sMinus" aria-label="Fewer servings">${icon("minus", "ic16")}</button><output id="sOut">${P.servings}</output><button id="sPlus" aria-label="More servings">${icon("plus", "ic16")}</button></span>
             ${P.servings !== base ? `<br><button class="btn small" id="sReset" style="margin-top:8px">Reset to ${base}</button>` : ""}
           </dd></div>
-          ${cost.total > 0 ? `<div><dt>Cost</dt><dd>${money(cost.perServing)}/serving<br><span class="muted" style="font-size:14px">${money(cost.perServing * P.servings)} for ${P.servings}</span></dd></div>` : ""}
-          ${nu.kcal ? `<div><dt>Per serving</dt><dd>${fmtN(nu.kcal)} kcal<br><span class="muted" style="font-size:14px">${fmtN(nu.protein)} g protein</span></dd></div>` : ""}
+          ${cost.total > 0 ? `<div><dt>Cost</dt><dd>${money(cost.perServing)}/serving<br><span class="muted" style="font-size:0.8235rem">${money(cost.perServing * P.servings)} for ${P.servings}</span></dd></div>` : ""}
+          ${nu.kcal ? `<div><dt>Per serving</dt><dd>${fmtN(nu.kcal)} kcal<br><span class="muted" style="font-size:0.8235rem">${fmtN(nu.protein)} g protein</span></dd></div>` : ""}
         </dl>
         <div class="btnrow hide-cook rbtns">
           <button class="btn primary" id="planBtn">+ Meal plan</button>
           ${P.cook ? "" : `<button class="btn" id="cookBtn">Cook mode</button>`}
         </div>
 
-        <h2 class="sect">Ingredients <small>${P.ings.size && !P.editIngs ? `${P.ings.size} checked · <button class="btn small" id="clearIngs" style="min-height:28px">Clear</button> ` : ""}<button class="btn small" id="editIngs" style="min-height:28px">${P.editIngs ? "Done" : "✎ Edit"}</button></small></h2>
-        ${P.editIngs ? `<p class="muted" style="font-size:14px;margin:0 0 8px">Changes save as you go. Start a line with # for a section heading.</p>
+        <h2 class="sect">Ingredients <small>${P.ings.size && !P.editIngs ? `<button class="btn small" id="clearIngs" style="min-height:28px">Clear ${P.ings.size}</button> ` : ""}<button class="btn small" id="editIngs" style="min-height:28px">${P.editIngs ? "Done" : `${icon("edit", "ic16")} Edit`}</button></small></h2>
+        ${P.editIngs ? `<p class="muted" style="font-size:0.8235rem;margin:0 0 8px">Changes save as you go. Start a line with # for a section heading.</p>
         <ul class="ings">${ingEditHTML}</ul>` : `
         <div class="cookbar">
           <div class="seg" role="group" aria-label="Units">
             ${[["original", "Original"], ["us", "US"], ["metric", "Metric"]].map(([v, l]) => `<button data-mode="${v}" aria-pressed="${mode === v}">${l}</button>`).join("")}
           </div>
-          <span class="muted" style="font-size:13px">Tap an amount to convert</span>
         </div>
+        ${tipHTML("convert", "Tap an amount to see it in other units.")}
         <ul class="ings">${ingHTML || `<li class="muted">No ingredients yet.</li>`}</ul>`}
 
-        <h2 class="sect">Steps <small>${P.steps.size ? `<button class="btn small" id="clearSteps" style="min-height:28px">Reset</button>` : "Tap a step when done"}</small></h2>
+        <h2 class="sect">Steps <small>${P.steps.size ? `<button class="btn small" id="clearSteps" style="min-height:28px">Reset</button>` : ""}</small></h2>
+        ${P.steps.size ? "" : tipHTML("steps", "Tap a step when it's done. The next one stays highlighted.")}
         <ol class="steps">${stepHTML || `<li class="muted">No steps yet.</li>`}</ol>
 
         <div class="hide-cook">
-          <h2 class="sect">Nutrition <small>per serving</small></h2>
+          <h2 class="sect">Nutrition <small>per serving ${estimatesButton()}</small></h2>
+          ${estimatesNoticeHTML()}
           ${nu.kcal ? `
           <div class="nutri">
             <div><b>${fmtN(nu.kcal)}</b><span>calories</span></div>
@@ -216,39 +232,39 @@ export function recipeView(id) {
             <div><b>${fmtN(nu.fiber)}g</b><span>fiber</span></div>
             ${nu.sodium != null ? `<div><b>${fmtN(nu.sodium)}</b><span>mg sodium</span></div>` : ""}
           </div>` : ""}
-          <p class="muted" style="font-size:14px;margin:0 0 6px">${est
-            ? `Estimated from ingredients (${Math.round(nu.coverage * 100)}% recognized)${nu.assumedServings ? ", assuming 4 servings — set servings in Edit" : ` for ${nu.servings} servings`}.`
-            : `From ${esc(r.site || "the recipe")}${nu.serving ? ` · serving: ${esc(nu.serving)}` : ""}.`}</p>
-          ${nudge ? `<p class="nunote" id="nunote"><span>${esc(nudge.text)} · <button class="linkbtn" id="nuAct">${nudge.action}</button></span><button class="nux" id="nuHide" aria-label="Hide this note">×</button></p>` : ""}
-          ${nu.rows && nu.rows.length ? `<details class="breakdown nubd" ${P.nubd ? "open" : ""}><summary>Nutrition by ingredient <span class="nuhint">· tap one to add its label</span></summary>
+          <p class="muted nusrc">${est
+            ? `${countsText(ingredientCounts(nu))}${nu.assumedServings ? `<br>Assumes 4 servings. Set servings in Edit.` : ""}`
+            : `From ${esc(r.site || "the recipe")}${nu.serving ? `<br>Serving: ${esc(nu.serving)}` : ""}`}</p>
+          ${nudge ? `<p class="nunote" id="nunote"><span>${esc(nudge.text)}<button class="linkbtn" id="nuAct">${nudge.action}</button></span><button class="nux" id="nuHide" aria-label="Hide this note">${icon("close", "ic16")}</button></p>` : ""}
+          ${nu.rows && nu.rows.length ? `<details class="breakdown nubd" ${P.nubd ? "open" : ""}><summary>Nutrition by ingredient</summary>
             <ul class="nurows">${nuRowsHTML(nu.rows)}</ul>
           </details>` : ""}
 
-          <h2 class="sect">Cost <small>estimate</small></h2>
+          <h2 class="sect">Cost <small>${estimatesButton()}</small></h2>
           ${cost.total > 0 ? `<div class="nutri">
             <div><b>${money(cost.perServing)}</b><span>per serving</span></div>
             <div><b>${money(cost.total)}</b><span>whole recipe</span></div>
           </div>` : ""}
-          <p class="muted" style="font-size:14px;margin:0 0 6px">Cost of the amounts used (${Math.round(cost.coverage * 100)}% of ingredients priced), ${esc(regionName())} prices. <a href="#/prices">Edit prices</a></p>
+          <p class="muted nusrc">${costCounts(cost)}<br>${esc(regionName())} prices <a href="#/prices">Edit prices</a></p>
           <details class="breakdown"><summary>Cost breakdown</summary><table>
             ${cost.rows.map(row => row.cost != null
               ? `<tr><td>${esc(row.line)}</td><td class="n">${money(row.cost)}</td></tr>`
-              : `<tr class="miss"><td>${esc(row.line)}<br><span>no price — not counted</span></td><td class="n">?</td></tr>`).join("")}
+              : `<tr class="miss"><td>${esc(row.line)}<br><span>No price</span></td><td class="n">?</td></tr>`).join("")}
           </table></details>
-          ${infoItems(r, true).length ? `<div class="btnrow"><button class="btn small" id="ingInfo">✎ Ingredient info</button></div>` : ""}
+          ${infoItems(r, true).length ? `<div class="btnrow"><button class="btn small" id="ingInfo">${icon("edit", "ic16")} Ingredient info</button></div>` : ""}
 
           <h2 class="sect">Keywords</h2>
           <div class="chips" id="tags">
-            ${(r.tags || []).map(tg => `<button class="chip" data-rmtag="${esc(tg)}" aria-label="Remove ${esc(tg)}">${esc(tg)} <span class="x">✕</span></button>`).join("")}
+            ${(r.tags || []).map(tg => `<button class="chip" data-rmtag="${esc(tg)}" aria-label="Remove ${esc(tg)}">${esc(tg)} <span class="x">${icon("close", "ic16")}</span></button>`).join("")}
           </div>
           <form id="tagForm" class="inline" style="margin-top:10px">
-            <input type="text" id="tagIn" placeholder="Add keyword (e.g. spicy)" autocomplete="off" autocapitalize="none">
+            <input type="text" id="tagIn" placeholder="Add a keyword" autocomplete="off" autocapitalize="none">
             <button class="btn small" type="submit">Add</button>
           </form>
 
           <h2 class="sect">Notes</h2>
           <div class="notesbox">
-            <textarea id="notes" placeholder="Swaps, tweaks, what to do differently next time…">${esc(r.notes || "")}</textarea>
+            <textarea id="notes" placeholder="Swaps, tweaks, what to try next time">${esc(r.notes || "")}</textarea>
             <div class="saved" id="saved"></div>
           </div>
         </div>`,
@@ -260,6 +276,7 @@ export function recipeView(id) {
 
   function bind() {
     const root = document.getElementById("app");
+    bindEstimatesNotice(root);
     root.querySelectorAll("[data-star]").forEach(b => b.onclick = () => {
       const n = +b.dataset.star, mine = ratingOf(r).mine;
       rate(r, mine === n ? 0 : n); // tap your current rating again to clear it
@@ -311,7 +328,7 @@ export function recipeView(id) {
     document.getElementById("clearSteps")?.addEventListener("click", () => { P.steps.clear(); draw(); });
     root.querySelectorAll("li.step").forEach(li => li.onclick = e => {
       const tb = e.target.closest(".timelink");
-      if (tb) { e.stopPropagation(); startTimer(+tb.dataset.min, `${r.title.slice(0, 18)} · ${tb.dataset.label}`); toast(`Timer started: ${tb.textContent.trim()}`); return; }
+      if (tb) { e.stopPropagation(); startTimer(+tb.dataset.min, `${tb.dataset.label}, ${r.title.slice(0, 18)}`); toast(`Timer started: ${tb.textContent.trim()}`); return; }
       const i = +li.dataset.step;
       P.steps.has(i) ? P.steps.delete(i) : P.steps.add(i);
       draw();
@@ -325,7 +342,7 @@ export function recipeView(id) {
       if (P.cook && s.wakeLock) lockScreen(); else unlockScreen();
       draw(false);
       if (P.cook) document.querySelector(".ings")?.scrollIntoView({ block: "start" });
-      toast(P.cook ? (s.wakeLock && "wakeLock" in navigator ? "Cook mode · screen stays on" : "Cook mode") : "Cook mode off");
+      toast(P.cook ? (s.wakeLock && "wakeLock" in navigator ? "Cook mode on. Your screen stays awake." : "Cook mode on") : "Cook mode off");
     };
     document.getElementById("planBtn").onclick = () => openAddToPlan(r.id);
     document.getElementById("moreBtn")?.addEventListener("click", () => recipeMenu(r, () => draw()));
@@ -342,8 +359,8 @@ export function recipeView(id) {
       document.getElementById("tagIn").focus();
     };
     const saved = document.getElementById("saved");
-    const saveNotes = debounce(v => { r.notes = v; store.putRecipe(r); saved.textContent = "Saved ✓"; setTimeout(() => saved.textContent = "", 1500); }, 500);
-    document.getElementById("notes").addEventListener("input", e => { saved.textContent = "…"; saveNotes(e.target.value); });
+    const saveNotes = debounce(v => { r.notes = v; store.putRecipe(r); saved.innerHTML = `${icon("check", "ic16")} Saved`; setTimeout(() => saved.textContent = "", 1500); }, 500);
+    document.getElementById("notes").addEventListener("input", e => { saved.textContent = "Saving"; saveNotes(e.target.value); });
   }
 
   redrawCurrent = () => { if (location.hash === `#/r/${id}`) draw(true); };
@@ -397,7 +414,7 @@ function showConversions(btn, ing, mult) {
   const list = equivalents(q, ing.unit, ing.food);
   const pop = document.createElement("div");
   pop.className = "pop win";
-  pop.innerHTML = `<span class="px">${esc(ing.food ? ing.food.name : ing.name)}</span><ul>${list.map(x => `<li>${esc(x)}</li>`).join("")}</ul>${ing.food?.gCup ? "" : `<span class="muted" style="font-size:12px">Grams assume water density.</span>`}`;
+  pop.innerHTML = `<span class="px">${esc(ing.food ? ing.food.name : ing.name)}</span><ul>${list.map(x => `<li>${esc(x)}</li>`).join("")}</ul>${ing.food?.gCup ? "" : `<span class="muted" style="font-size:0.7059rem">Grams assume water density.</span>`}`;
   document.body.appendChild(pop);
   const rect = btn.getBoundingClientRect();
   const w = pop.offsetWidth;

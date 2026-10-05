@@ -114,3 +114,22 @@ export function migrateWeekExtras(now = new Date()) {
   if (moved) store.save();
   return moved;
 }
+
+/**
+ * "Still need these?" on this week's list: only things people added themselves to last week's list and didn't
+ * check off (recipe groceries come from this week's plan anyway), minus anything already on this list. Each is
+ * { id: "h:…" (household item) or "x:…" (an older version's extra), name, amount, text }.
+ */
+export function carryOffer(prev, hereKeys = new Set(), extras = []) {
+  const out = [], seen = new Set();
+  const offer = (id, text) => {
+    const p = parseAdd(text);
+    if (!p) return;
+    const k = p.key || p.name;
+    if (hereKeys.has(k) || seen.has(k)) return;
+    seen.add(k); out.push({ id, name: p.name, amount: p.amount, text });
+  };
+  for (const h of leftovers(prev)) offer("h:" + h.id, h.text);
+  for (const e of extras) if (!e.checked) offer("x:" + e.id, e.text);
+  return out;
+}

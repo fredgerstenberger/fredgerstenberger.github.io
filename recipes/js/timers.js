@@ -3,7 +3,7 @@
 // timer runs we keep the screen awake (where the browser allows it), and a timer that finished
 // while you were away says so ("done 3 min ago") when you come back, and rings then.
 import { esc, uid } from "./util.js";
-import { sprite } from "./sprites.js";
+import { icon } from "./sprites.js";
 
 const KEY = "recipebox.timers";
 let timers = load();
@@ -89,11 +89,11 @@ function render() {
   dock.innerHTML = timers.map(t => {
     const ms = left(t);
     return `<div class="timer ${t.done ? "done" : ""} ${t.pausedLeft != null ? "paused" : ""}" data-id="${t.id}">
-      ${sprite("clock", "ticon")}
+      ${icon("timer", "ticon")}
       <span class="tlabel">${esc(t.label)}</span>
       <span class="tclock" aria-live="off">${t.done ? doneText(t) : fmt(ms)}</span>
-      ${t.done ? "" : `<button class="tbtn" data-act="pause" aria-label="${t.pausedLeft != null ? "Resume" : "Pause"} timer">${t.pausedLeft != null ? "▶" : "❚❚"}</button>`}
-      <button class="tbtn" data-act="stop" aria-label="${t.done ? "Dismiss" : "Cancel"} timer">✕</button>
+      ${t.done ? "" : `<button class="tbtn" data-act="pause" aria-label="${t.pausedLeft != null ? "Resume" : "Pause"} timer">${icon(t.pausedLeft != null ? "play" : "pause", "ic16")}</button>`}
+      <button class="tbtn" data-act="stop" aria-label="${t.done ? "Dismiss" : "Cancel"} timer">${icon("close", "ic16")}</button>
     </div>`;
   }).join("");
   if (!tick) tick = setInterval(update, 500);

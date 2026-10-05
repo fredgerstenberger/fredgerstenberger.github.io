@@ -32,7 +32,7 @@ export function describe(chs) {
   if (!chs.length) return "";
   const who = [...new Set(chs.map(c => c.who))];
   const part = verb => { const n = chs.filter(c => c.verb === verb).map(c => c.name); return n.length ? `${verb} ${list(n)}` : ""; };
-  const what = [part("checked"), part("added")].filter(Boolean).join(" · ");
+  const what = [part("checked"), part("added")].filter(Boolean).join(", ");
   if (who.length === 1 && who[0]) return `${who[0]} ${what}`;
   return `${what.charAt(0).toUpperCase() + what.slice(1)} on another phone`;
 }
