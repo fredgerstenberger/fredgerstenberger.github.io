@@ -1,5 +1,6 @@
 // Read cookbook photos with an open-weight vision model, via your Cloudflare Worker (Workers AI).
 import { parseRecipeText } from "./parse.js";
+import { devText } from "./dev.js";
 
 export const SCAN_MODELS = [
   ["@cf/qwen/qwen3.8-27b", "Qwen 3.8 27B"],
@@ -59,7 +60,7 @@ export function normalizeScan(data) {
 }
 
 export async function scanPhotos(files, { worker, model, key }, onStatus = () => {}) {
-  if (!worker) throw new Error("Set up your Cloudflare Worker first (Settings, Recipe import).");
+  if (!worker) throw new Error(devText("Set up your Cloudflare Worker first (Settings, Developer).", "Photo scanning isn't available yet. You can paste the recipe's text instead."));
   onStatus("Preparing photo…");
   const images = [];
   for (const f of files) images.push(await shrinkPhoto(f));
@@ -75,13 +76,13 @@ export async function scanPhotos(files, { worker, model, key }, onStatus = () =>
       signal: ctrl.signal
     });
   } catch (e) {
-    throw new Error(e.name === "AbortError" ? "The scan took too long. Try again, or a faster model in Settings." : "Couldn't reach your Worker. Check the address in Settings.");
+    throw new Error(e.name === "AbortError" ? "The scan took too long. Try again." : devText("Couldn't reach your Worker. Check the address in Settings.", "Couldn't scan the photo. Check your connection and try again."));
   } finally {
     clearTimeout(t);
   }
   let data = {};
   try { data = await res.json(); } catch {}
-  if (res.status === 404 || res.status === 405) throw new Error("Your Worker doesn't have photo scanning yet. Paste the latest worker.js into Cloudflare and deploy (see the setup guide).");
+  if (res.status === 404 || res.status === 405) throw new Error(devText("Your Worker doesn't have photo scanning yet. Paste the latest worker.js into Cloudflare and deploy (see the setup guide).", "Photo scanning isn't available right now."));
   if (!res.ok) throw new Error(data.error || `Scan failed (HTTP ${res.status}).`);
   const r = normalizeScan(data);
   r.model = data.model;
@@ -91,7 +92,7 @@ export async function scanPhotos(files, { worker, model, key }, onStatus = () =>
 // A Nutrition Facts label (photo or screenshot) → its fields, checked, via your Worker's /label.
 // The photo is shrunk on the phone, sent once, and not kept anywhere.
 export async function scanLabel(file, { worker, model, key }) {
-  if (!worker) throw new Error("Label scanning uses your Cloudflare Worker (Settings, Recipe import). You can paste the label's text instead.");
+  if (!worker) throw new Error(devText("Label scanning uses your Cloudflare Worker (Settings, Developer). You can paste the label's text instead.", "Reading label pictures isn't available yet. You can paste the label's text instead."));
   const image = await shrinkPhoto(file, 1400, 0.85);
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 90000);
@@ -104,13 +105,13 @@ export async function scanLabel(file, { worker, model, key }) {
       signal: ctrl.signal
     });
   } catch (e) {
-    throw new Error(e.name === "AbortError" ? "Reading the label took too long. Try again, or paste its text." : "Couldn't reach your Worker. You can paste the label's text instead.");
+    throw new Error(e.name === "AbortError" ? "Reading the label took too long. Try again, or paste its text." : devText("Couldn't reach your Worker. You can paste the label's text instead.", "Couldn't read the label. Check your connection, or paste its text."));
   } finally {
     clearTimeout(t);
   }
   let data = {};
   try { data = await res.json(); } catch {}
-  if (res.status === 404 || res.status === 405) throw new Error("Your Worker doesn't read labels yet. Deploy the latest worker.js (see the setup guide), or paste the label's text.");
+  if (res.status === 404 || res.status === 405) throw new Error(devText("Your Worker doesn't read labels yet. Deploy the latest worker.js (see the setup guide), or paste the label's text.", "Reading label pictures isn't available right now. You can paste the label's text instead."));
   if (!res.ok) throw new Error(data.error || `Couldn't read the label (HTTP ${res.status}).`);
   if (!data.label) throw new Error(data.error || "Couldn't read that label. Try a closer, straighter photo, or paste its text.");
   return { label: data.label, check: data.check || null, model: data.model };

@@ -11,6 +11,7 @@ import { modal } from "../ui.js";
 import { APP_VERSION, RELEASED, WHATS_NEW } from "../version.js";
 import { icon } from "../sprites.js";
 import { showEstimates } from "../tips.js";
+import { isDev, versionTap } from "../dev.js";
 
 function ago(t) {
   if (!t) return "never";
@@ -22,7 +23,8 @@ function ago(t) {
 }
 
 function syncHTML(s) {
-  if (!s.proxy) return `<p class="muted" style="margin-top:0">Set your Worker address above first; sync runs through it.</p>`;
+  if (!s.proxy) return isDev() ? `<p class="muted" style="margin-top:0">Set the Worker address in Developer first; sync runs through it.</p>`
+    : `<p style="margin-top:0">Got an invite from another phone? Open its link on this device to join.</p>`;
   if (!sync.enabled()) return `
     <p style="margin-top:0">Share recipes, plans and lists across your devices and with a partner.</p>
     <div class="btnrow"><button class="btn primary" id="syncOn">Turn on sync</button></div>
@@ -166,22 +168,8 @@ export function settingsView() {
       <div class="setrow"><span>Default units</span>${seg("units", [["original", "Original"], ["us", "US"], ["metric", "Metric"]])}</div>
       <div class="setrow"><span>Keep screen on in cook mode</span>${seg("wakeLock", [[true, "On"], [false, "Off"]])}</div>
 
-      <h2 class="sect">Recipe import</h2>
-      <label class="field"><span>Your Worker address<small>From Cloudflare: links &amp; photo scanning</small></span>
-        <div class="inline">
-          <input type="url" id="proxy" value="${esc(s.proxy)}" placeholder="https://recipe-proxy.yourname.workers.dev" autocapitalize="none">
-          <button class="btn small" id="testProxy">Test</button>
-        </div>
-        <div class="note" id="testOut" hidden style="margin:8px 0 4px"></div>
-        <small>Without one, imports go through free public proxies that are sometimes down. A free Cloudflare Worker is more reliable. <a href="${WORKER_HELP}" target="_blank" rel="noopener">Setup guide</a></small>
-      </label>
-      <label class="field"><span>Photo scanning model<small>Open-weight vision models on Cloudflare Workers AI</small></span>
-        <select id="scanModel">${SCAN_MODELS.map(([id, name]) => `<option value="${id}" ${s.scanModel === id ? "selected" : ""}>${esc(name)}</option>`).join("")}</select>
-      </label>
-      <label class="field"><span>App key (optional)<small>Only if you added an APP_KEY secret to your Worker</small></span>
-        <input type="text" id="scanKey" value="${esc(s.scanKey || "")}" autocapitalize="none" autocomplete="off" spellcheck="false">
-      </label>
-      <details class="breakdown" style="margin-top:6px"><summary>Add recipes straight from Safari</summary>
+      <h2 class="sect">Add from Safari</h2>
+      <details class="breakdown" style="margin-top:0"><summary>Set up the Share shortcut</summary>
         <p><b>Option A: Shortcut (recommended).</b> In the Shortcuts app, make a new shortcut: turn on <i>Show in Share Sheet</i> (accepts URLs), then add the action <i>Open URLs</i> with:</p>
         <div class="code">${esc(APP_URL)}?url=[Shortcut Input]</div>
         <p>Then, on any recipe page, tap Share and pick your shortcut.</p>
@@ -210,9 +198,26 @@ export function settingsView() {
       <p class="muted" style="font-size:14px">Safari and the Home Screen app keep separate data, so use one.</p>
 
       <h2 class="sect">Version</h2>
-      <div class="setrow"><span>Recipe Box ${APP_VERSION}<small>Released ${new Date(RELEASED + "T12:00").toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}</small><small id="workerVer">${s.proxy ? "Worker: checking…" : "Worker: not set up"}</small></span>
+      <div class="setrow"><span><button class="vertap" id="verTap">Recipe Box ${APP_VERSION}</button><small>Released ${new Date(RELEASED + "T12:00").toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}</small>${isDev() ? `<small id="workerVer">${s.proxy ? "Worker: checking…" : "Worker: not set up"}</small>` : ""}</span>
         <button class="btn small" id="checkUpdate">Check for updates</button></div>
-      <details class="breakdown"><summary>What's new</summary><ul class="howto">${WHATS_NEW.map(x => `<li>${esc(x)}</li>`).join("")}</ul></details>`,
+      <details class="breakdown"><summary>What's new</summary><ul class="howto">${WHATS_NEW.map(x => `<li>${esc(x)}</li>`).join("")}</ul></details>
+      ${isDev() ? `      <h2 class="sect" id="set-dev">Developer</h2>
+      <p class="muted" style="font-size:14px;margin-top:0">Tap the version number 7 times to hide this section.</p>
+      <label class="field"><span>Your Worker address<small>From Cloudflare: links &amp; photo scanning</small></span>
+        <div class="inline">
+          <input type="url" id="proxy" value="${esc(s.proxy)}" placeholder="https://recipe-proxy.yourname.workers.dev" autocapitalize="none">
+          <button class="btn small" id="testProxy">Test</button>
+        </div>
+        <div class="note" id="testOut" hidden style="margin:8px 0 4px"></div>
+        <small>Without one, imports go through free public proxies that are sometimes down. A free Cloudflare Worker is more reliable. <a href="${WORKER_HELP}" target="_blank" rel="noopener">Setup guide</a></small>
+      </label>
+      <label class="field"><span>Photo scanning model<small>Open-weight vision models on Cloudflare Workers AI</small></span>
+        <select id="scanModel">${SCAN_MODELS.map(([id, name]) => `<option value="${id}" ${s.scanModel === id ? "selected" : ""}>${esc(name)}</option>`).join("")}</select>
+      </label>
+      <label class="field"><span>App key (optional)<small>Only if you added an APP_KEY secret to your Worker</small></span>
+        <input type="text" id="scanKey" value="${esc(s.scanKey || "")}" autocapitalize="none" autocomplete="off" spellcheck="false">
+      </label>
+` : ""}`,
     status: `<span>${Object.keys(st.recipes).length} recipes</span><span>Version ${APP_VERSION}</span>`
   }), { keepScroll: true });
   // From More → Sync / Backup: open at that section.
@@ -268,6 +273,16 @@ export function settingsView() {
     document.getElementById("customRow").hidden = region.value !== "custom";
     flash(region);
   });
+  // Developer settings (shown after 7 taps on the version number).
+  document.getElementById("verTap").onclick = () => {
+    const now = versionTap();
+    if (now) { toast(now === "on" ? "Developer settings on" : "Developer settings off"); settingsView(); if (now === "on") document.getElementById("set-dev")?.scrollIntoView({ block: "start" }); }
+  };
+  if (isDev()) bindDeveloper(flash);
+  bindSync(flash, s);
+}
+
+function bindDeveloper(flash) {
   const scanModel = document.getElementById("scanModel");
   scanModel.addEventListener("change", () => { store.setSetting("scanModel", scanModel.value); flash(scanModel); });
   const scanKey = document.getElementById("scanKey");
@@ -307,6 +322,9 @@ export function settingsView() {
         : st.ai ? line(true, `Photo scanning: ready${st.keyRequired ? (store.settings().scanKey ? " (app key set)" : ". The Worker needs an app key; enter it below.") : ""}`)
         : line(false, "Photo scanning: add a Workers AI binding named AI to the Worker, then deploy."));
   };
+}
+
+function bindSync(flash, s) {
   // ---- Sync ----
   const runSync = async (msg) => {
     const el = document.getElementById("syncStatus");

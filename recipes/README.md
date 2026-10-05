@@ -68,6 +68,8 @@ Opening `https://fredgerstenberger.github.io/recipes/?add=milk, 2 lb chicken thi
 - `js/pixicons.js`: small pixel icons (aisles, cart, check)
 - `worker/`: Cloudflare Worker for reliable link imports and AI photo scanning (see its README for setup)
 
+**Developer settings:** the Worker address, app key and photo model are hidden from regular Settings. Tap the version number in Settings 7 times to show them (per device; 7 more taps hide them). Messages only mention the Worker in developer mode.
+
 No build step. To run locally: `python3 -m http.server 8000`, then open http://localhost:8000/recipes/.
 
 **Releasing:** bump `APP_VERSION` in `js/version.js` and `VERSION` in `sw.js` together whenever app files change; phones only pick up a release when `VERSION` changes. A new module goes in `js/`, in `index.html`'s `modulepreload` list and in `sw.js` `FILES` (`test/files.test.mjs` checks all three, and the two versions). The service worker stays off on localhost so edits show up right away; to try it locally, run `localStorage.setItem("rb.sw", "1")` in the console and reload.

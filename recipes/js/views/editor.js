@@ -8,6 +8,7 @@ import { autoTags } from "../tags.js";
 import { askAfterSave } from "../fillin.js";
 import { photoOf, setPhoto } from "../photos.js";
 import { isReady } from "../ready.js";
+import { isDev } from "../dev.js";
 
 export function addView(params) {
   const s = store.settings();
@@ -30,13 +31,12 @@ export function addView(params) {
 
       <details class="fromtext" id="textBox" ${params.get("text") ? "open" : ""}>
         <summary>From a cookbook photo or text</summary>
-        <div class="btnrow" style="margin-top:6px">
+        <div class="btnrow" style="margin-top:6px" ${s.proxy || isDev() ? "" : "hidden"}>
           <label class="btn primary" for="scanIn">Scan photo</label>
           <input type="file" id="scanIn" accept="image/*" multiple hidden>
         </div>
-        <p class="muted" style="font-size:14px;margin:0 0 6px">${s.proxy
-          ? "Reads the page with AI on your Cloudflare Worker. For a recipe that spans pages, pick up to 4 photos."
-          : `Needs your Cloudflare Worker: <a href="#/settings">set it up in Settings</a>. Or copy the text yourself below.`}</p>
+        ${s.proxy ? `<p class="muted" style="font-size:14px;margin:0 0 6px">For a recipe that spans pages, pick up to 4 photos.</p>`
+          : isDev() ? `<p class="muted" style="font-size:14px;margin:0 0 6px">Needs your Cloudflare Worker: set it up in Settings, Developer.</p>` : ""}
         <p class="px" style="margin:16px 0 4px;font-size:15px">Or copy the text yourself</p>
         <ol class="howto">
           <li>Choose a photo of the recipe.</li>
@@ -57,7 +57,7 @@ export function addView(params) {
 
       <div id="editor"></div>
       <p class="muted" style="font-size:14px;margin-top:22px">Or <button class="btn small" id="manualBtn" type="button">type one in</button></p>
-      ${s.proxy ? "" : `<p class="note">Without your Cloudflare Worker, links are read through free public services, which are sometimes slow or blocked by recipe sites. Add your Worker's address in <a href="#/settings">Settings</a> for reliable imports; the same Worker reads cookbook photos and labels and keeps your phones in sync.</p>`}`
+      ${s.proxy || !isDev() ? "" : `<p class="note">Without a Worker, links are read through public services, which are sometimes slow or blocked. Add one in Settings, Developer.</p>`}`
   }));
 
   const statusEl = document.getElementById("status");
@@ -120,7 +120,7 @@ export function addView(params) {
         msg => { const el = document.getElementById("st"); if (el) el.textContent = msg; });
       statusEl.innerHTML = r.ingredients.length
         ? `<p class="note">Read ${r.ingredients.length} ingredients and ${r.steps.length} steps. Check it against the page, then save.</p>`
-        : `<p class="note error">The model didn't find ingredients. Fill them in below, or try another model in Settings.</p>`;
+        : `<p class="note error">No ingredients were found. Fill them in below.</p>`;
       showEditor(editorEl, {
         id: uid(), title: r.title, url: "", site: "", author: "",
         yield: r.yield, yieldText: r.yieldText, prepMin: r.prepMin, cookMin: r.cookMin, totalMin: r.totalMin,

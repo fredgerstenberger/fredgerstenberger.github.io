@@ -8,6 +8,7 @@
 import * as store from "./store.js";
 import { bump } from "./data.js";
 import { fp, isFieldRecord, isDeletable, toFields, fromFields, stampFields, mergeFields, latestEdit, FT } from "./fields.js";
+import { devText } from "./dev.js";
 
 const KEY = "recipebox.sync";
 let meta = loadMeta();
@@ -125,7 +126,7 @@ export async function syncNow() {
   if (running) { again = true; return running; }
   running = (async () => {
     const st = store.settings();
-    if (!st.proxy) throw new Error("Set your Worker address first.");
+    if (!st.proxy) throw new Error(devText("Set your Worker address first.", "Sync isn't set up on this device."));
     const recs = records();
     const sent = meta.dirty.slice();
     const sentHash = Object.fromEntries(sent.map(k => [k, meta.h[k]]));
@@ -277,7 +278,7 @@ async function post(path, body, worker) {
       headers: { "Content-Type": "application/json", ...(st.scanKey ? { "X-App-Key": st.scanKey } : {}) },
       body: JSON.stringify(body)
     });
-  } catch { throw new Error("Couldn't reach your Worker. Check your connection."); }
+  } catch { throw new Error(devText("Couldn't reach your Worker. Check your connection.", "Couldn't sync. Check your connection.")); }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Request failed (HTTP ${res.status}).`);
   return data;

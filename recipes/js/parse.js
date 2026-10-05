@@ -1,6 +1,7 @@
 // Fetch a recipe page (through a CORS proxy) and pull the recipe out of it.
 import { domainOf } from "./util.js";
 import { recipeFromLdTexts, parseYield, isoMinutes, finishRecipe, imageOf, ldJsonBlocks } from "./recipe-data.js";
+import { devText } from "./dev.js";
 export { isoMinutes };
 
 // Public proxies, tried in order after your own Cloudflare Worker (if set in Settings).
@@ -34,7 +35,7 @@ export async function fetchPage(url, workerUrl, onStatus = () => {}, key = "") {
 
   const errors = [];
   for (const a of attempts) {
-    onStatus(`Fetching via ${a.name}…`);
+    onStatus(devText(`Fetching via ${a.name}…`, "Getting the recipe…"));
     try {
       const html = await fetchWithTimeout(a.make(url), 15000, a.headers);
       if (html && html.length > 500 && /<html|<script|<body/i.test(html)) return html;
@@ -44,7 +45,7 @@ export async function fetchPage(url, workerUrl, onStatus = () => {}, key = "") {
     }
   }
   const err = new Error("Couldn't download that page.");
-  err.details = errors;
+  err.details = devText(errors, ["The site may be down or blocking downloads. Try again later, or paste the recipe's text."]);
   throw err;
 }
 
@@ -127,7 +128,7 @@ function pageText(html) {
 }
 
 async function readWithAI(html, url, ai, onStatus) {
-  onStatus && onStatus("No recipe data on this page. Asking AI to read it… (up to a minute)");
+  onStatus && onStatus("This page has no recipe data, so it's being read for you. This can take up to a minute.");
   const res = await fetch(`${ai.worker.replace(/\/+$/, "")}/read`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(ai.key ? { "X-App-Key": ai.key } : {}) },
@@ -187,7 +188,7 @@ export async function importFromUrl(url, workerUrl, onStatus, ai = null) {
   }
   if (!r || !r.ingredients.length) {
     const e = new Error("Downloaded the page but couldn't find a recipe on it.");
-    e.details = ["The site may not publish structured recipe data, or it showed a bot check to the proxy."];
+    e.details = [devText("The site may not publish structured recipe data, or it showed a bot check to the proxy.", "The site may not publish its recipe in a form we can read. Try typing it in or pasting its text.")];
     throw e;
   }
   return r;
