@@ -29,13 +29,13 @@ test("one-time tips show once per device", async () => {
   assert.equal((await d2.load("tips")).tipHTML("rate", "Tap a star to rate it."), "");
 });
 
-test("stand-ins and unknowns are counted apart from exact ingredients", async () => {
+test("stand-ins and unknowns are counted apart from matched ingredients", async () => {
   const d = await device({ name: "counts" });
   const { nutritionFor, ingredientCounts, countsText } = await d.load("nutrition");
   const r = { id: "c1", title: "Pasta", yield: 4, updated: 1, ingredients: ["12 oz protein pasta", "1 lb chicken breast", "2 tbsp olive oil", "1 cup zorbleberries"], steps: [] };
   const c = ingredientCounts(nutritionFor(r));
-  assert.deepEqual(c, { total: 4, exact: 2, estimated: 1, missing: 1 });
-  assert.equal(countsText(c), "2 of 4 ingredients exact, 1 estimated, 1 not counted");
+  assert.deepEqual(c, { total: 4, matched: 2, estimated: 1, missing: 1 });
+  assert.equal(countsText(c), "2 of 4 ingredients matched, 1 estimated, 1 not counted");
   assert.doesNotMatch(countsText(c), /100%/);
-  assert.equal(countsText(ingredientCounts({ rows: [{ line: "a", source: "table" }] })), "1 of 1 ingredient exact");
+  assert.equal(countsText(ingredientCounts({ rows: [{ line: "a", source: "table" }] })), "1 of 1 ingredient matched");
 });

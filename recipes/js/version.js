@@ -4,7 +4,7 @@ export const RELEASED = "2026-10-05";
 export const WHATS_NEW = [
   "A fresh look: one set of pixel icons throughout, shorter and plainer wording, and tips that show once instead of instructions everywhere.",
   "Imported recipes show where they're from, with View original. Recipes read automatically from a page or a photo say so, so you know to check them.",
-  "Nutrition and costs are clearly estimates: a one-time note, an Estimates button by Nutrition and Cost, and About estimates in Settings. Recipes say how many ingredients are exact and how many are estimated.",
+  "Nutrition and costs are clearly estimates: a one-time note, an Estimates button by Nutrition and Cost, and About estimates in Settings. Recipes say how many ingredients are matched and how many are estimated.",
   "\"Low cal\" is now \"Lighter\".",
   "Still need these? only offers things you added yourself, unticked, so you tap what you still need.",
   "Text follows your phone's text size, and Settings has a Text size option. Zoom is off, and buttons are easier to tap.",
