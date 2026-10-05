@@ -22,7 +22,7 @@ export function addView(params) {
             <input type="url" id="url" inputmode="url" placeholder="Paste a recipe link" value="${esc(pre)}" autocomplete="off" autocapitalize="none" required>
             <button class="btn primary" type="submit" id="fetchBtn">Get it</button>
           </div>
-          <small>Paste a link from any recipe site. The ads and life story get stripped out.</small>
+          <small>Saves a clean, cook-friendly copy with a link back to the original.</small>
         </label>
       </form>
       <div class="btnrow" style="margin-top:0"><button class="btn small" id="pasteBtn" type="button">Paste from clipboard</button></div>
@@ -80,12 +80,13 @@ export function addView(params) {
       const st = store.settings();
       const r = await importFromUrl(url, st.proxy, msg => { const el = document.getElementById("st"); if (el) el.textContent = msg; },
         st.proxy ? { worker: st.proxy, model: st.scanModel, key: st.scanKey } : null);
-      statusEl.innerHTML = `<p class="note">${r.viaAI ? "This site had no recipe data, so AI read the page. Check it carefully, then save." : "Found it. Check it over, then save."}</p>`;
+      statusEl.innerHTML = `<p class="note">${r.viaAI ? "This page had no recipe data, so it was read automatically. Check it over, then save." : "Found it. Check it over, then save."}</p>`;
       showEditor(editorEl, {
         id: uid(), title: r.title, url: r.url, site: r.site, author: r.author,
         yield: r.yield, yieldText: r.yieldText, prepMin: r.prepMin, cookMin: r.cookMin, totalMin: r.totalMin,
         ingredients: r.ingredients, steps: r.steps, nutrition: r.nutrition,
-        tags: autoTags(r), rating: 0, notes: "", siteKeywords: r.siteKeywords
+        tags: autoTags(r), rating: 0, notes: "", siteKeywords: r.siteKeywords,
+        ...(r.viaAI ? { origin: "ai-page" } : {}) // shown as "Read from page" so people check it
       }, true);
     } catch (e) {
       statusEl.innerHTML = `<div class="note error"><b>${esc(e.message)}</b>
@@ -124,7 +125,7 @@ export function addView(params) {
         id: uid(), title: r.title, url: "", site: "", author: "",
         yield: r.yield, yieldText: r.yieldText, prepMin: r.prepMin, cookMin: r.cookMin, totalMin: r.totalMin,
         ingredients: r.ingredients, steps: r.steps, nutrition: null,
-        tags: autoTags(r), rating: 0, notes: r.description || ""
+        tags: autoTags(r), rating: 0, notes: r.description || "", origin: "photo" // "Imported from photo"
       }, true);
     } catch (err) {
       statusEl.innerHTML = `<div class="note error"><b>${esc(err.message)}</b><p style="margin:6px 0 0">You can still copy the text from the photo yourself (steps below).</p></div>`;
