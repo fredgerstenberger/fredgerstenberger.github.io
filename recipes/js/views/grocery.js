@@ -17,6 +17,7 @@ import * as live from "../live.js";
 import * as sync from "../sync.js";
 import { addToList, useForRecipe } from "../grocery-add.js";
 import { icon } from "../sprites.js";
+import { listShown, track } from "../analytics.js";
 
 const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
 const HINT_KEY = "rb.groceryHint";
@@ -146,9 +147,11 @@ export function groceryView(key) {
   // lines you added, so quick chips and suggestions don't offer them again.
   const onList = () => new Set([...sec.buy.filter(i => !i.checked).flatMap(i => [i.key, parseAdd(i.name)?.key]), ...manual().filter(e => !e.checked).map(e => parseAdd(e.text).key)]);
 
+  let counted = false; // grocery_list_generated: once per visit is plenty (and once per week, see analytics.js)
   function paint() {
     if (!document.getElementById("gbody")) return; // left the list before a delayed check finished
     sec = sectionize(key);
+    if (!counted) { counted = true; listShown(key, sec); }
     const meals = store.week(key).meals || [];
     const extras = manual().map(e => ({ e, p: parseAdd(e.text) }));
     const total = sec.buy.length + extras.length;
@@ -397,7 +400,10 @@ export function groceryView(key) {
     document.getElementById("carryYes")?.addEventListener("click", () => answerCarry(true));
     document.getElementById("carryNo")?.addEventListener("click", () => answerCarry(false));
     document.getElementById("fromLast")?.addEventListener("click", () => { again = true; paint(); window.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" }); });
-    document.getElementById("shopStart")?.addEventListener("click", () => { setShopping(true); keepAwake(true); paint(); window.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" }); });
+    document.getElementById("shopStart")?.addEventListener("click", () => {
+      const left = sec.buy.filter(i => !i.checked).length + manual().filter(e => !e.checked).length;
+      track("shopping_started", { number_of_items: left });
+      setShopping(true); keepAwake(true); paint(); window.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" }); });
     document.getElementById("shopDone")?.addEventListener("click", stopShopping);
     root.querySelectorAll(".grow[data-id]").forEach(li => bindRow(li, {
       tap: () => toggle(li.dataset.id, li.dataset.kind, li),

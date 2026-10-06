@@ -21,6 +21,7 @@ import { moreView } from "./views/more.js";
 import * as sync from "./sync.js";
 import { refreshPrices } from "./data.js";
 import { refreshRecipe } from "./views/recipe.js";
+import { startAnalytics } from "./analytics.js";
 
 // ---- Today (the first screen; the week's plan is beside it) ----
 function homeView() { todayView({ backupNag: backupNag(store.get()) }); }
@@ -138,6 +139,7 @@ function init() {
   initTimers(document.getElementById("timers"));
   matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => { if (store.settings().theme === "auto" && (location.hash || "#/") === "#/") homeView(); });
   handleIncomingUrl();
+  startAnalytics(); // before the first screen, which may count (a grocery list); PostHog itself loads later
   window.addEventListener("hashchange", route);
   route();
   // Changes arrived from another device: refresh the screen unless you're in the middle of typing or a dialog.

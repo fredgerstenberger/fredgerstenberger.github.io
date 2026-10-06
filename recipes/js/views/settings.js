@@ -13,6 +13,9 @@ import { icon } from "../sprites.js";
 import { showEstimates } from "../tips.js";
 import { isDev, versionTap } from "../dev.js";
 import { TEXT_SIZES, textSize, setTextSize } from "../platform.js";
+import { sharing, setSharing } from "../telemetry.js";
+import { track, stopAnalytics } from "../analytics.js";
+import { stopMonitor } from "../monitor.js";
 
 function ago(t) {
   if (!t) return "never";
@@ -62,7 +65,8 @@ function syncHTML(s) {
 const APP_URL = new URL(".", location.href).href.replace(/#.*$/, "");
 const WORKER_HELP = "https://github.com/fredgerstenberger/fredgerstenberger.github.io/blob/main/recipes/worker/README.md";
 
-function askJoin(invite, worker) {
+// method: "link" (opened the invite link) or "code" (pasted it into Settings), for household_joined.
+function askJoin(invite, worker, method = "code") {
   const { el, close } = modal("Join recipe box?", `
     <p style="margin-top:0">This device joins the shared recipe box. What's already here is kept and added.</p>
     ${worker && isDev() ? `<p class="muted" style="font-size:0.8235rem">Worker: ${esc(worker)}</p>` : ""}
@@ -71,7 +75,7 @@ function askJoin(invite, worker) {
   el.querySelector("#jYes").onclick = async () => {
     el.querySelector("#jYes").disabled = true;
     el.querySelector("#jYes").textContent = "Syncing…";
-    try { const r = await sync.redeemInvite(invite, worker); toast(`Joined. ${r.applied} item${r.applied === 1 ? "" : "s"} synced.`); }
+    try { const r = await sync.redeemInvite(invite, worker); track("household_joined", { method }); toast(`Joined. ${r.applied} item${r.applied === 1 ? "" : "s"} synced.`); }
     catch (err) { toast(err.message); }
     close();
     settingsView();
@@ -195,6 +199,9 @@ export function settingsView() {
       </div>
       <p class="muted" style="font-size:0.8235rem">Last backup: ${st.lastBackup ? new Date(st.lastBackup).toLocaleString() : "never"}</p>
 
+      <h2 class="sect" id="set-privacy">Privacy</h2>
+      <div class="setrow"><span>Share anonymous usage and crash reports<small>Helps fix problems. Never your recipes, lists, notes or anything you type.</small></span><div class="seg" role="group" aria-label="Share anonymous usage and crash reports"><button data-share="1" aria-pressed="${sharing()}">On</button><button data-share="0" aria-pressed="${!sharing()}">Off</button></div></div>
+
       <h2 class="sect">Install on iPhone</h2>
       <ol class="howto">
         <li>Open this page in <b>Safari</b>.</li>
@@ -291,6 +298,14 @@ export function settingsView() {
   };
   if (isDev()) bindDeveloper(flash);
   bindSync(flash, s);
+  document.querySelectorAll("[data-share]").forEach(b => b.onclick = () => {
+    const on = b.dataset.share === "1";
+    if (on === sharing()) return;
+    setSharing(on);
+    if (!on) { stopAnalytics(); stopMonitor(); }
+    toast(on ? "Thanks. Sharing starts next time you open the app." : "Sharing is off");
+    settingsView();
+  });
 }
 
 function bindDeveloper(flash) {
@@ -345,7 +360,7 @@ function bindSync(flash, s) {
     if (location.hash === "#/settings") settingsView();
   };
   document.getElementById("syncOn")?.addEventListener("click", async () => {
-    try { await sync.enable(); toast("Sync is on"); } catch (err) { toast(err.message); }
+    try { await sync.enable(); track("household_created"); toast("Sync is on"); } catch (err) { toast(err.message); }
     settingsView();
   });
   document.getElementById("joinForm")?.addEventListener("submit", e => {
@@ -395,7 +410,7 @@ function bindSync(flash, s) {
   // Opened from an invite link
   let pending = null;
   try { pending = JSON.parse(sessionStorage.getItem("rb.join")); sessionStorage.removeItem("rb.join"); } catch {}
-  if (pending?.invite) askJoin(String(pending.invite).toUpperCase(), pending.worker);
+  if (pending?.invite) askJoin(String(pending.invite).toUpperCase(), pending.worker, "link");
 
   document.getElementById("export").onclick = async () => {
     const json = store.exportJSON();

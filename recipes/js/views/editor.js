@@ -9,6 +9,7 @@ import { askAfterSave } from "../fillin.js";
 import { photoOf, setPhoto } from "../photos.js";
 import { isReady } from "../ready.js";
 import { isDev } from "../dev.js";
+import { track } from "../analytics.js";
 
 export function addView(params) {
   const s = store.settings();
@@ -87,7 +88,7 @@ export function addView(params) {
         ingredients: r.ingredients, steps: r.steps, nutrition: r.nutrition,
         tags: autoTags(r), rating: 0, notes: "", siteKeywords: r.siteKeywords,
         ...(r.viaAI ? { origin: "ai-page" } : {}) // shown as "Read from page" so people check it
-      }, true);
+      }, true, "link");
     } catch (e) {
       statusEl.innerHTML = `<div class="note error"><b>${esc(e.message)}</b>
         ${e.details ? `<ul>${e.details.map(d => `<li>${esc(d)}</li>`).join("")}</ul>` : ""}
@@ -126,7 +127,7 @@ export function addView(params) {
         yield: r.yield, yieldText: r.yieldText, prepMin: r.prepMin, cookMin: r.cookMin, totalMin: r.totalMin,
         ingredients: r.ingredients, steps: r.steps, nutrition: null,
         tags: autoTags(r), rating: 0, notes: r.description || "", origin: "photo" // "Imported from photo"
-      }, true);
+      }, true, "photo");
     } catch (err) {
       statusEl.innerHTML = `<div class="note error"><b>${esc(err.message)}</b><p style="margin:6px 0 0">You can still copy the text from the photo yourself (steps below).</p></div>`;
     }
@@ -161,7 +162,7 @@ export function addView(params) {
       yield: r.yield, yieldText: r.yieldText, prepMin: r.prepMin, cookMin: r.cookMin, totalMin: r.totalMin,
       ingredients: r.ingredients, steps: r.steps, nutrition: null,
       tags: autoTags(r), rating: 0, notes: r.description || ""
-    }, true);
+    }, true, "text");
   };
   const pasteBtn = document.getElementById("pasteBtn");
   if (!navigator.clipboard?.readText) pasteBtn.hidden = true;
@@ -184,7 +185,8 @@ export function editView(id) {
   showEditor(document.getElementById("editor"), structuredClone(r), false);
 }
 
-function showEditor(el, r, isNew) {
+// importedBy: "link" | "text" | "photo" for a new recipe that came from an import (none when typed in).
+function showEditor(el, r, isNew, importedBy = "") {
   el.innerHTML = `
     <form id="edit">
       ${isNew ? `<h2 class="sect">Check it over</h2>` : ""}
@@ -239,6 +241,7 @@ function showEditor(el, r, isNew) {
     // The site's picture stays on this phone (photos.js); it isn't part of the synced recipe.
     if (r.image) { if (!photoOf(r.id)) setPhoto(r.id, r.image); delete r.image; }
     store.putRecipe(r);
+    if (isNew) importedBy ? track("recipe_imported", { import_method: importedBy, read_by_ai: r.origin === "ai-page" || r.origin === "photo" }) : track("recipe_added", { kind: "recipe" });
     toast(isNew ? "Saved to your recipe book" : "Saved");
     go(`#/r/${r.id}`);
     askAfterSave(r.id);

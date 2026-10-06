@@ -9,10 +9,10 @@ const VERSION = "rb-v36"; // keep in step with APP_VERSION in js/version.js
 const FILES = [
   "./", "index.html", "app.css", "manifest.webmanifest", "icons/icon.svg", "icons/icon-180.png",
   "js/app.js", "js/ui.js", "js/util.js", "js/store.js", "js/fooddb.js", "js/ingredients.js",
-  "js/nutrition.js", "js/prices.js", "js/parse.js", "js/recipe-data.js", "js/scan.js", "js/sync.js", "js/fields.js", "js/pixicons.js", "js/quickadd.js", "js/stores.js", "js/household.js", "js/live.js", "js/grocery-add.js", "js/updates.js", "js/label.js", "js/labelsheet.js", "js/variants.js", "js/weeks.js", "js/photos.js", "js/ready.js", "js/tips.js", "js/dev.js", "js/platform.js", "js/telemetry.js", "js/monitor.js", "js/views/ready.js", "js/views/today.js", "js/views/more.js", "js/views/stores.js", "js/ratings.js", "js/data.js", "js/version.js", "js/fillin.js", "js/tags.js", "js/grocery.js", "js/sprites.js", "js/timers.js",
+  "js/nutrition.js", "js/prices.js", "js/parse.js", "js/recipe-data.js", "js/scan.js", "js/sync.js", "js/fields.js", "js/pixicons.js", "js/quickadd.js", "js/stores.js", "js/household.js", "js/live.js", "js/grocery-add.js", "js/updates.js", "js/label.js", "js/labelsheet.js", "js/variants.js", "js/weeks.js", "js/photos.js", "js/ready.js", "js/tips.js", "js/dev.js", "js/platform.js", "js/telemetry.js", "js/monitor.js", "js/analytics.js", "js/views/ready.js", "js/views/today.js", "js/views/more.js", "js/views/stores.js", "js/ratings.js", "js/data.js", "js/version.js", "js/fillin.js", "js/tags.js", "js/grocery.js", "js/sprites.js", "js/timers.js",
   "js/views/book.js", "js/views/recipe.js", "js/views/editor.js", "js/views/plan.js",
   "js/views/grocery.js", "js/views/pantry.js", "js/views/convert.js", "js/views/settings.js", "js/views/prices.js",
-  "vendor/sentry.min.js"
+  "vendor/sentry.min.js", "vendor/posthog.min.js"
 ];
 
 self.addEventListener("install", e => {
