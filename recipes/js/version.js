@@ -1,7 +1,10 @@
 // App version shown in Settings. Bump together with VERSION in sw.js ("rb-v" + APP_VERSION).
-export const APP_VERSION = 38;
+export const APP_VERSION = 39;
 export const RELEASED = "2026-10-06";
 export const WHATS_NEW = [
+  "\"2 loaves of bread\" counts two whole loaves, not two slices. With the bread's label pasted, a loaf is its serving size times the servings per package, for nutrition and for a price per loaf.",
+  "Reading a label keeps going if you switch apps while it works, and it's quicker.",
+  "Nutrition by ingredient and Cost breakdown have an arrow, so it's clear they open.",
   "Import from Paprika: bring your whole Paprika library in at once, with ratings, categories, notes, favorites, times, servings, nutrition and source links. In Paprika, export your recipes in Paprika Recipe Format, then in Recipe Box tap Add recipe, Import from Paprika. You see what's in the file first; nothing in your recipe book is changed, and importing the same file again adds nothing new.",
   "Favorites: tap the heart beside your stars. Everyone has their own, and the recipe book has a Favorites chip.",
   "Anonymous crash reports and usage stats, so problems get found and fixed: which version broke, and whether planning, shopping and cooking work as they should. Never your recipes, ingredients, lists, notes, prices or anything you type, and no names or email. Turn it off in Settings, under Privacy.",
