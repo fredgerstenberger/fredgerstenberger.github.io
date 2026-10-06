@@ -1316,3 +1316,10 @@ details > summary { min-height: 44px; display: flex; align-items: center; }
 .implist li { margin: 4px 0; }
 .impsum .check { display: flex; align-items: center; gap: 8px; min-height: 44px; }
 .impbox { padding: 14px 16px; margin: 0 0 var(--s3); }
+
+/* Breakdowns that open (Nutrition by ingredient, Cost breakdown, …): a chevron says so, and turns when open */
+details.breakdown > summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: var(--s2); min-height: 44px; }
+details.breakdown > summary::-webkit-details-marker { display: none; }
+details.breakdown > summary::after { content: ""; flex: none; width: 7px; height: 7px; margin: 0 6px 4px 0; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg); transition: transform var(--quick) var(--ease); }
+details.breakdown[open] > summary::after { transform: rotate(-135deg); margin-bottom: -2px; }
+@media (prefers-reduced-motion: reduce) { details.breakdown > summary::after { transition: none; } }
