@@ -78,6 +78,7 @@ export function toFields(k, v) {
     for (const [f, x] of Object.entries(v)) {
       if (f === FT || x == null) continue;
       if (f === "ratings" && typeof x === "object") { for (const [who, n] of Object.entries(x)) if (n) out["ratings|" + who] = n; }
+      else if (f === "favorites" && typeof x === "object") { for (const [who, on] of Object.entries(x)) if (on) out["favorites|" + who] = true; }
       else out[f] = x;
     }
     return out;
@@ -103,6 +104,7 @@ export function fromFields(k, fields) {
     const r = {};
     for (const [f, x] of Object.entries(fields)) {
       if (f.startsWith("ratings|")) (r.ratings ||= {})[f.slice(8)] = x;
+      else if (f.startsWith("favorites|")) (r.favorites ||= {})[f.slice(10)] = x;
       else r[f] = x;
     }
     return r;

@@ -76,3 +76,14 @@ export function setMyName(name) {
   }
   if (moved) store.save();
 }
+
+// Favorites work the same way: each person keeps their own (recipe.favorites = { rater: true }), synced and
+// merged per person, so marking one on your phone never unmarks it on your partner's.
+export const isFavorite = r => !!r?.favorites?.[myKey()];
+export const favoriteCount = r => Object.values(r?.favorites || {}).filter(Boolean).length;
+export function setFavorite(r, on) {
+  r.favorites ||= {};
+  if (on) r.favorites[myKey()] = true; else delete r.favorites[myKey()];
+  if (!Object.keys(r.favorites).length) delete r.favorites;
+  store.putRecipe(r);
+}

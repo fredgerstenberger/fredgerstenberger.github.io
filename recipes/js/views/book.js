@@ -1,6 +1,6 @@
 // Recipe book: search, quick filters, tag filters, sort.
 import * as store from "../store.js";
-import { avgRating } from "../ratings.js";
+import { avgRating, isFavorite } from "../ratings.js";
 import { esc } from "../util.js";
 import { shell, render, metaLine, modal, closeModal, go } from "../ui.js";
 import { nutritionFor } from "../nutrition.js";
@@ -52,6 +52,7 @@ export const QUICK = [
   [":protein", "High protein"],
   [":quick", "Quick"],
   [":budget", "Budget"],
+  [":hearted", "Favorites"],
   [":fav", "4+"],
   [":ready", "Store-bought"]
 ];
@@ -63,6 +64,7 @@ export function matches(r, chip, s = store.settings()) {
     case ":quick": return r.totalMin > 0 && r.totalMin <= s.quickMin;
     case ":budget": { const c = recipeCost(r); return c.total > 0 && c.perServing <= s.budget; }
     case ":fav": return avgRating(r) >= 4;
+    case ":hearted": return isFavorite(r);
     case ":ready": return isReady(r);
     default: return (r.tags || []).includes(chip);
   }
@@ -107,7 +109,7 @@ export function bookView() {
         <button class="fbtn" id="filtersBtn" aria-haspopup="dialog"></button>
       </div>
       <div class="chipscroll filters" role="group" aria-label="Quick filters">
-        ${QUICK.map(([k, l]) => `<button class="chip" data-chip="${k}" aria-pressed="${F.on.has(k)}"${k === ":fav" ? ' aria-label="4 stars and up"' : ""}>${k === ":fav" ? icon("star", "ic16") : ""}${esc(l)}</button>`).join("")}
+        ${QUICK.map(([k, l]) => `<button class="chip" data-chip="${k}" aria-pressed="${F.on.has(k)}"${k === ":fav" ? ' aria-label="4 stars and up"' : ""}>${k === ":fav" ? icon("star", "ic16") : k === ":hearted" ? icon("heart", "ic16") : ""}${esc(l)}</button>`).join("")}
       </div>
       <div class="sortrow">
         <span id="count"></span>
@@ -174,7 +176,7 @@ export function bookView() {
       return `
       <li class="card"><a href="#/r/${r.id}" class="${ph ? "hasphoto" : ""}">
         ${ph ? `<img class="cthumb" data-photo src="${esc(ph)}" alt="" decoding="sync" referrerpolicy="no-referrer">` : ""}
-        <span class="cbody"><span class="ctitle">${esc(r.title)}</span>
+        <span class="cbody"><span class="ctitle">${isFavorite(r) ? `${icon("heart", "ic14 cfav")}<span class="sr">Favorite: </span>` : ""}${esc(r.title)}</span>
         <div class="cmeta">${metaLine(r)}</div></span>
       </a></li>`;
     }).join("");

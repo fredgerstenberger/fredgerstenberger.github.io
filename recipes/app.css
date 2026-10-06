@@ -1294,3 +1294,8 @@ details > summary { min-height: 44px; display: flex; align-items: center; }
 .ghave > summary.chead, .gcart > summary { min-height: 44px; }
 .sortrow select, .setsel { min-height: 44px; }
 .preplist a { display: inline-block; padding: 12px 0; margin: -12px 0; }
+
+/* Favorites: the heart beside your stars, and a small one before a favorite's title in the book */
+.ratingbox .favbtn { margin-left: auto; min-width: 44px; min-height: 44px; display: grid; place-items: center; padding: 6px; border: 0; background: none; color: var(--c-muted); cursor: pointer; }
+.ratingbox .favbtn svg { width: 26px; height: 26px; }
+.ctitle .cfav { vertical-align: -1px; margin-right: 5px; }
