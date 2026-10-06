@@ -79,3 +79,22 @@ test("a recipe rated before shared ratings keeps its old rating until someone ra
   assert.deepEqual([r.avg, r.count], [2, 1]);
   assert.equal(s.A.store.recipe("r1").rating, 2, "rating kept as the rounded average for older app versions");
 });
+
+test("favorites are per person and both survive marking at the same time", async () => {
+  const s = await pair();
+  s.A.R.setMyName("Fred"); s.B.R.setMyName("Emma");
+  s.A.R.setFavorite(s.A.store.recipe("r1"), true);
+  s.B.R.setFavorite(s.B.store.recipe("r1"), true);
+  await s.A.sync.syncNow(); await s.B.sync.syncNow();
+  await settle(s.A, s.B);
+  for (const p of [s.A, s.B]) {
+    assert.equal(p.R.isFavorite(p.store.recipe("r1")), true, p.name);
+    assert.equal(p.R.favoriteCount(p.store.recipe("r1")), 2, p.name);
+  }
+  // Fred unmarks: Emma's stays.
+  s.A.R.setFavorite(s.A.store.recipe("r1"), false);
+  await settle(s.A, s.B);
+  assert.equal(s.B.R.isFavorite(s.B.store.recipe("r1")), true);
+  assert.equal(s.A.R.isFavorite(s.A.store.recipe("r1")), false);
+  assert.deepEqual(Object.keys(s.B.store.recipe("r1").favorites), ["n:emma"]);
+});

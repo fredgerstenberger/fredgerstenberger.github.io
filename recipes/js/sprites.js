@@ -639,6 +639,42 @@ SPRITES.starEmpty = {
   colors: { k: "currentColor" }
 };
 
+const HEART = { k: "#9B2C2C", r: "#E53E3E", w: "#FEB2B2" };
+SPRITES.heart = {
+  map: [
+    "............",
+    ".kkk....kkk.",
+    "krrrk..krrrk",
+    "krwrrkkrrrrk",
+    "krrrrrrrrrrk",
+    "krrrrrrrrrrk",
+    ".krrrrrrrrk.",
+    "..krrrrrrk..",
+    "...krrrrk...",
+    "....krrk....",
+    ".....kk.....",
+    "............"
+  ],
+  colors: HEART
+};
+SPRITES.heartEmpty = {
+  map: [
+    "............",
+    ".kkk....kkk.",
+    "k...k..k...k",
+    "k....kk....k",
+    "k..........k",
+    "k..........k",
+    ".k........k.",
+    "..k......k..",
+    "...k....k...",
+    "....k..k....",
+    ".....kk.....",
+    "............"
+  ],
+  colors: { k: "currentColor" }
+};
+
 /** An interface icon (sized by CSS: 1em, or the .ic16/.ic20/.ic24 classes). Decorative: the button it sits in carries the label. */
 export const icon = (name, cls = "") => sprite(name, `ic ${cls}`.trim());
 

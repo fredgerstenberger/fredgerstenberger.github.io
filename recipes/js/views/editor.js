@@ -9,6 +9,7 @@ import { askAfterSave } from "../fillin.js";
 import { photoOf, setPhoto } from "../photos.js";
 import { isReady } from "../ready.js";
 import { isDev } from "../dev.js";
+import { icon } from "../sprites.js";
 import { track } from "../analytics.js";
 
 export function addView(params) {
@@ -56,6 +57,7 @@ export function addView(params) {
         <button class="btn primary" id="readText" type="button">Read recipe</button>
       </details>
 
+      <a class="implink" href="#/import"><span><b>Already have recipes in Paprika?</b><small>Import your whole library at once.</small></span>${icon("chevRight", "ic20")}</a>
       <div id="editor"></div>
       <p class="muted" style="font-size:0.8235rem;margin-top:22px">Or <button class="btn small" id="manualBtn" type="button">type one in</button></p>
       ${s.proxy || !isDev() ? "" : `<p class="note">Without a Worker, links are read through public services, which are sometimes slow or blocked. Add one in Settings, Developer.</p>`}`

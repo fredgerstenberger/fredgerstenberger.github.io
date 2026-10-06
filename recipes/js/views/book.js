@@ -1,6 +1,6 @@
 // Recipe book: search, quick filters, tag filters, sort.
 import * as store from "../store.js";
-import { avgRating } from "../ratings.js";
+import { avgRating, isFavorite } from "../ratings.js";
 import { esc } from "../util.js";
 import { shell, render, metaLine, modal, closeModal, go } from "../ui.js";
 import { nutritionFor } from "../nutrition.js";
@@ -44,6 +44,9 @@ export function withinLimits(r, lim = {}) {
 }
 const limitCount = () => Object.values(F.lim).filter(v => v != null && v !== "").length;
 
+/** Open the book showing only this chip's recipes (after an import: ":paprika"). */
+export function showOnly(chip) { F.on = new Set([chip]); F.q = ""; F.lim = {}; saveF(); }
+
 export const QUICK = [
   ["breakfast", "Breakfast"],
   ["lunch", "Lunch"],
@@ -52,6 +55,7 @@ export const QUICK = [
   [":protein", "High protein"],
   [":quick", "Quick"],
   [":budget", "Budget"],
+  [":hearted", "Favorites"],
   [":fav", "4+"],
   [":ready", "Store-bought"]
 ];
@@ -63,7 +67,9 @@ export function matches(r, chip, s = store.settings()) {
     case ":quick": return r.totalMin > 0 && r.totalMin <= s.quickMin;
     case ":budget": { const c = recipeCost(r); return c.total > 0 && c.perServing <= s.budget; }
     case ":fav": return avgRating(r) >= 4;
+    case ":hearted": return isFavorite(r);
     case ":ready": return isReady(r);
+    case ":paprika": return r.origin === "paprika";
     default: return (r.tags || []).includes(chip);
   }
 }
@@ -94,6 +100,9 @@ export function bookView() {
   for (const r of all) for (const t of r.tags || []) if (!MEAL_TAGS.slice(0, 3).includes(t)) freq[t] = (freq[t] || 0) + 1;
   const tags = Object.entries(freq).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([t]) => t);
 
+  // Recipes imported from Paprika get their own chip, once there are any.
+  const quick = all.some(r => r.origin === "paprika") ? [...QUICK, [":paprika", "From Paprika"]] : QUICK;
+
   render(shell({
     title: "Recipes",
     back: null,
@@ -107,7 +116,7 @@ export function bookView() {
         <button class="fbtn" id="filtersBtn" aria-haspopup="dialog"></button>
       </div>
       <div class="chipscroll filters" role="group" aria-label="Quick filters">
-        ${QUICK.map(([k, l]) => `<button class="chip" data-chip="${k}" aria-pressed="${F.on.has(k)}"${k === ":fav" ? ' aria-label="4 stars and up"' : ""}>${k === ":fav" ? icon("star", "ic16") : ""}${esc(l)}</button>`).join("")}
+        ${quick.map(([k, l]) => `<button class="chip" data-chip="${k}" aria-pressed="${F.on.has(k)}"${k === ":fav" ? ' aria-label="4 stars and up"' : ""}>${k === ":fav" ? icon("star", "ic16") : k === ":hearted" ? icon("heart", "ic16") : ""}${esc(l)}</button>`).join("")}
       </div>
       <div class="sortrow">
         <span id="count"></span>
@@ -143,7 +152,7 @@ export function bookView() {
 
   function update() {
     // Filters button: how many filters are on that the chips above don't show.
-    const hidden = [...F.on].filter(k => !QUICK.some(([q]) => q === k)).length + limitCount();
+    const hidden = [...F.on].filter(k => !quick.some(([q]) => q === k)).length + limitCount();
     filtersBtn.innerHTML = `${sprite("filter")}<span>Filters</span>${hidden ? `<span class="fcount">${hidden}</span>` : ""}`;
     filtersBtn.classList.toggle("on", hidden > 0);
     document.querySelectorAll(".filters [data-chip]").forEach(b => b.setAttribute("aria-pressed", F.on.has(b.dataset.chip)));
@@ -174,7 +183,7 @@ export function bookView() {
       return `
       <li class="card"><a href="#/r/${r.id}" class="${ph ? "hasphoto" : ""}">
         ${ph ? `<img class="cthumb" data-photo src="${esc(ph)}" alt="" decoding="sync" referrerpolicy="no-referrer">` : ""}
-        <span class="cbody"><span class="ctitle">${esc(r.title)}</span>
+        <span class="cbody"><span class="ctitle">${isFavorite(r) ? `${icon("heart", "ic14 cfav")}<span class="sr">Favorite: </span>` : ""}${esc(r.title)}</span>
         <div class="cmeta">${metaLine(r)}</div></span>
       </a></li>`;
     }).join("");

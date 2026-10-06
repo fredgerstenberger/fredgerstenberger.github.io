@@ -46,13 +46,12 @@ function load() {
 
 // info (optional) is passed to listeners; sync uses info.times to keep imported records' edit times.
 export function save(info) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(state));
-  } catch (e) {
-    report(e, { area: "storage-save" });
-    alert("Couldn't save. Storage may be full or blocked. Export a backup from Settings.");
-  }
+  if (!persist()) alert("Couldn't save. Storage may be full or blocked. Export a backup from Settings.");
   listeners.forEach(fn => fn(info));
+}
+function persist() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); return true; }
+  catch (e) { report(e, { area: "storage-save" }); return false; }
 }
 
 export const get = () => state;
@@ -67,6 +66,15 @@ export function putRecipe(r) {
   if (!r.created) r.created = r.updated;
   state.recipes[r.id] = r;
   save();
+}
+
+/** Add many recipes with one save (an import). If they don't fit in storage, none are added; returns false. */
+export function putRecipes(list) {
+  const now = Date.now();
+  for (const r of list) { r.updated = now; if (!r.created) r.created = now; state.recipes[r.id] = r; }
+  if (persist()) { listeners.forEach(fn => fn()); return true; }
+  for (const r of list) delete state.recipes[r.id];
+  return false;
 }
 
 export function deleteRecipe(id) {

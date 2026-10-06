@@ -4,7 +4,7 @@ import { esc, fmtMinutes, debounce, domainOf } from "../util.js";
 import { shell, render, starsHTML, confirmBox, toast, go, modal } from "../ui.js";
 import { photoOf, setPhoto } from "../photos.js";
 import { photoFromPage } from "../parse.js";
-import { ratingOf, rate } from "../ratings.js";
+import { ratingOf, rate, isFavorite, setFavorite } from "../ratings.js";
 import * as sync from "../sync.js";
 import { parseIngredient, displayAmount, equivalents } from "../ingredients.js";
 import { nutritionFor, servingsOf, ingredientCounts, countsText } from "../nutrition.js";
@@ -62,9 +62,15 @@ function ratingHTML(r) {
     ? `<p class="ravg">${icon("star", "ic16")}<b>${Math.round(R.avg * 10) / 10}</b> average from ${R.count} rating${R.count > 1 ? "s" : ""}${R.others.some(o => o.name) ? `<span class="ravgwho">${R.others.filter(o => o.name).map(o => `${esc(o.name)} ${o.stars}`).join(", ")}</span>` : ""}</p>`
     : "";
   return `<div class="ratingbox">
-    <div class="rmine"><span class="rlabel">Your rating</span>${starsHTML(mine, { label: "Your rating" })}</div>${hint}
+    <div class="rmine"><span class="rlabel">Your rating</span>${starsHTML(mine, { label: "Your rating" })}${favHTML(r)}</div>${hint}
     ${avg}
   </div>`;
+}
+
+// Your favorite: the heart beside your stars (each person has their own; see ratings.js).
+function favHTML(r) {
+  const on = isFavorite(r);
+  return `<button class="favbtn" id="favBtn" aria-pressed="${on}" aria-label="Favorite">${icon(on ? "heart" : "heartEmpty", "ic24")}</button>`;
 }
 
 // Each ingredient's part of the nutrition, biggest first, with where its numbers come from. Tapping one
@@ -109,8 +115,8 @@ export function nuNudge(r, nu) {
 // Where a recipe came from, near its title: the site and author, with a link back to the original. Recipes
 // that AI read from a page or a photo say so, so people know to check them.
 function sourceHTML(r) {
-  const note = r.origin === "photo" ? "Imported from photo" : r.origin === "ai-page" ? "Read from page" : "";
-  if (!r.url) return `<p class="rsource">${r.author ? `<span>By ${esc(r.author)}</span>` : "<span>Your recipe</span>"}${note ? `<span class="rorigin">${note}</span>` : ""}</p>`;
+  const note = r.origin === "photo" ? "Imported from photo" : r.origin === "ai-page" ? "Read from page" : r.origin === "paprika" ? "Imported from Paprika" : "";
+  if (!r.url) return `<p class="rsource">${r.author ? `<span>By ${esc(r.author)}</span>` : r.site ? `<span>${esc(r.site)}</span>` : "<span>Your recipe</span>"}${note ? `<span class="rorigin">${note}</span>` : ""}</p>`;
   return `<p class="rsource"><span class="rsite">${esc(r.site || domainOf(r.url))}</span>${r.author ? `<span>By ${esc(r.author)}</span>` : ""}
     <a class="rview" href="${esc(r.url)}" target="_blank" rel="noopener">View original ${icon("external", "ic16")}</a>${note ? `<span class="rorigin">${note}</span>` : ""}</p>`;
 }
@@ -282,6 +288,11 @@ export function recipeView(id) {
       const n = +b.dataset.star, mine = ratingOf(r).mine;
       rate(r, mine === n ? 0 : n); // tap your current rating again to clear it
       draw();
+    });
+    document.getElementById("favBtn")?.addEventListener("click", () => {
+      const on = !isFavorite(r);
+      setFavorite(r, on); draw();
+      toast(on ? "Added to Favorites" : "Removed from Favorites");
     });
     const setServ = v => { P.servings = Math.max(1, Math.min(99, v)); draw(); };
     document.getElementById("sMinus").onclick = () => setServ(P.servings - 1);
