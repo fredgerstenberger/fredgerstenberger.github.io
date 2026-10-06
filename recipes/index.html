@@ -2,114 +2,80 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Recipe Box</title>
-<meta name="description" content="Save recipes from any site, plan the week and get a grocery list.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Recipe Box has moved</title>
+<meta name="description" content="Recipe Box is now at app.bakfan.com.">
 <meta name="theme-color" content="#E4E8EA" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121A22" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Recipe Box">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css">
-<!-- Every module, fetched in parallel instead of a few at a time down the import chain. Keep in step with
-     js/ and sw.js FILES (test/files.test.mjs checks). -->
-<link rel="modulepreload" href="js/app.js">
-<link rel="modulepreload" href="js/monitor.js">
-<link rel="modulepreload" href="js/telemetry.js">
-<link rel="modulepreload" href="js/analytics.js">
-<link rel="modulepreload" href="js/cooked.js">
-<link rel="modulepreload" href="js/paprika.js">
-<link rel="modulepreload" href="js/views/import.js">
-<link rel="modulepreload" href="js/data.js">
-<link rel="modulepreload" href="js/fields.js">
-<link rel="modulepreload" href="js/fillin.js">
-<link rel="modulepreload" href="js/fooddb.js">
-<link rel="modulepreload" href="js/grocery-add.js">
-<link rel="modulepreload" href="js/grocery.js">
-<link rel="modulepreload" href="js/household.js">
-<link rel="modulepreload" href="js/ingredients.js">
-<link rel="modulepreload" href="js/live.js">
-<link rel="modulepreload" href="js/nutrition.js">
-<link rel="modulepreload" href="js/parse.js">
-<link rel="modulepreload" href="js/pixicons.js">
-<link rel="modulepreload" href="js/prices.js">
-<link rel="modulepreload" href="js/quickadd.js">
-<link rel="modulepreload" href="js/ratings.js">
-<link rel="modulepreload" href="js/recipe-data.js">
-<link rel="modulepreload" href="js/scan.js">
-<link rel="modulepreload" href="js/sprites.js">
-<link rel="modulepreload" href="js/store.js">
-<link rel="modulepreload" href="js/stores.js">
-<link rel="modulepreload" href="js/sync.js">
-<link rel="modulepreload" href="js/tags.js">
-<link rel="modulepreload" href="js/timers.js">
-<link rel="modulepreload" href="js/ui.js">
-<link rel="modulepreload" href="js/util.js">
-<link rel="modulepreload" href="js/updates.js">
-<link rel="modulepreload" href="js/label.js">
-<link rel="modulepreload" href="js/labelsheet.js">
-<link rel="modulepreload" href="js/variants.js">
-<link rel="modulepreload" href="js/weeks.js">
-<link rel="modulepreload" href="js/photos.js">
-<link rel="modulepreload" href="js/ready.js">
-<link rel="modulepreload" href="js/tips.js">
-<link rel="modulepreload" href="js/dev.js">
-<link rel="modulepreload" href="js/platform.js">
-<link rel="modulepreload" href="js/views/ready.js">
-<link rel="modulepreload" href="js/views/today.js">
-<link rel="modulepreload" href="js/views/more.js">
-<link rel="modulepreload" href="js/version.js">
-<link rel="modulepreload" href="js/views/book.js">
-<link rel="modulepreload" href="js/views/convert.js">
-<link rel="modulepreload" href="js/views/editor.js">
-<link rel="modulepreload" href="js/views/grocery.js">
-<link rel="modulepreload" href="js/views/pantry.js">
-<link rel="modulepreload" href="js/views/plan.js">
-<link rel="modulepreload" href="js/views/prices.js">
-<link rel="modulepreload" href="js/views/recipe.js">
-<link rel="modulepreload" href="js/views/settings.js">
-<link rel="modulepreload" href="js/views/stores.js">
-<script>
-  // Errors from before the crash reporter (js/monitor.js) starts, including a module that fails to load.
-  window.__rbErr = [];
-  addEventListener("error", e => {
-    if (window.__rbErrOff || __rbErr.length > 9) return;
-    const t = e.target;
-    if (t && t.tagName === "SCRIPT") __rbErr.push(new Error("Couldn't load " + (t.src || "a script")));
-    else if (t === window || !t || !t.tagName) __rbErr.push(e.error || new Error(e.message || "Script error"));
-  }, true);
-  addEventListener("unhandledrejection", e => { if (!window.__rbErrOff && __rbErr.length < 10) __rbErr.push(e.reason); });
-</script>
-<script>
-  // Apply saved theme before first paint to avoid a flash.
-  try {
-    const t = JSON.parse(localStorage.getItem("recipebox.v1") || "{}").settings?.theme;
-    if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
-  } catch {}
-</script>
+<style>
+  :root { --bg: #F4F2EE; --card: #FFFFFF; --ink: #1B232B; --muted: #5B6670; --line: #E3DED6; --accent: #2448CC; --accent-ink: #fff; --err: #B3261E; color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #121A22; --card: #1A232D; --ink: #E8ECEF; --muted: #9AA6B1; --line: #2A3540; --accent: #7C95FF; --accent-ink: #0B1020; --err: #FF8A80; color-scheme: dark; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  main { max-width: 520px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) 16px 40px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px 20px; }
+  img.logo { width: 56px; height: 56px; border-radius: 14px; display: block; margin-bottom: 14px; }
+  h1 { font-size: 1.6rem; line-height: 1.2; margin: 0 0 8px; }
+  p { margin: 0 0 14px; }
+  .muted { color: var(--muted); font-size: .9rem; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 20px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font: 600 1rem inherit; font-family: inherit; text-decoration: none; cursor: pointer; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); width: 100%; margin: 4px 0 10px; }
+  .btn.link { border: 0; background: none; color: var(--accent); padding: 0; min-height: 44px; }
+  .btn:disabled { opacity: .6; }
+  .note { padding: 10px 12px; border-radius: 10px; background: var(--bg); font-size: .95rem; }
+  .note.error { color: var(--err); }
+  ol { padding-left: 1.2em; margin: 0 0 14px; } li { margin: 6px 0; }
+  input { width: 100%; font: inherit; font-size: 16px; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); margin-bottom: 10px; }
+</style>
 </head>
 <body>
-<div id="app"></div>
-<nav class="tabbar" id="tabbar" aria-label="Main" hidden></nav>
-<div id="timers" class="timerdock" hidden aria-label="Timers"></div>
-<dialog class="win" id="modal" aria-labelledby="modal-title">
-  <div class="titlebar">
-    <span class="tb-left"><button class="backbtn" id="modal-close" aria-label="Close"></button></span>
-    <h2 class="wintitle" id="modal-title"></h2>
-    <span class="tb-right"></span>
-  </div>
-  <div class="wbody" id="modal-body"></div>
-</dialog>
-<div id="toast" class="toast win" hidden role="status"></div>
-<noscript><p style="padding:20px">Recipe Box needs JavaScript turned on.</p></noscript>
-<script type="module" src="js/monitor.js"></script>
-<script type="module" src="js/app.js"></script>
+<main>
+  <section id="move" data-screen hidden>
+    <img class="logo" src="icons/icon-180.png" alt="">
+    <h1>Recipe Box has moved</h1>
+    <p>It's now at <b>app.bakfan.com</b>. Your recipes, meal plans, grocery lists and sync come with you in one tap.</p>
+    <button class="btn primary" data-move>Move my data</button>
+    <p class="note" id="status" role="status" hidden></p>
+    <p class="muted">Your data is encrypted on this phone before it's sent, and the link works once. Nothing here is deleted.</p>
+    <button class="btn link" data-backup>Download a backup file</button>
+  </section>
+
+  <section id="handoff" data-screen hidden>
+    <img class="logo" src="icons/icon-180.png" alt="">
+    <h1>One more step</h1>
+    <p>Your data is ready. Because Recipe Box is on your Home Screen, finish in the new one:</p>
+    <ol>
+      <li>Tap <b>Copy move link</b>.</li>
+      <li>Open <a href="https://app.bakfan.com" target="_blank" rel="noopener">app.bakfan.com</a> in Safari, tap <b>Share</b>, then <b>Add to Home Screen</b>.</li>
+      <li>Open the new Recipe Box from your Home Screen and tap <b>Paste move link</b>.</li>
+    </ol>
+    <input id="link" readonly aria-label="Move link">
+    <button class="btn primary" id="copy">Copy move link</button>
+    <p class="muted">The link works once, for 24 hours. Don't want it on your Home Screen? <a href="#" onclick="location.href=document.getElementById('link').value;return false">Open it here instead</a>.</p>
+  </section>
+
+  <section id="moved" data-screen hidden>
+    <img class="logo" src="icons/icon-180.png" alt="">
+    <h1>Moved to app.bakfan.com</h1>
+    <p>Recipe Box lives at its new address now. This copy is kept as it was, just in case.</p>
+    <a class="btn primary" href="https://app.bakfan.com">Open Recipe Box</a>
+    <p class="muted">Missing something at the new address? <button class="btn link" data-move>Move my data again</button> or <button class="btn link" data-backup>download a backup file</button>.</p>
+    <p class="note" id="status2" role="status" hidden></p>
+  </section>
+
+  <section id="empty" data-screen hidden>
+    <img class="logo" src="icons/icon-180.png" alt="">
+    <h1>Recipe Box has moved</h1>
+    <p>It's now at <b>app.bakfan.com</b>.</p>
+    <a class="btn primary" href="https://app.bakfan.com">Open Recipe Box</a>
+  </section>
+</main>
+<noscript><p style="padding:16px">Recipe Box is now at <a href="https://app.bakfan.com">app.bakfan.com</a>.</p></noscript>
+<script type="module" src="moved.js"></script>
 </body>
 </html>
