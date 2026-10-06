@@ -4,7 +4,7 @@
 // "Updated · Reload" (or switches on the next launch). A page only ever loads files from one release's
 // cache, so old and new modules can never mix.
 // Bump VERSION whenever app files change so phones pick up the update.
-const VERSION = "rb-v39"; // keep in step with APP_VERSION in js/version.js
+const VERSION = "rb-v40"; // keep in step with APP_VERSION in js/version.js
 // The vendor/ files at the end are the crash-report and usage-stats libraries (vendor/README.md).
 const FILES = [
   "./", "index.html", "app.css", "manifest.webmanifest", "icons/icon.svg", "icons/icon-180.png",

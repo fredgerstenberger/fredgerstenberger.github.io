@@ -65,20 +65,43 @@ function syncHTML(s) {
 const APP_URL = new URL(".", location.href).href.replace(/#.*$/, "");
 const WORKER_HELP = "https://github.com/fredgerstenberger/fredgerstenberger.github.io/blob/main/recipes/worker/README.md";
 
+// iPhone opens a tapped invite link in Safari, and Safari keeps its own recipes, apart from the Recipe Box on the
+// Home Screen. An invite works once, so joining in Safari by mistake used it up and left the app empty.
+const inSafariOnIphone = () => typeof navigator !== "undefined" && navigator.standalone === false;
+const inviteLink = (invite, worker) => `${APP_URL}?invite=${invite}${worker ? `&w=${encodeURIComponent(worker)}` : ""}`;
+
 // method: "link" (opened the invite link) or "code" (pasted it into Settings), for household_joined.
 function askJoin(invite, worker, method = "code") {
+  const safari = method === "link" && inSafariOnIphone();
   const { el, close } = modal("Join recipe box?", `
-    <p style="margin-top:0">This device joins the shared recipe box. What's already here is kept and added.</p>
+    ${safari ? `<p class="note" style="margin-top:0"><b>This opened in Safari.</b> If Recipe Box is on your Home Screen, join there instead: Safari and the Home Screen app keep separate recipes, and an invite works only once. Tap <b>Copy invite</b>, open Recipe Box from your Home Screen, go to Settings, then Sync, and paste it.</p>` : ""}
+    <p style="${safari ? "" : "margin-top:0"}">This ${safari ? "browser" : "device"} joins the shared recipe box. What's already here is kept and added.</p>
     ${worker && isDev() ? `<p class="muted" style="font-size:0.8235rem">Worker: ${esc(worker)}</p>` : ""}
-    <div class="btnrow"><button class="btn primary" id="jYes">Join and sync</button><button class="btn" id="jNo">Cancel</button></div>`);
+    <p class="note error" id="jErr" hidden></p>
+    <div class="btnrow">
+      ${safari ? `<button class="btn primary" id="jCopy">Copy invite</button><button class="btn" id="jYes">Join in Safari</button>` : `<button class="btn primary" id="jYes">Join and sync</button>`}
+      <button class="btn" id="jNo">Cancel</button>
+    </div>`);
   el.querySelector("#jNo").onclick = close;
+  el.querySelector("#jCopy")?.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(inviteLink(invite, worker)); toast("Invite copied. Open Recipe Box from your Home Screen."); }
+    catch { toast("Press and hold the link in your messages and copy it instead"); }
+  });
   el.querySelector("#jYes").onclick = async () => {
-    el.querySelector("#jYes").disabled = true;
-    el.querySelector("#jYes").textContent = "Syncing…";
-    try { const r = await sync.redeemInvite(invite, worker); track("household_joined", { method }); toast(`Joined. ${r.applied} item${r.applied === 1 ? "" : "s"} synced.`); }
-    catch (err) { toast(err.message); }
-    close();
-    settingsView();
+    const btn = el.querySelector("#jYes"), err = el.querySelector("#jErr");
+    btn.disabled = true; btn.textContent = "Syncing…"; err.hidden = true;
+    try {
+      const r = await sync.redeemInvite(invite, worker);
+      track("household_joined", { method });
+      close();
+      settingsView();
+      const n = store.recipes().length;
+      toast(`Joined. ${n ? `${n} recipe${n === 1 ? "" : "s"} here now.` : `${r.applied} item${r.applied === 1 ? "" : "s"} synced.`}`);
+    } catch (e) {
+      // Stays open with the reason, instead of a toast that's gone in two seconds.
+      err.textContent = e.message; err.hidden = false;
+      btn.disabled = false; btn.textContent = safari ? "Join in Safari" : "Join and sync";
+    }
   };
 }
 
