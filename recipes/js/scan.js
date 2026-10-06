@@ -91,25 +91,52 @@ export async function scanPhotos(files, { worker, model, key }, onStatus = () =>
   return r;
 }
 
+/**
+ * Run a request; if it fails because you switched to another app while it was going (iPhone stops a web app's
+ * requests in the background), send it again once you're back, instead of making you start over. Once only.
+ */
+export async function resendIfInterrupted(send, doc = typeof document !== "undefined" ? document : null) {
+  let away = false;
+  const mark = () => { if (doc?.visibilityState === "hidden") away = true; };
+  doc?.addEventListener?.("visibilitychange", mark);
+  try {
+    return await send();
+  } catch (e) {
+    if (!away && doc?.visibilityState !== "hidden") throw e;
+    if (doc?.visibilityState === "hidden") await new Promise(res => {
+      const back = () => { if (doc.visibilityState !== "hidden") { doc.removeEventListener("visibilitychange", back); res(); } };
+      doc.addEventListener("visibilitychange", back);
+    });
+    return await send();
+  } finally {
+    doc?.removeEventListener?.("visibilitychange", mark);
+  }
+}
+
 // A Nutrition Facts label (photo or screenshot) → its fields, checked, via your Worker's /label.
-// The photo is shrunk on the phone, sent once, and not kept anywhere.
+// The photo is shrunk on the phone and not kept anywhere (it's sent a second time only if you switched apps
+// while it was being read).
 export async function scanLabel(file, { worker, model, key }) {
   if (!worker) throw new Error(devText("Label scanning uses your Cloudflare Worker (Settings, Developer). You can paste the label's text instead.", "Reading label pictures isn't available yet. You can paste the label's text instead."));
-  const image = await shrinkPhoto(file, 1400, 0.85);
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 90000);
+  // A label is text, so a smaller picture reads as well and faster.
+  const image = await shrinkPhoto(file, 1100, 0.8);
+  const send = async () => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 90000);
+    try {
+      return await fetch(`${worker.replace(/\/+$/, "")}/label`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(key ? { "X-App-Key": key } : {}) },
+        body: JSON.stringify({ images: [image], model }),
+        signal: ctrl.signal
+      });
+    } finally { clearTimeout(t); }
+  };
   let res;
   try {
-    res = await fetch(`${worker.replace(/\/+$/, "")}/label`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...(key ? { "X-App-Key": key } : {}) },
-      body: JSON.stringify({ images: [image], model }),
-      signal: ctrl.signal
-    });
+    res = await resendIfInterrupted(send);
   } catch (e) {
     throw new Error(e.name === "AbortError" ? "Reading the label took too long. Try again, or paste its text." : devText("Couldn't reach your Worker. You can paste the label's text instead.", "Couldn't read the label. Check your connection, or paste its text."));
-  } finally {
-    clearTimeout(t);
   }
   let data = {};
   try { data = await res.json(); } catch {}

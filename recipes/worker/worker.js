@@ -52,7 +52,7 @@ const MODELS = [
 ];
 
 // Shown at /status so you can confirm which version Cloudflare is running.
-const VERSION = "2026-10-07.2";
+const VERSION = "2026-10-07.3";
 
 const MAX_PAGE_BYTES = 5_000_000;
 const MAX_SCAN_BYTES = 8_000_000; // request body: up to a few resized photos
@@ -103,7 +103,8 @@ Rules:
 - All nutrient values are PER SERVING (not per container, not % Daily Value), in grams; calories in kcal.
 - If the label has two columns (per serving and per container), use the per-serving column.
 - "<1g" means 0.5. "0g" means 0.
-- Use null for anything that isn't shown or that you can't read. Never guess or calculate a value.`;
+- Use null for anything that isn't shown or that you can't read. Never guess or calculate a value.
+Answer with the JSON right away, without thinking it through first. /no_think`;
 
 function cors(origin) {
   return {
@@ -261,7 +262,7 @@ function dataUrlBytes(dataUrl) {
   return bytes;
 }
 
-async function runModel(env, model, images, text, prompt = PROMPT) {
+async function runModel(env, model, images, text, prompt = PROMPT, maxTokens = 4096) {
   // Chat format with OpenAI-style image parts — used by the current vision models.
   const chat = {
     messages: [{
@@ -273,7 +274,7 @@ async function runModel(env, model, images, text, prompt = PROMPT) {
           ...images.map(url => ({ type: "image_url", image_url: { url } }))
         ]
     }],
-    max_tokens: 4096,
+    max_tokens: maxTokens,
     temperature: 0.1
   };
   try {
@@ -281,7 +282,7 @@ async function runModel(env, model, images, text, prompt = PROMPT) {
   } catch (e) {
     // Older Llama vision format: one image as raw bytes plus a prompt.
     if (model.includes("llama-3.2") && images.length) {
-      return await env.AI.run(model, { prompt, image: [...dataUrlBytes(images[0])], max_tokens: 4096 });
+      return await env.AI.run(model, { prompt, image: [...dataUrlBytes(images[0])], max_tokens: maxTokens });
     }
     throw e;
   }
@@ -337,7 +338,8 @@ async function label(request, env, headers) {
   const model = MODELS.includes(body.model) ? body.model : MODELS[0];
   let out;
   try {
-    out = await runModel(env, model, images, null, LABEL_PROMPT);
+    // A label's answer is a short JSON object: a small token budget keeps the model from rambling first.
+    out = await runModel(env, model, images, null, LABEL_PROMPT, 1024);
   } catch (e) {
     const msg = String(e.message || e);
     const hint = /limit|quota|neuron|429/i.test(msg) ? " You may have used up today's free Workers AI allowance; try again tomorrow." : "";

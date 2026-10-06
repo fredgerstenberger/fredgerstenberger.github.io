@@ -43,3 +43,23 @@ test("the grocery list says loaves; a price per each says what an each is", asyn
   assert.equal(G.singular("loaves"), "loaf");
   assert.equal(p.P.basisLabel(p.I.parseIngredient("1 slice sandwich bread").food, "e"), "each (about 30 g)");
 });
+
+test("a label read interrupted by switching apps is sent again when you're back", async () => {
+  const { resendIfInterrupted } = await import("../js/scan.js");
+  const doc = Object.assign(new EventTarget(), { visibilityState: "visible" });
+  let calls = 0;
+  const send = async () => {
+    calls++;
+    if (calls === 1) {
+      doc.visibilityState = "hidden"; doc.dispatchEvent(new Event("visibilitychange")); // you switch away…
+      setTimeout(() => { doc.visibilityState = "visible"; doc.dispatchEvent(new Event("visibilitychange")); }, 10); // …and come back
+      throw new TypeError("Load failed");
+    }
+    return "ok";
+  };
+  assert.equal(await resendIfInterrupted(send, doc), "ok");
+  assert.equal(calls, 2);
+  // A failure with the app open isn't retried.
+  const doc2 = Object.assign(new EventTarget(), { visibilityState: "visible" });
+  await assert.rejects(resendIfInterrupted(async () => { throw new TypeError("Load failed"); }, doc2), /Load failed/);
+});
