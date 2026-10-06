@@ -10,6 +10,7 @@ import { varietyOf, varietyName, shoppingOnly } from "./variants.js";
 export function singular(w) {
   if (/(ss|us|is)$/.test(w) || w.length <= 3) return w;
   if (/ies$/.test(w)) return w.slice(0, -3) + "y";
+  if (/(^|\s)(loa|hal|lea)ves$/.test(w)) return w.slice(0, -3) + "f";
   if (/(oes|ches|shes|xes)$/.test(w)) return w.slice(0, -2);
   if (/s$/.test(w)) return w.slice(0, -1);
   return w;
@@ -20,6 +21,7 @@ export function pluralize(word, n) {
   if (/(s|x|ch|sh)$/.test(word)) return word + "es";
   if (/[^aeiou]y$/.test(word)) return word.slice(0, -1) + "ies";
   if (/(tomato|potato)$/.test(word)) return word + "es";
+  if (/(^|\s)(loaf|half|leaf)$/.test(word)) return word.slice(0, -1) + "ves";
   return word + "s";
 }
 

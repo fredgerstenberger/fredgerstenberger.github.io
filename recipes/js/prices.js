@@ -325,7 +325,7 @@ export function basisGrams(food, basis) {
 
 export function basisLabel(food, basis) {
   if (basis === "p") return food.pkg ? `${food.pkg.label}${food.pkg.desc ? ` (${food.pkg.desc})` : ""}` : "package";
-  if (basis === "e") return "each";
+  if (basis === "e") return food.gEach ? `each (about ${Math.round(food.gEach)} g)` : "each"; // bread's "each" is a slice
   return "lb";
 }
 

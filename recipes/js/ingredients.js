@@ -36,6 +36,7 @@ export const UNITS = {
   container: { dim: "count", pkg: true, names: ["container", "containers", "tub", "tubs"] },
   bunch:  { dim: "count", pkg: true, names: ["bunch", "bunches"] },
   head:   { dim: "count", pkg: true, names: ["head", "heads"] },
+  loaf:   { dim: "count", pkg: true, names: ["loaf", "loaves"] },
   stick:  { dim: "count", names: ["stick", "sticks"] },
   slice:  { dim: "count", names: ["slice", "slices"] },
   piece:  { dim: "count", names: ["piece", "pieces", "pc", "pcs"] },
@@ -282,10 +283,14 @@ function withYourInfo(food, name) {
   const infoKey = v ? v.key : food.name;
   const mine = customFood(infoKey);
   if (!v && !mine?.nu) return food;
+  // A label that says how many servings are in the package sets the package's weight ("2 loaves" = 2 × 20
+  // slices of 40 g), for nutrition and for a price per package alike.
+  const lab = mine?.label, pkgG = lab?.servings > 0 && lab?.grams > 0 ? Math.round(lab.servings * lab.grams) : null;
   return {
     ...food, infoKey, base: food.name,
     nu: mine?.nu || food.nu,
     gCup: mine?.gCup ?? food.gCup, gEach: mine?.gEach ?? food.gEach,
+    pkg: pkgG ? { ...(food.pkg || { label: "package" }), g: pkgG, desc: "" } : food.pkg,
     standIn: !mine?.nu, yours: !!mine?.nu, label: mine?.label || null
   };
 }
