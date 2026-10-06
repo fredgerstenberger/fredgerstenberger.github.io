@@ -115,8 +115,8 @@ export function nuNudge(r, nu) {
 // Where a recipe came from, near its title: the site and author, with a link back to the original. Recipes
 // that AI read from a page or a photo say so, so people know to check them.
 function sourceHTML(r) {
-  const note = r.origin === "photo" ? "Imported from photo" : r.origin === "ai-page" ? "Read from page" : "";
-  if (!r.url) return `<p class="rsource">${r.author ? `<span>By ${esc(r.author)}</span>` : "<span>Your recipe</span>"}${note ? `<span class="rorigin">${note}</span>` : ""}</p>`;
+  const note = r.origin === "photo" ? "Imported from photo" : r.origin === "ai-page" ? "Read from page" : r.origin === "paprika" ? "Imported from Paprika" : "";
+  if (!r.url) return `<p class="rsource">${r.author ? `<span>By ${esc(r.author)}</span>` : r.site ? `<span>${esc(r.site)}</span>` : "<span>Your recipe</span>"}${note ? `<span class="rorigin">${note}</span>` : ""}</p>`;
   return `<p class="rsource"><span class="rsite">${esc(r.site || domainOf(r.url))}</span>${r.author ? `<span>By ${esc(r.author)}</span>` : ""}
     <a class="rview" href="${esc(r.url)}" target="_blank" rel="noopener">View original ${icon("external", "ic16")}</a>${note ? `<span class="rorigin">${note}</span>` : ""}</p>`;
 }

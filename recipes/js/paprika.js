@@ -28,7 +28,7 @@ export class ImportError extends Error {
 const u16 = (b, o) => b[o] | (b[o + 1] << 8);
 const u32 = (b, o) => (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0;
 const bytesOf = async (blob, start, end) => new Uint8Array(await blob.slice(start, end).arrayBuffer());
-const NOT_ZIP = "That isn't a Paprika export. In Paprika, choose Export, then All Recipes, and pick the .paprikarecipes file it makes.";
+const NOT_ZIP = "That isn't a Paprika export. In Paprika, export your recipes in Paprika Recipe Format, then choose the .paprikarecipes file it makes.";
 
 /** The entries of a ZIP archive (read from its directory at the end, so a big file isn't loaded at once). */
 export async function zipEntries(blob) {

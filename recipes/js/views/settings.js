@@ -197,6 +197,7 @@ export function settingsView() {
         <label class="btn" for="importFile">Import backup</label>
         <input type="file" id="importFile" accept="application/json,.json" hidden>
       </div>
+      <div class="setrow"><span>Import from Paprika<small>Bring in your Paprika recipe library</small></span><a class="btn small" href="#/import">Import</a></div>
       <p class="muted" style="font-size:0.8235rem">Last backup: ${st.lastBackup ? new Date(st.lastBackup).toLocaleString() : "never"}</p>
 
       <h2 class="sect" id="set-privacy">Privacy</h2>

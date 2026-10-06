@@ -18,6 +18,7 @@ import { settingsView } from "./views/settings.js";
 import { pricesView } from "./views/prices.js";
 import { todayView } from "./views/today.js";
 import { moreView } from "./views/more.js";
+import { importView } from "./views/import.js";
 import * as sync from "./sync.js";
 import { refreshPrices } from "./data.js";
 import { refreshRecipe } from "./views/recipe.js";
@@ -48,6 +49,7 @@ const ROUTES = [
   [/^#\/settings$/, () => settingsView()],
   [/^#\/prices$/, () => pricesView()],
   [/^#\/more$/, () => moreView()],
+  [/^#\/import$/, () => importView()],
   [/^#\/today$/, () => homeView()]
 ];
 

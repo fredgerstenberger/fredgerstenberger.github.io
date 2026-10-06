@@ -26,7 +26,10 @@ export const EVENTS = {
   shopping_started: { number_of_items: COUNT },
   meal_completed: { meal_type: MEALS, is_batch: BOOL },
   week_completed: { meals_planned: COUNT, meals_completed: COUNT, shopped: BOOL },
-  next_week_planned: { week: WEEK }
+  next_week_planned: { week: WEEK },
+  paprika_import_started: {},
+  paprika_import_completed: { recipe_count: COUNT, imported_count: COUNT, skipped_count: COUNT, duplicate_count: COUNT },
+  paprika_import_failed: { reason: ["not_zip", "empty", "unreadable", "error", "storage_full"], recipe_count: COUNT, imported_count: COUNT, skipped_count: COUNT, duplicate_count: COUNT }
 };
 
 /** An event's properties, keeping only what the list allows (counts, true/false, fixed words), or null. */

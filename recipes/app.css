@@ -1299,3 +1299,20 @@ details > summary { min-height: 44px; display: flex; align-items: center; }
 .ratingbox .favbtn { margin-left: auto; min-width: 44px; min-height: 44px; display: grid; place-items: center; padding: 6px; border: 0; background: none; color: var(--c-muted); cursor: pointer; }
 .ratingbox .favbtn svg { width: 26px; height: 26px; }
 .ctitle .cfav { vertical-align: -1px; margin-right: 5px; }
+
+/* Import from Paprika */
+.implink { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); margin: var(--s4) 0; padding: 12px 14px; border: 1px solid var(--c-line); border-radius: var(--r); background: var(--c-card); color: var(--c-ink); text-decoration: none; min-height: 44px; }
+.implink small { display: block; color: var(--c-muted); font-size: 0.8235rem; margin-top: 2px; }
+.implink svg { color: var(--c-muted); flex: none; }
+.impcard .howto { margin: 0 0 var(--s3); }
+.impbar { display: block; height: 8px; border-radius: 2px; background: var(--c-line); overflow: hidden; }
+.impbar i { display: block; height: 100%; background: var(--c-check); transition: width var(--quick) var(--ease); }
+.impcounts { list-style: none; margin: 0 0 var(--s3); padding: 0; }
+.impcounts li { padding: 8px 0; border-top: 1px solid var(--c-line); }
+.impcounts li:first-child { border-top: 0; }
+.impcounts b { font-variant-numeric: tabular-nums; margin-right: 4px; }
+.impcounts small { display: block; color: var(--c-muted); font-size: 0.8235rem; margin-top: 2px; }
+.implist { margin: 6px 0 0; padding-left: 18px; font-size: 0.8824rem; }
+.implist li { margin: 4px 0; }
+.impsum .check { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.impbox { padding: 14px 16px; margin: 0 0 var(--s3); }
