@@ -6,7 +6,7 @@ import { isDev } from "./dev.js";
 
 // Public client keys: they're meant to be in the page (they can send data, not read it). Empty = off.
 export const SENTRY_DSN = "https://292a254d7db80098e4247b1292f1bbd8@o4512205803552768.ingest.us.sentry.io/4512207501721600";
-export const POSTHOG_KEY = "";
+export const POSTHOG_KEY = "phc_tqCkypVMb2pSG2nGHU4LiiDhgu8krRfdbhWzwo6EjgPh";
 export const POSTHOG_HOST = "https://us.i.posthog.com";
 
 export const RELEASE = `recipe-box@${APP_VERSION}`;
