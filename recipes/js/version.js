@@ -2,7 +2,7 @@
 export const APP_VERSION = 40;
 export const RELEASED = "2026-10-06";
 export const WHATS_NEW = [
-  "Invites opened in Safari say so: an iPhone opens a tapped link in Safari, which keeps its own recipes apart from the Recipe Box on your Home Screen. Tap Copy invite and paste it in the Home Screen app (Settings, Sync) instead. If joining fails, the reason stays on screen.",
+  "Invites opened in Safari say so: an iPhone opens a tapped link in Safari, which keeps its own recipes apart from Recipe Box on your Home Screen (even if you add it to the Home Screen afterwards). Tap Copy invite, add Recipe Box to your Home Screen if it isn't there yet, and paste it there (Settings, Sync). If joining fails, the reason stays on screen.",
   "\"2 loaves of bread\" counts two whole loaves, not two slices. With the bread's label pasted, a loaf is its serving size times the servings per package, for nutrition and for a price per loaf.",
   "Reading a label keeps going if you switch apps while it works, and it's quicker.",
   "Nutrition by ingredient and Cost breakdown have an arrow, so it's clear they open.",

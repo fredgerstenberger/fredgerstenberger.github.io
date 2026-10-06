@@ -74,7 +74,8 @@ const inviteLink = (invite, worker) => `${APP_URL}?invite=${invite}${worker ? `&
 function askJoin(invite, worker, method = "code") {
   const safari = method === "link" && inSafariOnIphone();
   const { el, close } = modal("Join recipe box?", `
-    ${safari ? `<p class="note" style="margin-top:0"><b>This opened in Safari.</b> If Recipe Box is on your Home Screen, join there instead: Safari and the Home Screen app keep separate recipes, and an invite works only once. Tap <b>Copy invite</b>, open Recipe Box from your Home Screen, go to Settings, then Sync, and paste it.</p>` : ""}
+    ${safari ? `<div class="note" style="margin-top:0"><p style="margin-top:0"><b>This opened in Safari.</b> Safari and Recipe Box on your Home Screen keep separate recipes, even when you add it to the Home Screen later, and an invite works only once. To use it from your Home Screen:</p>
+      <ol class="howto" style="margin-bottom:0"><li>Tap <b>Copy invite</b>.</li><li>Not on your Home Screen yet? Tap <b>Share</b>, then <b>Add to Home Screen</b>.</li><li>Open Recipe Box from your Home Screen, go to Settings, then Sync, and paste it.</li></ol></div>` : ""}
     <p style="${safari ? "" : "margin-top:0"}">This ${safari ? "browser" : "device"} joins the shared recipe box. What's already here is kept and added.</p>
     ${worker && isDev() ? `<p class="muted" style="font-size:0.8235rem">Worker: ${esc(worker)}</p>` : ""}
     <p class="note error" id="jErr" hidden></p>
