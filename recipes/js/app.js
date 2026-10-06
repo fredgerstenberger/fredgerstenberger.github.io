@@ -119,10 +119,13 @@ function applyWeekSetting() {
 // While the keyboard is up (typing in a field), the bottom bars step aside: on iPhone, fixed bars stay put while
 // the keyboard covers the bottom of the screen, so they'd float over the middle of the page.
 const TYPING = 'input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]):not([type=file]):not([type=range]), textarea, select, [contenteditable="true"]';
+// They come back a moment after you leave the field, not at once: tapping a button (Join, Add) moves focus off
+// the field as your finger goes down, and bars sliding back in under it would swallow the tap.
 function watchKeyboard() {
+  let later = 0;
   const set = () => { const a = document.activeElement; document.body.classList.toggle("kb-open", !!a?.matches?.(TYPING) && !a.closest("dialog")); };
-  document.addEventListener("focusin", set);
-  document.addEventListener("focusout", () => setTimeout(set, 0));
+  document.addEventListener("focusin", e => { clearTimeout(later); e.target.matches?.(TYPING) ? set() : (later = setTimeout(set, 400)); });
+  document.addEventListener("focusout", () => { clearTimeout(later); later = setTimeout(set, 400); });
 }
 
 function init() {
