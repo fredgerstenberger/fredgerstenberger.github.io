@@ -8,7 +8,7 @@ Live at **https://fredgerstenberger.github.io/recipes/** (after this folder is o
 - **Tab bar:** Plan, Recipes, List and More along the bottom. The app opens on **Today** (in Plan, with **Week** beside it: Today | Week): tonight's dinner with its photo and **Start cooking** (opens cook mode), the day's other meals, the grocery list for the week you're shopping for and tomorrow's dinner. **More** holds Pantry, Prices, Stores & aisles, the converter, Sync, Settings and Backup.
 - **Import from any recipe site.** Saves a clean, cook-friendly copy from the site's recipe data, credited to the site and author with a link back to the original. Falls back to typing a recipe in by hand. Recipes read automatically from a page or a photo say so, so you know to check them.
 - **Import from cookbook photos.** **Scan photo** sends the page to an open-weight vision model (Qwen / Mistral / Gemma / Llama) on Cloudflare Workers AI through your Worker and returns the recipe. Or copy text from a photo with iPhone Live Text (or from an email or note) and paste it. Either way it's split into title, servings, times, ingredients and steps.
-- **Recipe book** with search, star ratings, notes and keywords. Keywords are suggested automatically (chicken, pasta, dinner, …). Quick filters along the top (breakfast, lunch, dinner, lighter, high protein, quick, budget, 4+ stars), and a **Filters** sheet with everything: meal, calories, protein, time and cost per serving, rating and keywords.
+- **Recipe book** with search, star ratings, favorites (a heart, per person), notes and keywords. Keywords are suggested automatically (chicken, pasta, dinner, …). Quick filters along the top (breakfast, lunch, dinner, lighter, high protein, quick, budget, favorites, 4+ stars), and a **Filters** sheet with everything: meal, calories, protein, time and cost per serving, rating and keywords.
 - **Recipe photos:** a recipe added from a link gets the site's photo, shown on the recipe, in the book and on Today. Recipes saved before photos get theirs automatically, a few at a time while the book is open (or right away with ⋯ → **Get photo from <site>**); it uses the page's recipe data or its share image, never AI. Photos are links kept on each phone (not synced) and cached for offline use. Imports through the Worker include the photo once the Worker is redeployed with this version.
 - **Recipe menu (⋯):** Edit, Share, the photo, and Delete (asks first).
 - **Cooking view:** servings scaling, Original/US/Metric units, tap an amount for conversions (tsp ↔ tbsp ↔ cups ↔ grams), tap-to-start timers inside steps, and a cook mode that keeps the screen on.
@@ -67,14 +67,26 @@ Opening `https://fredgerstenberger.github.io/recipes/?add=milk, 2 lb chicken thi
 - `js/views/today.js`, `js/views/more.js`: the Today and More tabs
 - `js/pixicons.js`: small pixel icons (aisles, cart, check)
 - `worker/`: Cloudflare Worker for reliable link imports and AI photo scanning (see its README for setup)
+- `js/paprika.js`, `js/views/import.js`: Paprika library import (reading, mapping, duplicates; the screen)
 - `js/telemetry.js`, `js/monitor.js`, `js/analytics.js`, `vendor/`: crash reports (Sentry) and usage stats (PostHog), see below
+
+## Import from Paprika
+
+**Add recipe → Import from Paprika** (or Settings → Backup) brings in a Paprika library. In Paprika, select all recipes, choose Export, then **Paprika Recipe Format**; it makes a `.paprikarecipes` file. The file is read on the phone (`js/paprika.js`; nothing is uploaded) and shown before anything is saved.
+
+- **Format:** a ZIP archive with one gzip-compressed JSON entry per recipe. Read with the browser's own decompression, entry by entry from the archive's directory, so a big export with photos isn't loaded at once.
+- **Mapping:** each recipe becomes an ordinary recipe. `name` → title; `ingredients` and `directions` → one line each (kept as written, so the usual ingredient reader handles them; `Sauce:` lines become headings; Paprika's step numbers are dropped); `servings` → servings (and its wording); prep, cook and total time from free text; `source_url` → link and site, or `source` as the site when there's no link; `description` and `notes` → notes; labelled `nutritional_info` → nutrition; `rating` → your rating; `categories` → keywords; `on_favorites` → your favorite; `created` → date added; `uid` → `importId` (`paprika:<uid>`), plus `origin: "paprika"` ("Imported from Paprika"). Anything unreadable (a time like "overnight", nutrition prose) goes into the notes instead of being dropped.
+- **Photos:** like every Recipe Box photo, the picture's web address (`image_url`), kept on the phone. Photos stored inside the export have no address and are left out; the recipe imports either way.
+- **Duplicates, never merged:** same Paprika ID → already imported (left out, so importing again adds nothing); same source link, or same name and ingredients → possible duplicate (left out unless ticked); same name only → imported as new and listed. A recipe missing a title or ingredients is imported and listed to look at; an entry that can't be read is counted and skipped without stopping the rest.
+- **Saving:** batches of 50, one save each. If the phone runs out of room, the batch that didn't fit is undone and the import stops, keeping what was saved.
+- **Tests:** no real export is in the repo (personal data). `test/helpers/paprika.mjs` builds files in the documented format and `test/fixtures/paprika/sample.paprikarecipes` (made by `make-sample.mjs`) is one to try in the app. Swap in a real export as a fixture when one is available.
 
 ## Crash reports and usage stats
 
 Two small, deliberate kinds of telemetry, both on by default and off with **Settings → Privacy** (per device):
 
 - **Crash reports (Sentry, `js/monitor.js`):** unhandled errors, failed promises, storage that won't save or read, and Worker failures (a 5xx; a 502 is an outside service like a recipe site and isn't reported). Each carries the release (`recipe-box@<APP_VERSION>`), the browser and device from the user agent, and a random device ID.
-- **Usage stats (PostHog, `js/analytics.js`):** eleven events about the weekly loop, no clicks or page views.
+- **Usage stats (PostHog, `js/analytics.js`):** eleven events about the weekly loop and three about Paprika imports, no clicks or page views.
 
 | Event | When |
 |---|---|
@@ -89,6 +101,7 @@ Two small, deliberate kinds of telemetry, both on by default and off with **Sett
 | `meal_completed` | "Done cooking? Yes" after leaving cook mode on a meal planned within 2 days (`meal_type`, `is_batch`) |
 | `week_completed` | First open after a week that had planned meals ended (`meals_planned`, `meals_completed`, `shopped`) |
 | `next_week_planned` | The first meal added to a week when the week before had meals too |
+| `paprika_import_started`, `paprika_import_completed`, `paprika_import_failed` | A Paprika file chosen; imported (recipe, imported, skipped and duplicate counts); failed (a fixed `reason`) |
 
 Every event also carries `app_version`, `platform`, `standalone`, `dev_mode` and `sync_enabled`. `track()` drops any event or property not on the list in `js/analytics.js`, and properties can only be counts, true/false or fixed words, so names, ingredients, list items, notes, links, nutrition and prices can't be sent (`test/analytics.test.mjs`). Once-per-week events are remembered on each phone (`rb.sent`).
 
