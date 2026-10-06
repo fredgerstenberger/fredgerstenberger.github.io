@@ -17,6 +17,7 @@ import { infoItems, openInfo, askAfterSave } from "../fillin.js";
 import { openFoodSheet } from "../labelsheet.js";
 import { isReady } from "../ready.js";
 import { readyView } from "./ready.js";
+import { analyticsOn, plannedBatch, mealMade } from "../analytics.js";
 
 const progress = {}; // id → { ings:Set, steps:Set, servings, cook }
 let redrawCurrent = null;
@@ -342,7 +343,11 @@ export function recipeView(id) {
       if (P.cook && s.wakeLock) lockScreen(); else unlockScreen();
       draw(false);
       if (P.cook) document.querySelector(".ings")?.scrollIntoView({ block: "start" });
-      toast(P.cook ? (s.wakeLock && "wakeLock" in navigator ? "Cook mode on. Your screen stays awake." : "Cook mode on") : "Cook mode off");
+      // Leaving cook mode on a meal that's on the plan: ask whether it's made (only when usage stats are on;
+      // it's how meal_completed is counted, and nothing else changes).
+      const batch = !P.cook && analyticsOn() ? plannedBatch(r.id) : null;
+      if (batch) toast("Done cooking?", { label: "Yes, it's made", ms: 8000, run: () => { mealMade(batch); toast("Enjoy!"); } });
+      else toast(P.cook ? (s.wakeLock && "wakeLock" in navigator ? "Cook mode on. Your screen stays awake." : "Cook mode on") : "Cook mode off");
     };
     document.getElementById("planBtn").onclick = () => openAddToPlan(r.id);
     document.getElementById("moreBtn")?.addEventListener("click", () => recipeMenu(r, () => draw()));

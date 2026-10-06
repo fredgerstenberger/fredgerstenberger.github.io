@@ -1,5 +1,6 @@
 // All data lives in this browser (localStorage). Export/Import in Settings for backups.
 import { FOODS } from "./fooddb.js";
+import { report } from "./monitor.js";
 
 const KEY = "recipebox.v1";
 
@@ -38,6 +39,7 @@ function load() {
     }
   } catch (e) {
     console.warn("Could not read saved data", e);
+    report(e, { area: "storage-load" });
   }
   return freshState();
 }
@@ -47,6 +49,7 @@ export function save(info) {
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
   } catch (e) {
+    report(e, { area: "storage-save" });
     alert("Couldn't save. Storage may be full or blocked. Export a backup from Settings.");
   }
   listeners.forEach(fn => fn(info));

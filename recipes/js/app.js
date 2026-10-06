@@ -21,6 +21,7 @@ import { moreView } from "./views/more.js";
 import * as sync from "./sync.js";
 import { refreshPrices } from "./data.js";
 import { refreshRecipe } from "./views/recipe.js";
+import { startAnalytics } from "./analytics.js";
 
 // ---- Today (the first screen; the week's plan is beside it) ----
 function homeView() { todayView({ backupNag: backupNag(store.get()) }); }
@@ -119,10 +120,13 @@ function applyWeekSetting() {
 // While the keyboard is up (typing in a field), the bottom bars step aside: on iPhone, fixed bars stay put while
 // the keyboard covers the bottom of the screen, so they'd float over the middle of the page.
 const TYPING = 'input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]):not([type=file]):not([type=range]), textarea, select, [contenteditable="true"]';
+// They come back a moment after you leave the field, not at once: tapping a button (Join, Add) moves focus off
+// the field as your finger goes down, and bars sliding back in under it would swallow the tap.
 function watchKeyboard() {
+  let later = 0;
   const set = () => { const a = document.activeElement; document.body.classList.toggle("kb-open", !!a?.matches?.(TYPING) && !a.closest("dialog")); };
-  document.addEventListener("focusin", set);
-  document.addEventListener("focusout", () => setTimeout(set, 0));
+  document.addEventListener("focusin", e => { clearTimeout(later); e.target.matches?.(TYPING) ? set() : (later = setTimeout(set, 400)); });
+  document.addEventListener("focusout", () => { clearTimeout(later); later = setTimeout(set, 400); });
 }
 
 function init() {
@@ -135,6 +139,7 @@ function init() {
   initTimers(document.getElementById("timers"));
   matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => { if (store.settings().theme === "auto" && (location.hash || "#/") === "#/") homeView(); });
   handleIncomingUrl();
+  startAnalytics(); // before the first screen, which may count (a grocery list); PostHog itself loads later
   window.addEventListener("hashchange", route);
   route();
   // Changes arrived from another device: refresh the screen unless you're in the middle of typing or a dialog.

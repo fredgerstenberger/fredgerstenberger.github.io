@@ -1,7 +1,11 @@
 // App version shown in Settings. Bump together with VERSION in sw.js ("rb-v" + APP_VERSION).
-export const APP_VERSION = 35;
-export const RELEASED = "2026-10-05";
+export const APP_VERSION = 37;
+export const RELEASED = "2026-10-06";
 export const WHATS_NEW = [
+  "Anonymous crash reports and usage stats, so problems get found and fixed: which version broke, and whether planning, shopping and cooking work as they should. Never your recipes, ingredients, lists, notes, prices or anything you type, and no names or email. Turn it off in Settings, under Privacy.",
+  "After cooking a planned meal, leaving cook mode asks \"Done cooking?\" (only while usage stats are on).",
+  "Joining a partner's recipe box is easier: on a new phone, paste the invite link in Settings, under Sync, and tap Join. It works from the app on your Home Screen, and brings everything the phone needs to sync.",
+  "Buttons next to a text box (like Join or Add) work on the first tap while the keyboard is up.",
   "A fresh look: one set of pixel icons throughout, shorter and plainer wording, and tips that show once instead of instructions everywhere.",
   "Imported recipes show where they're from, with View original. Recipes read automatically from a page or a photo say so, so you know to check them.",
   "Nutrition and costs are clearly estimates: a one-time note, an Estimates button by Nutrition and Cost, and About estimates in Settings. Recipes say how many ingredients are matched and how many are estimated.",

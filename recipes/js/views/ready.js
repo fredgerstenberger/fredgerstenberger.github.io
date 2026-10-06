@@ -11,6 +11,7 @@ import { photoOf, setPhoto } from "../photos.js";
 import { bump } from "../data.js";
 import { openAddToPlan } from "./plan.js";
 import { icon } from "../sprites.js";
+import { track } from "../analytics.js";
 
 const MEALS = [["breakfast", "Breakfast"], ["lunch", "Lunch"], ["dinner", "Dinner"]];
 const r0 = n => (n == null || isNaN(n) ? "" : Math.round(n * 10) / 10);
@@ -85,6 +86,7 @@ export function openReadyForm({ id = null, meal = "", onSaved } = {}) {
     }, old);
     if (!r) { toast("Give it a name"); return; }
     store.putRecipe(r);
+    if (!old) track("recipe_added", { kind: "store_bought" });
     close(); bump();
     toast(old ? "Saved" : `Added ${r.title}`);
     onSaved?.(r);

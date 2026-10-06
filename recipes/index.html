@@ -21,6 +21,9 @@
 <!-- Every module, fetched in parallel instead of a few at a time down the import chain. Keep in step with
      js/ and sw.js FILES (test/files.test.mjs checks). -->
 <link rel="modulepreload" href="js/app.js">
+<link rel="modulepreload" href="js/monitor.js">
+<link rel="modulepreload" href="js/telemetry.js">
+<link rel="modulepreload" href="js/analytics.js">
 <link rel="modulepreload" href="js/data.js">
 <link rel="modulepreload" href="js/fields.js">
 <link rel="modulepreload" href="js/fillin.js">
@@ -71,6 +74,17 @@
 <link rel="modulepreload" href="js/views/settings.js">
 <link rel="modulepreload" href="js/views/stores.js">
 <script>
+  // Errors from before the crash reporter (js/monitor.js) starts, including a module that fails to load.
+  window.__rbErr = [];
+  addEventListener("error", e => {
+    if (window.__rbErrOff || __rbErr.length > 9) return;
+    const t = e.target;
+    if (t && t.tagName === "SCRIPT") __rbErr.push(new Error("Couldn't load " + (t.src || "a script")));
+    else if (t === window || !t || !t.tagName) __rbErr.push(e.error || new Error(e.message || "Script error"));
+  }, true);
+  addEventListener("unhandledrejection", e => { if (!window.__rbErrOff && __rbErr.length < 10) __rbErr.push(e.reason); });
+</script>
+<script>
   // Apply saved theme before first paint to avoid a flash.
   try {
     const t = JSON.parse(localStorage.getItem("recipebox.v1") || "{}").settings?.theme;
@@ -92,6 +106,7 @@
 </dialog>
 <div id="toast" class="toast win" hidden role="status"></div>
 <noscript><p style="padding:20px">Recipe Box needs JavaScript turned on.</p></noscript>
+<script type="module" src="js/monitor.js"></script>
 <script type="module" src="js/app.js"></script>
 </body>
 </html>

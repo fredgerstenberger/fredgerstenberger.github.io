@@ -2,6 +2,7 @@
 // ingredients the built-in table doesn't know. Everything is cached on the phone, so the app keeps
 // working offline and if the government sites are down.
 import * as store from "./store.js";
+import { reportWorker } from "./monitor.js";
 
 const PRICES_KEY = "recipebox.blsprices";
 const FDC_KEY = "recipebox.fdc";
@@ -69,7 +70,7 @@ export async function refreshPrices(force = false) {
   if (!force && priceCache && Date.now() - priceCache.fetched < 3 * 86400000) return priceCache;
   try {
     const res = await fetch(`${w}/prices`, { headers: headers() });
-    if (!res.ok) return priceCache;
+    if (!res.ok) { if (res.status >= 500) reportWorker("prices", "/prices", res.status); return priceCache; }
     const data = await res.json();
     const map = {};
     let latest = null;
@@ -140,6 +141,7 @@ async function drain() {
       const res = await fetch(`${worker()}/nutrition?q=${encodeURIComponent(k)}`, { headers: headers() });
       if (res.ok) { fdcCache[k] = await res.json(); got++; }
       else if (res.status === 400) fdcCache[k] = { match: null };
+      else if (res.status >= 500) reportWorker("nutrition", "/nutrition", res.status);
     } catch {}
     inflight.delete(k);
   }

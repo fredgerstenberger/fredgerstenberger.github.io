@@ -13,6 +13,7 @@ import { planSwitch } from "./today.js";
 import { openReadyForm } from "./ready.js";
 import { estimatesNoticeHTML, bindEstimatesNotice } from "../tips.js";
 import { icon } from "../sprites.js";
+import { weekIsEmpty, mealPlanned } from "../analytics.js";
 
 // Slots in the week's order (it starts the day after your shopping day).
 const slotIdx = s => { const [d, m] = s.split("-"); return weekDays().indexOf(d) * MEALS.length + MEALS.indexOf(m); };
@@ -320,9 +321,11 @@ function mealOptions(key, rid, existing, presetSlot) {
   el.querySelector("#save").onclick = () => {
     if (!chosen.size) { toast("Pick at least one meal"); return; }
     const slots = [...chosen].sort((a, b) => slotIdx(a) - slotIdx(b));
+    const wasEmpty = weekIsEmpty(key);
     if (existing) Object.assign(existing, { servings, slots });
     else store.editWeek(key).meals.push({ id: uid(), rid, servings, slots });
     store.save();
+    if (!existing) mealPlanned(key, rid, wasEmpty);
     close();
     toast(existing ? "Plan updated" : `Added to ${weekLabel(key)}`);
     if (location.hash.startsWith("#/plan")) planView(key);

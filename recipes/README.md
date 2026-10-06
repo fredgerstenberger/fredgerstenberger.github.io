@@ -28,7 +28,7 @@ Live at **https://fredgerstenberger.github.io/recipes/** (after this folder is o
 - **Prices:** estimated cost per serving for each recipe (a Budget filter and cost sort), weekly food cost in the meal plan, and an estimated total on the grocery list. Official U.S. average prices from the Bureau of Labor Statistics (about 30 staples, refreshed monthly through the Worker), with built-in estimates for the rest, are adjusted for your region (e.g. Irvine ≈ +15%), and you can enter your own store's prices.
 - **Pantry, converter, light/dark mode, offline support** (add it to your iPhone home screen). The app opens from its own saved copy, instantly even with a weak signal; a new version downloads in the background and the app offers **Reload** (or uses it the next time it opens).
 
-Data is stored on the device (localStorage). **Sync** (Settings → Sync) keeps it the same across your devices and a partner's, through your Cloudflare Worker: recipes, week plans, grocery lists, pantry, prices and settings merge field by field (each meal, each grocery item, each recipe field), so two people planning or shopping at once keep each other's changes (a grocery list refreshes every few seconds while it's open). Deleting a recipe wins over edits made before it; an edit made after a delete brings the recipe back. Each person rates recipes themselves and the average is shown everywhere (set your name in Settings → Sync so your devices count as one person). Invite another device with **Create invite**. Each invite is a random code that works once and expires after 24 hours. **Reset sync code** removes access for every other device. **Settings → Export backup** is still available.
+Data is stored on the device (localStorage). **Sync** (Settings → Sync) keeps it the same across your devices and a partner's, through your Cloudflare Worker: recipes, week plans, grocery lists, pantry, prices and settings merge field by field (each meal, each grocery item, each recipe field), so two people planning or shopping at once keep each other's changes (a grocery list refreshes every few seconds while it's open). Deleting a recipe wins over edits made before it; an edit made after a delete brings the recipe back. Each person rates recipes themselves and the average is shown everywhere (set your name in Settings → Sync so your devices count as one person). Invite another device with **Create invite**. Each invite is a random code that works once and expires after 24 hours. On the new phone, open Recipe Box (from the Home Screen, if that's where it lives), go to **Settings → Sync** and paste the invite link: it brings the Worker address and, if the Worker has an app key, the key too, so a brand-new phone needs nothing else. **Reset sync code** removes access for every other device. **Settings → Export backup** is still available.
 
 ## Add to the grocery list from a Shortcut or Siri
 
@@ -67,6 +67,36 @@ Opening `https://fredgerstenberger.github.io/recipes/?add=milk, 2 lb chicken thi
 - `js/views/today.js`, `js/views/more.js`: the Today and More tabs
 - `js/pixicons.js`: small pixel icons (aisles, cart, check)
 - `worker/`: Cloudflare Worker for reliable link imports and AI photo scanning (see its README for setup)
+- `js/telemetry.js`, `js/monitor.js`, `js/analytics.js`, `vendor/`: crash reports (Sentry) and usage stats (PostHog), see below
+
+## Crash reports and usage stats
+
+Two small, deliberate kinds of telemetry, both on by default and off with **Settings → Privacy** (per device):
+
+- **Crash reports (Sentry, `js/monitor.js`):** unhandled errors, failed promises, storage that won't save or read, and Worker failures (a 5xx; a 502 is an outside service like a recipe site and isn't reported). Each carries the release (`recipe-box@<APP_VERSION>`), the browser and device from the user agent, and a random device ID.
+- **Usage stats (PostHog, `js/analytics.js`):** eleven events about the weekly loop, no clicks or page views.
+
+| Event | When |
+|---|---|
+| `app_opened` | The app starts, or comes back after 30+ minutes away (`resumed`) |
+| `household_created` | Turn on sync (not Reset sync code) |
+| `household_joined` | Joined with an invite (`method`: `link` opened, or `code` pasted in Settings) |
+| `recipe_added` | A new recipe typed in, or a store-bought meal (`kind`) |
+| `recipe_imported` | A new recipe saved from a link, pasted text or a photo (`import_method`, `read_by_ai`) |
+| `meal_plan_created` | The first meal added to a week (`week`: this, next, other; `kind`) |
+| `grocery_list_generated` | A week's list first shown with recipe items, once per week (item, recipe and pantry-skipped counts) |
+| `shopping_started` | Start shopping (`number_of_items` left) |
+| `meal_completed` | "Done cooking? Yes" after leaving cook mode on a meal planned within 2 days (`meal_type`, `is_batch`) |
+| `week_completed` | First open after a week that had planned meals ended (`meals_planned`, `meals_completed`, `shopped`) |
+| `next_week_planned` | The first meal added to a week when the week before had meals too |
+
+Every event also carries `app_version`, `platform`, `standalone`, `dev_mode` and `sync_enabled`. `track()` drops any event or property not on the list in `js/analytics.js`, and properties can only be counts, true/false or fixed words, so names, ingredients, list items, notes, links, nutrition and prices can't be sent (`test/analytics.test.mjs`). Once-per-week events are remembered on each phone (`rb.sent`).
+
+**Privacy:** no names, email, household or sync code. Both use the same random device ID (`rb.anon`, replaced if sharing is turned off and on again); PostHog builds no person profiles until a future account calls `identify()`, which keeps the history. Addresses lose their query and screen details (`#/r/:id`, `#/add`), error messages lose quoted text, and Sentry keeps no IP address, cookies, request bodies or tap/console breadcrumbs (`js/telemetry.js`, `test/telemetry.test.mjs`). In each dashboard, also turn on **Sentry → Settings → Security & Privacy → Prevent Storing of IP Addresses** and **PostHog → Project settings → Discard client IP data**.
+
+**Reliability:** both libraries are pinned copies in `vendor/` (see its README), served from this site, cached for offline use and loaded in the background once the page is idle. Nothing waits on them; if they're blocked or fail, the app is unchanged.
+
+**Keys:** `SENTRY_DSN`, `POSTHOG_KEY` and `POSTHOG_HOST` at the top of `js/telemetry.js` (public client keys; empty means off). Nothing is sent from localhost unless you put test keys in `localStorage.rb.obs` (`{"dsn": "…", "key": "…", "host": "…"}`).
 
 **Developer settings:** the Worker address, app key and photo model are hidden from regular Settings. Tap the version number in Settings 7 times to show them (per device; 7 more taps hide them). Messages only mention the Worker in developer mode.
 

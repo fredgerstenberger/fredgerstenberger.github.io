@@ -2,6 +2,7 @@
 import { domainOf } from "./util.js";
 import { recipeFromLdTexts, parseYield, isoMinutes, finishRecipe, imageOf, ldJsonBlocks } from "./recipe-data.js";
 import { devText } from "./dev.js";
+import { reportWorker } from "./monitor.js";
 export { isoMinutes };
 
 // Public proxies, tried in order after your own Cloudflare Worker (if set in Settings).
@@ -135,6 +136,7 @@ async function readWithAI(html, url, ai, onStatus) {
     body: JSON.stringify({ text: pageText(html), model: ai.model })
   });
   const data = await res.json().catch(() => ({}));
+  if (res.status >= 500) reportWorker("import", "/read", res.status);
   if (!res.ok) throw new Error(data.error || `AI reading failed (HTTP ${res.status}).`);
   const { normalizeScan } = await import("./scan.js");
   const r = normalizeScan(data);
@@ -159,6 +161,7 @@ async function recipeFromWorker(url, workerUrl, ai, onStatus) {
     data = await res.json().catch(() => null);
   } catch { return { fallback: true }; }
   finally { clearTimeout(t); }
+  if (res.status >= 500) reportWorker("import", "/recipe", res.status);
   if (!data) return { fallback: true, oldWorker: true };                         // not JSON: an older Worker
   if (res.ok && data.recipe) {
     if (data.via !== "ai") return data.recipe;

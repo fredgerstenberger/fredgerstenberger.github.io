@@ -1,6 +1,7 @@
 // Read cookbook photos with an open-weight vision model, via your Cloudflare Worker (Workers AI).
 import { parseRecipeText } from "./parse.js";
 import { devText } from "./dev.js";
+import { reportWorker } from "./monitor.js";
 
 export const SCAN_MODELS = [
   ["@cf/qwen/qwen3.8-27b", "Qwen 3.8 27B"],
@@ -83,6 +84,7 @@ export async function scanPhotos(files, { worker, model, key }, onStatus = () =>
   let data = {};
   try { data = await res.json(); } catch {}
   if (res.status === 404 || res.status === 405) throw new Error(devText("Your Worker doesn't have photo scanning yet. Paste the latest worker.js into Cloudflare and deploy (see the setup guide).", "Photo scanning isn't available right now."));
+  if (res.status >= 500) reportWorker("scan", "/scan", res.status);
   if (!res.ok) throw new Error(data.error || `Scan failed (HTTP ${res.status}).`);
   const r = normalizeScan(data);
   r.model = data.model;
@@ -112,6 +114,7 @@ export async function scanLabel(file, { worker, model, key }) {
   let data = {};
   try { data = await res.json(); } catch {}
   if (res.status === 404 || res.status === 405) throw new Error(devText("Your Worker doesn't read labels yet. Deploy the latest worker.js (see the setup guide), or paste the label's text.", "Reading label pictures isn't available right now. You can paste the label's text instead."));
+  if (res.status >= 500) reportWorker("label", "/label", res.status);
   if (!res.ok) throw new Error(data.error || `Couldn't read the label (HTTP ${res.status}).`);
   if (!data.label) throw new Error(data.error || "Couldn't read that label. Try a closer, straighter photo, or paste its text.");
   return { label: data.label, check: data.check || null, model: data.model };
