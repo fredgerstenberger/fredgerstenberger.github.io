@@ -9,6 +9,7 @@ import * as store from "./store.js";
 import { bump } from "./data.js";
 import { fp, isFieldRecord, isDeletable, toFields, fromFields, stampFields, mergeFields, latestEdit, FT } from "./fields.js";
 import { devText } from "./dev.js";
+import { reportWorker } from "./monitor.js";
 
 const KEY = "recipebox.sync";
 let meta = loadMeta();
@@ -145,6 +146,7 @@ export async function syncNow() {
       throw new Error(meta.error);
     }
     if (!res.ok) {
+      if (res.status >= 500) reportWorker("sync", "/sync", res.status);
       meta.error = data.error || `Sync failed (HTTP ${res.status}).`;
       saveMeta();
       throw new Error(meta.error);
@@ -280,6 +282,7 @@ async function post(path, body, worker) {
     });
   } catch { throw new Error(devText("Couldn't reach your Worker. Check your connection.", "Couldn't sync. Check your connection.")); }
   const data = await res.json().catch(() => ({}));
+  if (res.status >= 500) reportWorker("sync", path, res.status);
   if (!res.ok) throw new Error(data.error || `Request failed (HTTP ${res.status}).`);
   return data;
 }

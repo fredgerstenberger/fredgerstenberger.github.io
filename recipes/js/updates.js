@@ -2,6 +2,8 @@
 // anything typed. The tab where you tap Reload asks first if it has unsaved text; other tabs reload only
 // when they have none, otherwise they wait until you leave that page (or switch away from the app).
 
+import { report } from "./monitor.js";
+
 const TEXT_TYPES = new Set(["", "text", "url", "number", "email", "tel"]);
 
 /** True when any text field holds something typed and not saved (its value differs from what the page drew). */
@@ -59,5 +61,5 @@ export async function watchForUpdates() {
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible" && Date.now() - lastCheck > 30 * 60 * 1000) { lastCheck = Date.now(); reg.update().catch(() => {}); }
     });
-  }).catch(() => {});
+  }).catch(e => report(e, { area: "update", level: "warning" }));
 }
