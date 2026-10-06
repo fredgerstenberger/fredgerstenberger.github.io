@@ -1,7 +1,10 @@
 // App version shown in Settings. Bump together with VERSION in sw.js ("rb-v" + APP_VERSION).
-export const APP_VERSION = 39;
+export const APP_VERSION = 41;
 export const RELEASED = "2026-10-06";
 export const WHATS_NEW = [
+  "Swipe between Today and Week: left on Today for the week, right on the week for Today.",
+  "Cooked meals get a small check, on Today and in the week, on both phones. After cook mode, Done cooking? Yes marks it, or tap the meal in the week and choose Mark as cooked.",
+  "Invites opened in Safari say so: an iPhone opens a tapped link in Safari, which keeps its own recipes apart from Recipe Box on your Home Screen (even if you add it to the Home Screen afterwards). Tap Copy invite, add Recipe Box to your Home Screen if it isn't there yet, and paste it there (Settings, Sync). If joining fails, the reason stays on screen.",
   "\"2 loaves of bread\" counts two whole loaves, not two slices. With the bread's label pasted, a loaf is its serving size times the servings per package, for nutrition and for a price per loaf.",
   "Reading a label keeps going if you switch apps while it works, and it's quicker.",
   "Nutrition by ingredient and Cost breakdown have an arrow, so it's clear they open.",
