@@ -23,17 +23,23 @@ function ago(t) {
   return new Date(t).toLocaleDateString();
 }
 
+// Pasting the invite link works anywhere (on iPhone, a link opens Safari, not the app on the Home Screen).
+const joinForm = placeholder => `
+  <form id="joinForm" class="inline" style="margin-top:8px">
+    <input type="text" id="joinCode" placeholder="${placeholder}" autocapitalize="none" autocomplete="off" spellcheck="false" aria-label="Invite link">
+    <button class="btn small" type="submit">Join</button>
+  </form>`;
+
 function syncHTML(s) {
-  if (!s.proxy) return isDev() ? `<p class="muted" style="margin-top:0">Set the Worker address in Developer first; sync runs through it.</p>`
-    : `<p style="margin-top:0">Got an invite from another phone? Open its link on this device to join.</p>`;
+  if (!s.proxy) return `
+    <p style="margin-top:0">Got an invite from another phone? Paste the invite link here to join.</p>
+    ${joinForm("Paste invite link")}
+    ${isDev() ? `<p class="muted" style="font-size:0.8235rem">To start your own, set the Worker address in Developer first; sync runs through it.</p>` : ""}`;
   if (!sync.enabled()) return `
     <p style="margin-top:0">Share recipes, plans and lists across your devices and with a partner.</p>
     <div class="btnrow"><button class="btn primary" id="syncOn">Turn on sync</button></div>
     <details class="breakdown"><summary>Have an invite from another device?</summary>
-      <form id="joinForm" class="inline" style="margin-top:8px">
-        <input type="text" id="joinCode" placeholder="Invite link or 10-letter code" autocapitalize="characters" autocomplete="off" spellcheck="false">
-        <button class="btn small" type="submit">Join</button>
-      </form>
+      ${joinForm("Invite link or 10-letter code")}
     </details>`;
   const i = sync.info();
   return `
@@ -59,12 +65,10 @@ const WORKER_HELP = "https://github.com/fredgerstenberger/fredgerstenberger.gith
 function askJoin(invite, worker) {
   const { el, close } = modal("Join recipe box?", `
     <p style="margin-top:0">This device joins the shared recipe box. What's already here is kept and added.</p>
-    ${worker ? `<p class="muted" style="font-size:0.8235rem">Worker: ${esc(worker)}</p>` : ""}
+    ${worker && isDev() ? `<p class="muted" style="font-size:0.8235rem">Worker: ${esc(worker)}</p>` : ""}
     <div class="btnrow"><button class="btn primary" id="jYes">Join and sync</button><button class="btn" id="jNo">Cancel</button></div>`);
   el.querySelector("#jNo").onclick = close;
   el.querySelector("#jYes").onclick = async () => {
-    if (worker) store.setSetting("proxy", worker.replace(/\/+$/, ""));
-    if (!store.settings().proxy) { toast("Enter your Worker address first"); close(); return; }
     el.querySelector("#jYes").disabled = true;
     el.querySelector("#jYes").textContent = "Syncing…";
     try { const r = await sync.redeemInvite(invite, worker); toast(`Joined. ${r.applied} item${r.applied === 1 ? "" : "s"} synced.`); }

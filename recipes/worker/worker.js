@@ -52,7 +52,7 @@ const MODELS = [
 ];
 
 // Shown at /status so you can confirm which version Cloudflare is running.
-const VERSION = "2026-10-07";
+const VERSION = "2026-10-07.2";
 
 const MAX_PAGE_BYTES = 5_000_000;
 const MAX_SCAN_BYTES = 8_000_000; // request body: up to a few resized photos
@@ -507,17 +507,19 @@ function inviteToken() {
 
 async function invite(request, env, headers) {
   if (!env.CACHE) return json({ error: "Data cache isn't set up yet. Redeploy the Worker from GitHub." }, 500, headers);
-  if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) return json({ error: "Wrong or missing app key." }, 401, headers);
   let body;
   try { body = await request.json(); } catch { return json({ error: "Bad request" }, 400, headers); }
   const url = new URL(request.url);
+  // Redeeming needs no app key: the joining phone doesn't have it yet, and the one-time invite is the proof.
+  // It gets the key along with the box, so it can sync.
   if (url.pathname.replace(/\/+$/, "") === "/invite/redeem") {
     const token = String(body.token || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
     if (token.length !== 10) return json({ error: "That invite code isn't valid." }, 400, headers);
     const rec = (await cacheOp(env, { take: ["inv:" + token] }))["inv:" + token];
     if (!rec || rec.exp < Date.now()) return json({ error: "That invite has already been used or has expired. Ask for a new one." }, 404, headers);
-    return json({ box: rec.box }, 200, headers);
+    return json({ box: rec.box, ...(env.APP_KEY ? { key: env.APP_KEY } : {}) }, 200, headers);
   }
+  if (env.APP_KEY && request.headers.get("X-App-Key") !== env.APP_KEY) return json({ error: "Wrong or missing app key." }, 401, headers);
   const box = String(body.box || "");
   if (!/^[A-Za-z0-9_-]{20,64}$/.test(box)) return json({ error: "Invalid sync code." }, 400, headers);
   const token = inviteToken();

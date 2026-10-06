@@ -47,7 +47,7 @@ Now use **Add recipe → From a cookbook photo or text → Scan photo**.
 ### 5. (Recommended) Lock it to your app
 The Worker only answers requests coming from the Recipe Box web page (it checks the browser's `Origin` header), refuses private and local addresses (including through redirects), and rate-limits link downloads. Scripts can fake an `Origin` header, though, so anyone who finds your Worker's address could still try to use it as a proxy or spend your free AI allowance. To lock it down completely:
 1. In the Worker's **Settings → Variables and Secrets**, click **Add**, choose type **Secret**, name it `APP_KEY`, and set any password-like value. Deploy.
-2. In Recipe Box **Settings → App key**, enter the same value on every phone. Link imports, photo scans, sync, invites and nutrition lookups then all require it. (`/status` stays open so you can check the setup from a browser tab.)
+2. In Recipe Box **Settings → App key**, enter the same value on every phone. Link imports, photo scans, sync, creating invites and nutrition lookups then all require it. (`/status` stays open so you can check the setup from a browser tab.) Redeeming an invite doesn't: the one-time invite is the proof, and the joining phone gets the key along with the box, so a partner's new phone needs nothing typed in.
 
 ### 6. (Recommended) Add free data keys
 Both work without keys, but keys give you higher limits:

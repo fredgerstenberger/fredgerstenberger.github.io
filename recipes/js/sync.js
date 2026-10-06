@@ -292,8 +292,14 @@ export async function createInvite() {
   return { token, expires, link: `${base}?invite=${token}${w ? `&w=${encodeURIComponent(w)}` : ""}` };
 }
 
+// A brand-new phone knows nothing yet: the invite link brings the Worker's address, and redeeming it brings
+// the app key if the Worker has one (the one-time invite is the proof).
 export async function redeemInvite(token, worker) {
-  const { box } = await post("/invite/redeem", { token }, worker);
+  worker = String(worker || "").trim().replace(/\/+$/, "");
+  if (!worker && !store.settings().proxy) throw new Error("Paste the whole invite link, not just the code.");
+  const { box, key } = await post("/invite/redeem", { token }, worker);
+  if (worker) store.setSetting("proxy", worker);
+  if (key) store.setSetting("scanKey", key);
   return enable(box);
 }
 
