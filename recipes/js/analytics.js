@@ -8,7 +8,8 @@ import * as store from "./store.js";
 import * as house from "./household.js";
 import { enabled as syncEnabled } from "./sync.js";
 import { config, anonId, appContext, scrubUrl } from "./telemetry.js";
-import { weekKey, parseWeekKey, addDays, startOfDay, planningWeekKey, weekRelation, dayDate, MEALS } from "./util.js";
+import { plannedBatch, setCooked, isCooked } from "./cooked.js";
+import { weekKey, parseWeekKey, addDays, weekRelation, MEALS } from "./util.js";
 
 const COUNT = "count", BOOL = "bool";
 const WEEK = ["this", "next", "other"];
@@ -126,28 +127,11 @@ export function listShown(key, sec) {
   trackOnce(`list:${key}`, "grocery_list_generated", { number_of_unique_items: items, number_of_recipes_contributing: recipes, pantry_items_skipped: sec.have.length });
 }
 
-const slotTime = (key, slot) => { const [d, m] = slot.split("-"); return dayDate(key, d).getTime() + MEALS.indexOf(m); };
+export { plannedBatch };
 
-/**
- * The planned batch that cooking this recipe now most likely completes: this week's or the week being planned,
- * not already marked, cooked within 2 days of today, nearest first. null if none (then there's nothing to ask).
- */
-export function plannedBatch(rid, now = new Date()) {
-  const today = startOfDay(now).getTime();
-  let best = null;
-  for (const key of new Set([weekKey(now), planningWeekKey(now)])) {
-    for (const m of plannedMeals(key)) {
-      if (m.rid !== rid || !m.slots?.length || wasSent(`made:${m.id}`)) continue;
-      const slot = [...m.slots].sort((a, b) => slotTime(key, a) - slotTime(key, b))[0];
-      const dist = Math.abs(dayDate(key, slot.split("-")[0]).getTime() - today) / 86400000;
-      if (dist <= 2 && (!best || dist < best.dist)) best = { key, meal: m, slot, dist };
-    }
-  }
-  return best;
-}
-
-/** "Done cooking? Yes": the batch from plannedBatch() is made. */
+/** "Done cooking? Yes": the batch from plannedBatch() is marked cooked (on the plan, so it syncs) and counted once. */
 export function mealMade(b) {
+  setCooked(b.key, b.meal.id, true);
   trackOnce(`made:${b.meal.id}`, "meal_completed", { meal_type: b.slot.split("-")[1], is_batch: b.meal.slots.length > 1 });
 }
 
@@ -158,10 +142,10 @@ export function checkWeekEnded(now = new Date()) {
   if (!meals.length) return;
   const g = store.get().grocery?.[key];
   const shopped = Object.values(g?.checked || {}).some(Boolean) || (g?.extras || []).some(e => e.checked) || house.inWeek(key).some(h => h.checked);
-  trackOnce(`week:${key}`, "week_completed", { meals_planned: meals.length, meals_completed: meals.filter(m => wasSent(`made:${m.id}`)).length, shopped });
+  trackOnce(`week:${key}`, "week_completed", { meals_planned: meals.length, meals_completed: meals.filter(m => isCooked(m) || wasSent(`made:${m.id}`)).length, shopped });
 }
 
-/** True when usage stats are on and configured (the "Done cooking?" question only asks then). */
+/** True when usage stats are on and configured. */
 export const analyticsOn = () => started && !!config()?.key;
 
 // ---- Start ----

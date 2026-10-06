@@ -9,11 +9,12 @@ import { shell, render, modal, closeModal, toast, go, metaLine } from "../ui.js"
 import { nutritionFor, servingsOf } from "../nutrition.js";
 import { matches, searchText } from "./book.js";
 import { recipeCost, money } from "../prices.js";
-import { planSwitch } from "./today.js";
+import { planSwitch, planSwipe } from "./today.js";
 import { openReadyForm } from "./ready.js";
 import { estimatesNoticeHTML, bindEstimatesNotice } from "../tips.js";
 import { icon } from "../sprites.js";
 import { weekIsEmpty, mealPlanned } from "../analytics.js";
+import { isCooked, setCooked } from "../cooked.js";
 
 // Slots in the week's order (it starts the day after your shopping day).
 const slotIdx = s => { const [d, m] = s.split("-"); return weekDays().indexOf(d) * MEALS.length + MEALS.indexOf(m); };
@@ -74,7 +75,8 @@ export function planView(key) {
       const chips = here.map(x => {
         const r = store.recipe(x.rid);
         const first = sortSlots(x.slots)[0] === slot;
-        return `<button class="mealchip ${first ? "" : "left"}" data-meal="${x.id}" data-slot="${slot}" ${moving ? 'tabindex="-1"' : ""}>${esc(r.title)}${first ? "" : `<span class="lo">leftovers</span>`}</button>`;
+        const cooked = first && isCooked(x);
+        return `<button class="mealchip ${first ? "" : "left"} ${cooked ? "made" : ""}" data-meal="${x.id}" data-slot="${slot}" ${moving ? 'tabindex="-1"' : ""}>${cooked ? `${icon("check", "ic14")}<span class="sr">Cooked: </span>` : ""}${esc(r.title)}${first ? "" : `<span class="lo">leftovers</span>`}</button>`;
       }).join("");
       return `<div class="slotrow ${isSource ? "source" : ""} ${target ? "target" : ""}" ${target ? `data-target="${slot}" role="button" tabindex="0" aria-label="${here.length ? "Swap with" : "Move to"} ${SHORT[d]} ${m}"` : ""}>
         <div class="slotname">${cap(m)}</div>
@@ -138,6 +140,7 @@ export function planView(key) {
   }), { keepScroll: true });
 
   bindEstimatesNotice(document.getElementById("app"));
+  planSwipe("#/", "right", () => !moving);
   document.querySelectorAll("[data-add]").forEach(b => b.onclick = () => pickRecipe(key, b.dataset.add));
   if (!moving) document.querySelectorAll("[data-meal]").forEach(b => b.onclick = () => {
     const m = meals.find(x => x.id === b.dataset.meal);
@@ -168,14 +171,19 @@ function chipActions(key, meal, slot) {
   const many = sl.length > 1;
   const { el, close } = modal(slotName(slot), `
     <p style="margin:0 0 2px;font-weight:700;font-size:1.0588rem">${esc(r.title)}</p>
-    <p class="muted" style="margin:0 0 14px;font-size:0.8235rem">${sl[0] === slot ? "Cooked here" : "Leftovers"}, ${meal.servings} servings${many ? `<br>Planned ${times(sl.length)}: ${sl.map(slotName).join(", ")}` : ""}</p>
+    <p class="muted" style="margin:0 0 14px;font-size:0.8235rem">${sl[0] === slot ? (isCooked(meal) ? "Cooked" : "Cooked here") : "Leftovers"}, ${meal.servings} servings${many ? `<br>Planned ${times(sl.length)}: ${sl.map(slotName).join(", ")}` : ""}</p>
     <div class="actlist">
+      ${sl[0] === slot ? `<button class="btn" id="aCooked">${isCooked(meal) ? "Mark as not cooked" : `${icon("check", "ic16")} Mark as cooked`}</button>` : ""}
       <button class="btn primary" id="aMove">${icon("swap", "ic16")} Move or swap</button>
       <a class="btn" href="#/r/${r.id}">Open recipe</a>
       <button class="btn" id="aEdit">Edit days &amp; servings</button>
       <button class="btn danger" id="aRm">${many ? `Remove from ${slotName(slot)}` : "Remove from plan"}</button>
       ${many ? `<button class="btn danger" id="aRmAll">Remove all ${sl.length}</button>` : ""}
     </div>`);
+  el.querySelector("#aCooked")?.addEventListener("click", () => {
+    const on = !isCooked(meal);
+    setCooked(key, meal.id, on); close(); toast(on ? "Marked as cooked" : "Not cooked"); planView(key);
+  });
   el.querySelector("#aMove").onclick = () => { moving = { type: "slot", mealId: meal.id, slot, key }; close(); planView(key); };
   el.querySelector("#aEdit").onclick = () => mealOptions(key, meal.rid, meal);
   el.querySelector("#aRm").onclick = () => {
