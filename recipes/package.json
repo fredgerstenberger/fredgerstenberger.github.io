@@ -1,10 +1,7 @@
 {
-  "name": "recipe-box",
+  "name": "recipe-box-moved",
   "private": true,
   "type": "module",
-  "description": "Recipe Box web app. No build step; this file only marks the JS as ES modules and runs the tests.",
-  "scripts": {
-    "test": "node --test test/*.test.mjs",
-    "test:live": "node --test test/live/*.live.mjs"
-  }
+  "description": "The old address of Recipe Box (now app.bakfan.com, repo fredgerstenberger/recipe-box): the page that moves a phone's data there. No build step.",
+  "scripts": { "test": "node --test test/*.test.mjs" }
 }

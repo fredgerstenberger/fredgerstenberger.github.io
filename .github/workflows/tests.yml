@@ -1,5 +1,5 @@
-# Runs Recipe Box's tests (about 270, a few seconds, no dependencies) on every pull request and every
-# push to main, so a change that breaks something shows a red check before it's merged.
+# Runs the tests of recipes/ (now only the "Recipe Box has moved" page; the app lives in the recipe-box repo)
+# on every pull request and every push to main.
 name: Tests
 on:
   pull_request:
@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Syntax check every app and Worker file
-        run: for f in js/*.js js/views/*.js sw.js worker/worker.js; do node --check "$f" || exit 1; done
+      - name: Syntax check the move page
+        run: for f in moved.js move-crypto.js sw.js js/version.js; do node --check "$f" || exit 1; done
       - name: Tests
         run: npm test
