@@ -1,7 +1,7 @@
 {
-  "name": "recipe-box-moved",
+  "name": "recipe-box-redirect",
   "private": true,
   "type": "module",
-  "description": "The old address of Recipe Box (now app.bakfan.com, repo fredgerstenberger/recipe-box): the page that moves a phone's data there. No build step.",
+  "description": "The old address of Recipe Box (now app.bakfan.com, repo fredgerstenberger/recipe-box): only a redirect there. No build step.",
   "scripts": { "test": "node --test test/*.test.mjs" }
 }
