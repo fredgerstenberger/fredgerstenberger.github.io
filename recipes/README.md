@@ -1,16 +1,9 @@
-# Recipe Box has moved
+# Recipe Box is at app.bakfan.com
 
-Recipe Box now lives at **https://app.bakfan.com** (code: the private repo `fredgerstenberger/recipe-box`).
+Recipe Box lives at **https://app.bakfan.com** (code: the private repo `fredgerstenberger/fredgerstenberger-recipe-box`).
 
-This folder is only the old address's hand-off page, so nobody loses anything:
+This folder is only the old address's redirect: `index.html` and `redirect.js` send everyone to app.bakfan.com,
+keeping a link's `?query` and `#fragment` (so shortcuts like `?add=milk` still work). `sw.js` has a new version, so a
+copy of the old app installed on a Home Screen updates to the redirect and clears the old app's cached files.
 
-- **Move my data** packs everything the app kept on this phone (recipes, plans, lists, settings, the sync box),
-  encrypts it on the phone (`move-crypto.js`, an exact copy of the one in the app's repo), uploads only the encrypted
-  bytes to the Worker for 24 hours, and opens `app.bakfan.com/#move=<id>.<key>`. The key is in the `#fragment`, which
-  no server sees. On an iPhone Home Screen install it hands over the link to paste in the new app instead, because a
-  Home Screen app opens other addresses in Safari, which keeps separate data.
-- After that, this address shows **Moved to app.bakfan.com**. The old data stays here as a fallback, with
-  **Download a backup file**.
-- Shortcut and share links (`?add=`, `?url=`, `?invite=`) are forwarded to the new address.
-
-Tests: `npm test` in this folder. Remove this folder once every phone has moved (see the app repo's `docs/DEPLOY.md`).
+Tests: `npm test` in this folder.
